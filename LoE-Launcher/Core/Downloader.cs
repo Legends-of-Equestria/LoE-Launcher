@@ -25,15 +25,16 @@ namespace LoE_Launcher.Core
 
     public class Downloader
     {
+        private IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
         private IRelativeDirectoryPath _gameInstallationFolder = ".\\game".ToRelativeDirectoryPathAuto();
         private IRelativeDirectoryPath _toolsFolder = ".\\tools".ToRelativeDirectoryPathAuto();
         private IAbsoluteDirectoryPath _launcherPath =
             Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location).ToAbsoluteDirectoryPathAuto();
 
-        private string _versionFileLocation = "http://patches.legendsofequestria.com/zsync/versions3.json";
+        private string ZsyncLocation => _settings.FormatZsyncLocation(_versionDownload);
+
         private string _versionDownload = "";
         public DownloadData _data = null;
-        private string ZsyncLocation => $"http://patches.legendsofequestria.com/zsync/{_versionDownload}/";
         private Version _maxVersionSupported = new Version(0, 2);
         private GameState _state = GameState.Unknown;
         
@@ -89,6 +90,10 @@ namespace LoE_Launcher.Core
         {
             Progress = new ProgressData(this);
 
+            var settingsFile = SettingsFile;
+            _settings = settingsFile.Exists ? 
+                JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path)) 
+                : new Settings();
 
             if (OperatingSystem == OS.X11)
                 _toolsFolder = "/usr/bin/".ToRelativeDirectoryPathAuto();
@@ -97,6 +102,7 @@ namespace LoE_Launcher.Core
         public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
         public IAbsoluteDirectoryPath ToolsFolder => _toolsFolder.GetAbsolutePathFrom(_launcherPath);
         public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
+        public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
         public GameState State => _state;
 
         public async Task RefreshState()
@@ -138,7 +144,7 @@ namespace LoE_Launcher.Core
 
         private async Task GetVersion()
         {
-            var data = await DownloadJson<VersionsControlFile>(new Uri(_versionFileLocation));
+            var data = await DownloadJson<VersionsControlFile>(new Uri(_settings.Stream));
             switch (OperatingSystem)
             {
                 case OS.WindowsX86:
@@ -200,6 +206,8 @@ namespace LoE_Launcher.Core
         }
 
         const int BYTES_TO_READ = sizeof(Int64);
+        private readonly Settings _settings;
+
         static bool FilesAreEqual(FileInfo first, FileInfo second)
         {
             if (first.Length != second.Length)
