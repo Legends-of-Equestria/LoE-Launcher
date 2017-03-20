@@ -264,6 +264,8 @@ namespace LoE_Launcher.Core
             {
                 tries++;
                 var reProcess = new Queue<ControlFileItem>();
+                //allows us to zsync the next file while we wait for unzip.
+                Task lastUnzip = Task.FromResult(0);
 
 				while (queue.Any())
 				{
@@ -297,13 +299,16 @@ namespace LoE_Launcher.Core
 						}
 						else
 						{
+                            //but don't do more than one unzip at a time, because it's probably hd speed limited.
+                            //so wait for last one to finish before starting our next one.
+                            await lastUnzip;
 
 							var absolutePathFrom =
 								item.InstallPath.GetAbsolutePathFrom(GameInstallFolder)
 									.GetBrotherFileWithName(
 										item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
 											.FileNameWithoutExtension);
-							UnzipFile(absolutePathFrom);
+							lastUnzip = UnzipFile(absolutePathFrom);
 							//UnzipFile(GameInstallFolder.GetChildFileWithName(item.InstallPath.ToString()).GetBrotherFileWithName(item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
 							//                .FileNameWithoutExtension));
 							Progress.Count();
@@ -314,6 +319,9 @@ namespace LoE_Launcher.Core
 						Console.WriteLine("Exception : " + e);
 					}
 				}
+                
+                //any more pending unzips?
+                await lastUnzip;
 
                 queue = reProcess;
                 if (!reProcess.Any())
@@ -373,7 +381,7 @@ namespace LoE_Launcher.Core
             CleanGameFolder();
         }
 
-        private void UnzipFile(IAbsoluteFilePath file)
+        private Task<int> UnzipFile(IAbsoluteFilePath file)
         {
             if(File.Exists(file.FileNameWithoutExtension + ".gz"))
                 File.Delete(file.FileNameWithoutExtension + ".gz");
@@ -388,7 +396,7 @@ namespace LoE_Launcher.Core
                     fileName = "gunzip";
                 }
 
-            new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
+            return new Process().RunAsTask(new ProcessStartInfo(fileName,
                 "\"" + nFile + "\"")
             {
                 UseShellExecute = OperatingSystem == OS.WindowsX64 || OperatingSystem == OS.WindowsX86,
@@ -399,29 +407,37 @@ namespace LoE_Launcher.Core
 
         private void CleanGameFolder()
         {
-            if (!GameInstallFolder.Exists)
+            try
             {
-                Directory.CreateDirectory(GameInstallFolder.ToString());
+                if (!GameInstallFolder.Exists)
+                {
+                    Directory.CreateDirectory(GameInstallFolder.ToString());
+                }
+                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.zsync", SearchOption.AllDirectories))
+                {
+                    file.Delete();
+                }
+                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.jar", SearchOption.AllDirectories))
+                {
+                    file.Delete();
+                }
+                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.gz", SearchOption.AllDirectories))
+                {
+                    file.Delete();
+                }
+                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.zs-old", SearchOption.AllDirectories))
+                {
+                    file.Delete();
+                }
+                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*%20*", SearchOption.AllDirectories))
+                {
+                    file.Rename(file.Name.Replace("%20", " "));
+                }
             }
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.zsync", SearchOption.AllDirectories))
+            catch (Exception e)
             {
-                file.Delete();
-            }
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.jar", SearchOption.AllDirectories))
-            {
-                file.Delete();
-            }
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.gz", SearchOption.AllDirectories))
-            {
-                file.Delete();
-            }
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.zs-old", SearchOption.AllDirectories))
-            {
-                file.Delete();
-            }
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*%20*", SearchOption.AllDirectories))
-            {
-                file.Rename(file.Name.Replace("%20"," "));
+                Progress = new ErrorProgress($"Could not clean game folder: {e.Message}", this);
+                throw;
             }
         }
 
@@ -673,6 +689,21 @@ namespace LoE_Launcher.Core
             protected override string GetText()
             {
                 return "Up to date";
+            }
+        }
+
+        public class ErrorProgress : ProgressData
+        {
+            readonly string _message;
+
+            public ErrorProgress(string message, Downloader model) : base(model)
+            {
+                _message = message;
+            }
+
+            protected override string GetText()
+            {
+                return _message;
             }
         }
     }

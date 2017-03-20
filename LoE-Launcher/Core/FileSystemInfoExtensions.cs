@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 //using NDepend.Path;
@@ -138,6 +139,22 @@ namespace LoE_Launcher.Core
 
             }
             return p.ExitCode;
+        }
+
+        public static Task<int> RunAsTask(this Process p, ProcessStartInfo startInfo)
+        {
+            p.StartInfo = startInfo;
+            p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            p.Start();
+            return Task.Run(() =>
+            {
+                try
+                {
+                    p.WaitForExit();
+                }
+                catch { }
+                return p.ExitCode;
+            });
         }
 
         public static string Format(this string @this, params object[] args)
