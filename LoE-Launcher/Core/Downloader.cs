@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using LoE_Launcher.Properties;
 //using NDepend.Path;
 using Newtonsoft.Json;
+using NLog;
 
 namespace LoE_Launcher.Core
 {
@@ -25,6 +26,8 @@ namespace LoE_Launcher.Core
 
     public class Downloader
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         private IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
         private IRelativeDirectoryPath _gameInstallationFolder = ".\\game".ToRelativeDirectoryPathAuto();
         private IRelativeDirectoryPath _toolsFolder = ".\\tools".ToRelativeDirectoryPathAuto();
@@ -138,6 +141,7 @@ namespace LoE_Launcher.Core
             }
             catch (Exception e)
             {
+                logger.Error(e, "RefreshState failed");
                 _state = GameState.Unknown;
             }
         }
@@ -175,6 +179,8 @@ namespace LoE_Launcher.Core
             }
             catch (Exception ex)
             {
+                logger.Error(ex, "DoInstallation->PrepareUpdate failed");
+
                 await ExtractContent();
                 await Cleanup();
                 await RefreshState();
@@ -436,7 +442,9 @@ namespace LoE_Launcher.Core
             }
             catch (Exception e)
             {
-                Progress = new ErrorProgress($"Could not clean game folder: {e.Message}", this);
+                logger.Error(e, "CleanGameFolder failed");
+                Progress = new ErrorProgress($"Could not clean game folder", this);
+                _state = GameState.Unknown;
                 throw;
             }
         }
@@ -469,6 +477,11 @@ namespace LoE_Launcher.Core
                         continue;
                     data.ToProcess.Add(item);
                 }
+                catch(Exception e)
+                {
+                    logger.Error(e, $"issue with control file item {item.InstallPath}");
+                    throw;
+                }
                 finally
                 {
                     Progress.Count();
@@ -492,6 +505,7 @@ namespace LoE_Launcher.Core
             }
             catch (Exception e)
             {
+                logger.Error(e, $"could not download json @ {url}");
                 _state = GameState.Offline;
                 return null;
             }

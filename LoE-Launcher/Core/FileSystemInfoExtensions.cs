@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NLog;
 
 //using NDepend.Path;
 
@@ -14,6 +15,8 @@ namespace LoE_Launcher.Core
 {
     public static class FileSystemInfoExtensions
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public static string SetExeName(this string name)
         {
             if (Downloader.OperatingSystem == OS.WindowsX64 || Downloader.OperatingSystem == OS.WindowsX86)
@@ -135,8 +138,8 @@ namespace LoE_Launcher.Core
             p.Start();
             try{
                 p.WaitForExit();
-            }catch{
-
+            }catch (Exception e){
+                logger.Error(e, $"could not RunInlineAndWait {startInfo.FileName} {startInfo.Arguments}");
             }
             return p.ExitCode;
         }
@@ -148,11 +151,12 @@ namespace LoE_Launcher.Core
             p.Start();
             return Task.Run(() =>
             {
-                try
-                {
+                try{
                     p.WaitForExit();
                 }
-                catch { }
+                catch (Exception e){
+                    logger.Error(e, $"could not RunAsTask {startInfo.FileName} {startInfo.Arguments}");
+                }
                 return p.ExitCode;
             });
         }
