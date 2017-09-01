@@ -24,7 +24,7 @@ namespace LoE_Launcher.Core
         Other
     }
 
-    public class Downloader
+    public partial class Downloader
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -281,8 +281,11 @@ namespace LoE_Launcher.Core
 						var item = queue.Dequeue();
 						var uri = item.GetContentUri(_data.ControlFile).ToString().Substring(0, item.GetContentUri(_data.ControlFile).ToString().Length - 10).ToString();
 
-						var arguments = "-u \"" + uri.ToString().Replace(" ", "%20") + "\" -o \"" + Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName)) + "\" -i \"" + Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName)) + "\" \"" +
-										   Path.GetFileNameWithoutExtension(item.InstallPath.ToString()) + "\"";
+						var arguments = 
+                            $"-u \"{uri.ToString().Replace(" ", "%20") + "\" -o \"" + Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName))}\""  //url for zsync file
+                            + (_settings.IgnoreSSLCertificates ? " -K" : "")
+                            + $" -i \"{Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName))}\""
+                            + $" \"{Path.GetFileNameWithoutExtension(item.InstallPath.ToString())}\"";
 						Console.WriteLine(arguments);
 						var fileName = ToolsFolder.GetChildFileWithName("zsync".SetExeName()).ToString();
 
@@ -518,12 +521,15 @@ namespace LoE_Launcher.Core
             {
                 var childFileWithName = item.InstallPath.GetAbsolutePathFrom(GameInstallFolder);
                 var contentUri = item.GetContentUri(_data.ControlFile);
-                var str = await client.GetByteArrayAsync(contentUri);
+                var stream = await client.GetStreamAsync(contentUri);
 
                 Directory.CreateDirectory(childFileWithName.ParentDirectoryPath.ToString());
-                File.WriteAllBytes(
-                    childFileWithName.GetBrotherFileWithName(Path.GetFileNameWithoutExtension(childFileWithName.FileName))
-                        .ToString(), str);
+                var filePath = childFileWithName.GetBrotherFileWithName(Path.GetFileNameWithoutExtension(childFileWithName.FileName))
+                        .ToString();
+                using (var fs = File.Create(filePath))
+                {
+                    await stream.CopyToAsync(fs);
+                }
             }
         }
 
@@ -595,131 +601,6 @@ namespace LoE_Launcher.Core
                 ToProcess = new List<ControlFileItem>();
             }
         }
-
-        public class RefreshProgress : ProgressData
-        {
-            public RefreshProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                if (IsFinished)
-                {
-                    if (Model._data?.ToProcess.Count != 0)
-                    {
-                        return "Files to Update: {0}".Format(Model._data?.ToProcess.Count);
-                    }
-                    return "Ready to Launch!";
-                }
-                else
-                {
-                    return "Preparing...";
-                }
-            }
-        }
-        public class PreparingProgress : ProgressData
-        {
-            public PreparingProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                if (IsFinished)
-                {
-                    return "Preparing Install...";
-                }
-                else
-                {
-                    if(Marquee)
-                        return "Preparing Install...";
-                    return "Preparing Install ({0}/{1})...".Format(Current, Max);
-                }
-            }
-        }
-        public class InstallingProgress : ProgressData
-        {
-            public InstallingProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                if (IsFinished)
-                {
-                    return "Installing...";
-                }
-                else
-                {
-                    if (Marquee)
-                        return "Installing...";
-                    return "Installing ({0}/{1})...".Format(Current, Max);
-                }
-            }
-        }
-        public class UnzipProgress : ProgressData
-        {
-            public UnzipProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                if (IsFinished)
-                {
-                    return "Extracting...";
-                }
-                else
-                {
-                    return "Extracting...";
-                }
-            }
-        }
-        public class CleanupProgress : ProgressData
-        {
-            public CleanupProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                if (IsFinished)
-                {
-                    return "Cleaning up...";
-                }
-                else
-                {
-                    return "Cleaning up...";
-                }
-            }
-        }
-        public class UpToDateProgress : ProgressData
-        {
-            public UpToDateProgress(Downloader model) : base(model)
-            {
-            }
-
-            protected override string GetText()
-            {
-                return "Up to date";
-            }
-        }
-
-        public class ErrorProgress : ProgressData
-        {
-            readonly string _message;
-
-            public ErrorProgress(string message, Downloader model) : base(model)
-            {
-                _message = message;
-            }
-
-            protected override string GetText()
-            {
-                return _message;
-            }
-        }
     }
 
     public enum GameState
@@ -730,45 +611,6 @@ namespace LoE_Launcher.Core
         UpToDate,
         Offline,
         LauncherOutOfDate
-    }
-
-    public class ProgressData
-    {
-        protected Downloader Model {  get; private set; }
-        public int Max { get; set; } = 100;
-        public int Current { get; set; } = 0;
-        public bool Marquee { get; set; } = false;
-        public bool Processing { get; set; } = false;
-        public bool IsFinished { get; set; } = false;
-        public string Text => GetText();
-
-        public ProgressData(Downloader model)
-        {
-            Model = model;
-        }
-
-        public void ResetCounter(int count, bool changeFromMarquee = false)
-        {
-            Current = 0;
-            Max = count;
-            if (changeFromMarquee)
-                Marquee = false;
-        }
-
-        public void Count(int count = 1)
-        {
-            if (Current + count > Max)
-            {
-                throw new ArithmeticException("Current can not be higher than Maximum");
-                //return;
-            }
-            Current += count;
-        }
-
-        protected virtual string GetText()
-        {
-            return "Processing....";
-        }
     }
 
     public class Processing : IDisposable

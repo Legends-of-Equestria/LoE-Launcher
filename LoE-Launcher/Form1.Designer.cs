@@ -78,9 +78,9 @@
             this.label2.ForeColor = System.Drawing.Color.Silver;
             this.label2.Location = new System.Drawing.Point(12, 290);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(63, 13);
+            this.label2.Size = new System.Drawing.Size(111, 13);
             this.label2.TabIndex = 4;
-            this.label2.Text = "Launcher Version: 0.3";
+            this.label2.Text = "Launcher Version: 0.4";
             // 
             // timer1
             // 
@@ -103,7 +103,7 @@
             this.pictureBox1.Image = global::LoE_Launcher.Properties.Resources.ScreenMines_01;
             this.pictureBox1.Location = new System.Drawing.Point(0, 0);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(422, 306);
+            this.pictureBox1.Size = new System.Drawing.Size(422, 307);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pictureBox1.TabIndex = 5;
             this.pictureBox1.TabStop = false;
@@ -112,7 +112,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(422, 306);
+            this.ClientSize = new System.Drawing.Size(422, 307);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.lblDownloadedAmount);

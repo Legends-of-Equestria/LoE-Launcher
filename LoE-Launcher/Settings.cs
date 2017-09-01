@@ -2,6 +2,8 @@
 {
     public class Settings
     {
+        public bool IgnoreSSLCertificates { get; set; } = true;
+
         public string ZsyncLocation { get; set; } = "http://patches.legendsofequestria.com/zsync/{version}/";
         
         public string Stream { get; set; } = "http://patches.legendsofequestria.com/zsync/versions3.json";

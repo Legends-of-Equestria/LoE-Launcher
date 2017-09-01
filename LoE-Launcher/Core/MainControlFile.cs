@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Newtonsoft.Json;
 
 namespace LoE_Launcher.Core
@@ -25,6 +26,7 @@ namespace LoE_Launcher.Core
         public Uri RootUri { get; set; }
     }
 
+    [DebuggerDisplay("{InstallPath} - {FileHash}")]
     public class ControlFileItem
     {
         public Uri RelativeContentUrl { get; set; }

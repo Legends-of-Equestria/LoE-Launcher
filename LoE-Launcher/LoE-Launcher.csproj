@@ -90,6 +90,7 @@
     <Compile Include="Core\CustomDirectoryPath.cs" />
     <Compile Include="Core\CustomFilePath.cs" />
     <Compile Include="Core\Downloader.cs" />
+    <Compile Include="Core\Downloader.Progress.cs" />
     <Compile Include="Core\FileSystemInfoExtensions.cs" />
     <Compile Include="Core\IAbsoluteDirectoryPath.cs" />
     <Compile Include="Core\IAbsoluteFilePath.cs" />
@@ -97,6 +98,7 @@
     <Compile Include="Core\IRelativeFilePath.cs" />
     <Compile Include="Core\MainControlFile.cs" />
     <Compile Include="Core\PathExtensions.cs" />
+    <Compile Include="Core\ProgressData.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -139,7 +141,6 @@
     <EmbeddedResource Include="Resources\CelestiaMediumRedux Name.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <None Include="Resources\LoE_Logo_Vector.ai" />
     <None Include="Resources\unity default resources" />
     <None Include="tools\zsync">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
