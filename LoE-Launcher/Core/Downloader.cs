@@ -139,8 +139,7 @@ namespace LoE_Launcher.Core
                 Progress.ResetCounter(_data.ToProcess.Count, true);
                 foreach (var controlFileItem in _data.ToProcess)
                 {
-                    CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder));
-                    await DownloadZyncFile(controlFileItem);
+                    await Task.Run(() => CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder)));
                     Progress.Count();
                 }
             }
@@ -326,11 +325,9 @@ namespace LoE_Launcher.Core
                 try
                 {
                     var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
-                    /*if(realFile.FileName.Contains(" "))
-                        realFile = realFile.GetBrotherFileWithName(realFile.FileName.Replace(" ", "%20"));*/
 
                     if (realFile.Exists &&
-                        realFile.ToString().GetFileHash(HashType.MD5) == item.FileHash /* || realFile.FileName.ToLower().Contains("default") */)
+                        realFile.ToString().GetFileHash(HashType.MD5) == item.FileHash)
                         continue;
                     data.ToProcess.Add(item);
                 }
