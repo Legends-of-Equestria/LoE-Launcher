@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace LoE_Launcher.Core
 {
     public class CustomDirectoryPath : IRelativeDirectoryPath, IAbsoluteDirectoryPath
     {
+        [DebuggerStepThrough]
         public CustomDirectoryPath(string path)
         {
             Path = path.Replace(".\\", "").Replace('\\', System.IO.Path.DirectorySeparatorChar);
@@ -18,17 +20,21 @@ namespace LoE_Launcher.Core
         public string DirectoryName => System.IO.Path.GetFileName(Path);
         public IAbsoluteDirectoryPath ParentDirectoryPath => new CustomDirectoryPath(System.IO.Path.GetDirectoryName(Path));
 
+        [DebuggerStepThrough]
         IRelativeFilePath IRelativeDirectoryPath.GetChildFileWithName(string fileName)
         {
             return new CustomFilePath(System.IO.Path.Combine(Path, fileName));
         }
 
         public bool Exists => System.IO.Directory.Exists(Path);
+
+        [DebuggerStepThrough]
         IAbsoluteFilePath IAbsoluteDirectoryPath.GetChildFileWithName(string fileName)
         {
             return new CustomFilePath(System.IO.Path.Combine(Path, fileName));
         }
 
+        [DebuggerStepThrough]
         public IAbsoluteDirectoryPath GetAbsolutePathFrom(IAbsoluteDirectoryPath launcherPath)
         {
             return System.IO.Path.Combine(launcherPath.Path, Path).ToAbsoluteDirectoryPathAuto();

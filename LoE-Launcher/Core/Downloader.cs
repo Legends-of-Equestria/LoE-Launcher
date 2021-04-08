@@ -15,15 +15,6 @@ using NLog;
 
 namespace LoE_Launcher.Core
 {
-    public enum OS
-    {
-        WindowsX86,
-        WindowsX64,
-        Mac,
-        X11,
-        Other
-    }
-
     public partial class Downloader
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -40,53 +31,10 @@ namespace LoE_Launcher.Core
         public DownloadData _data = null;
         private Version _maxVersionSupported = new Version(0, 2);
         private GameState _state = GameState.Unknown;
+
+        public static OS OperatingSystem => Platform.OperatingSystem;
         
-        public static OS OperatingSystem { get; }
 
-        static Downloader()
-        {
-            //OperatingSystem = OS.WindowsX86;
-            //return;
-            if (Path.DirectorySeparatorChar == '\\')
-                OperatingSystem = is64BitOperatingSystem ? OS.WindowsX64 : OS.WindowsX86;
-            else if (IsRunningOnMac())
-                OperatingSystem = OS.Mac;
-            else if (Environment.OSVersion.Platform == PlatformID.Unix)
-                OperatingSystem = OS.X11;
-            else
-                OperatingSystem = OS.Other;
-
-        }
-        //From Managed.Windows.Forms/XplatUI
-        [DllImport("libc")]
-        static extern int uname(IntPtr buf);
-        static bool IsRunningOnMac()
-        {
-            IntPtr buf = IntPtr.Zero;
-            try
-            {
-                buf = Marshal.AllocHGlobal(8192);
-                // This is a hacktastic way of getting sysname from uname ()
-                if (uname(buf) == 0)
-                {
-                    string os = Marshal.PtrToStringAnsi(buf);
-                    if (os == "Darwin")
-                        return true;
-                }
-            }
-            catch
-            {
-            }
-            finally
-            {
-                if (buf != IntPtr.Zero)
-                    Marshal.FreeHGlobal(buf);
-            }
-            return false;
-        }
-
-        static bool is64BitProcess = (IntPtr.Size == 8);
-        static bool is64BitOperatingSystem = is64BitProcess || InternalCheckIsWow64();
         public ProgressData Progress { get; private set; }
 
         public Downloader()
@@ -279,33 +227,18 @@ namespace LoE_Launcher.Core
 					{
 
 						var item = queue.Dequeue();
-						var uri = item.GetContentUri(_data.ControlFile).ToString().Substring(0, item.GetContentUri(_data.ControlFile).ToString().Length - 10).ToString();
+                        var zsyncUri = item.GetContentUri(_data.ControlFile);
+                        var objUri = zsyncUri.ToString().Substring(0, zsyncUri.ToString().Length - ControlFileItem.ZsyncExtension.Length).ToString();
 
-						var arguments = 
-                            $"-u \"{uri.ToString().Replace(" ", "%20") + "\" -o \"" + Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName))}\""  //url for zsync file
-                            + (_settings.IgnoreSSLCertificates ? " -K" : "")
-                            + $" -i \"{Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileName))}\""
-                            + $" \"{Path.GetFileNameWithoutExtension(item.InstallPath.ToString())}\"";
-						Console.WriteLine(arguments);
-						var fileName = ToolsFolder.GetChildFileWithName("zsync".SetExeName()).ToString();
+                        var zsyncFilePath = item.InstallPath.GetAbsolutePathFrom(GameInstallFolder).Path;
+                        var objFilePath = zsyncFilePath.Substring(0, zsyncFilePath.Length - ControlFileItem.ZsyncExtension.Length);
 
-						/* if(OperatingSystem == OS.Mac || OperatingSystem == OS.X11){
-							 fileName = "zsync";
-						 }*/
+                        var bytesRead = zsyncnet.Zsync.Sync(zsyncUri, new FileInfo(objFilePath), new Uri(objUri));
 
-						Console.WriteLine(fileName);
-
-						var resp = new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
-							arguments)
-						{
-							UseShellExecute = OperatingSystem == OS.WindowsX64 || OperatingSystem == OS.WindowsX86,
-							WindowStyle = ProcessWindowStyle.Minimized,
-							WorkingDirectory = item.InstallPath.ParentDirectoryPath.GetAbsolutePathFrom(GameInstallFolder).ToString()
-						});
-						if (resp != 0)
-						{
-							reProcess.Enqueue(item);
-						}
+						if (bytesRead == 0)
+                        {
+                            reProcess.Enqueue(item);
+                        }
 						else
 						{
                             //but don't do more than one unzip at a time, because it's probably hd speed limited.
@@ -382,7 +315,7 @@ namespace LoE_Launcher.Core
             new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
                 "-r \"" + GameInstallFolder.DirectoryName + "\"")
             {
-                UseShellExecute = OperatingSystem == OS.WindowsX64 || OperatingSystem == OS.WindowsX86,
+                UseShellExecute = Platform.UseShellExecute,
                 WindowStyle = ProcessWindowStyle.Minimized,
                 WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
             });
@@ -408,8 +341,8 @@ namespace LoE_Launcher.Core
             return new Process().RunAsTask(new ProcessStartInfo(fileName,
                 "\"" + nFile + "\"")
             {
-                UseShellExecute = OperatingSystem == OS.WindowsX64 || OperatingSystem == OS.WindowsX86,
-                WindowStyle = ProcessWindowStyle.Minimized,
+                UseShellExecute = Platform.UseShellExecute,
+                WindowStyle = ProcessWindowStyle.Hidden,
                 WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
             });
         }
@@ -546,8 +479,6 @@ namespace LoE_Launcher.Core
                 new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
                     "\"" + realFile + "\"")
                 {
-                    UseShellExecute = OperatingSystem == OS.WindowsX64 || OperatingSystem == OS.WindowsX86,
-                    WindowStyle = ProcessWindowStyle.Minimized,
                     WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
                 });
                 var compressedFile = realFile.GetBrotherFileWithName(realFile.FileName + ".gz");
@@ -558,35 +489,6 @@ namespace LoE_Launcher.Core
                 {
                     compressedFile.FileInfo.Rename(compressedFile.FileName.Replace(" ", "%20"));
                 }
-            }
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWow64Process(
-            [In] IntPtr hProcess,
-            [Out] out bool wow64Process
-        );
-
-        public static bool InternalCheckIsWow64()
-        {
-            return true;
-            if ((Environment.OSVersion.Version.Major == 5 && Environment.OSVersion.Version.Minor >= 1) ||
-                Environment.OSVersion.Version.Major >= 6)
-            {
-                using (Process p = Process.GetCurrentProcess())
-                {
-                    bool retVal;
-                    if (!IsWow64Process(p.Handle, out retVal))
-                    {
-                        return false;
-                    }
-                    return retVal;
-                }
-            }
-            else
-            {
-                return false;
             }
         }
 

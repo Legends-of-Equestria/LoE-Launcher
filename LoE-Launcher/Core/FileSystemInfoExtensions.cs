@@ -6,7 +6,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using NLog;
 
 //using NDepend.Path;
@@ -19,7 +18,7 @@ namespace LoE_Launcher.Core
 
         public static string SetExeName(this string name)
         {
-            if (Downloader.OperatingSystem == OS.WindowsX64 || Downloader.OperatingSystem == OS.WindowsX86)
+            if (Platform.OperatingSystem == OS.WindowsX64 || Platform.OperatingSystem == OS.WindowsX86)
                 return name + ".exe";
             return name;
         }
@@ -130,17 +129,32 @@ namespace LoE_Launcher.Core
         {
             return new Uri(controlData.RootUri, item.RelativeContentUrl.ToString().Replace("../","./"));
         }
+
         public static int RunInlineAndWait(this Process p, ProcessStartInfo startInfo)
         {
             p.StartInfo = startInfo;
-            //p.StartInfo.UseShellExecute = false;
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.CreateNoWindow = true;
             p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
             p.Start();
-            try{
+
+            var output = p.StandardOutput.ReadToEnd();
+            var err = p.StandardError.ReadToEnd();
+
+            try
+            {
                 p.WaitForExit();
             }catch (Exception e){
                 logger.Error(e, $"could not RunInlineAndWait {startInfo.FileName} {startInfo.Arguments}");
             }
+
+            if (p.ExitCode == 0)
+                logger.Info(output);
+            else
+                logger.Error($"{startInfo.Arguments} failed. Console output: {err}");
             return p.ExitCode;
         }
 

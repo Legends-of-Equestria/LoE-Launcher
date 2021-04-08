@@ -29,6 +29,8 @@ namespace LoE_Launcher.Core
     [DebuggerDisplay("{InstallPath} - {FileHash}")]
     public class ControlFileItem
     {
+        public const string ZsyncExtension = ".zsync.jar";
+
         public Uri RelativeContentUrl { get; set; }
         [JsonIgnore]
         public IRelativeFilePath InstallPath { get; set; }
