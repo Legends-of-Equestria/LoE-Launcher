@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ICSharpCode.SharpZipLib.GZip;
-using LoE_Launcher.Properties;
-//using NDepend.Path;
 using Newtonsoft.Json;
 using NLog;
 
@@ -135,8 +132,6 @@ namespace LoE_Launcher.Core
 
         public async Task PrepareUpdate()
         {
-            InstallResources();
-
             Progress = new PreparingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
