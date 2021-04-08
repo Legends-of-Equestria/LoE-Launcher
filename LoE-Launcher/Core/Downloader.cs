@@ -180,18 +180,6 @@ namespace LoE_Launcher.Core
             return true;
         }
 
-        private void InstallResources()
-        {
-            var location = "LoE_Data\\Resources\\unity default resources";
-            if (File.Exists("game\\" + location))
-                File.Delete("game\\" + location);
-
-            Directory.CreateDirectory("game\\LoE_Data\\Resources\\");
-
-            File.WriteAllBytes(GameInstallFolder.GetChildFileWithName(location).ToString(),
-                Resources.unity_default_resources);
-        }
-
         public async Task InstallUpdate()
         {
             Progress = new InstallingProgress(this) { Marquee = true };
@@ -313,10 +301,6 @@ namespace LoE_Launcher.Core
                 {
                     file.Delete();
                 }
-                foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*%20*", SearchOption.AllDirectories))
-                {
-                    file.Rename(file.Name.Replace("%20", " "));
-                }
             }
             catch (Exception e)
             {
@@ -347,11 +331,11 @@ namespace LoE_Launcher.Core
                 try
                 {
                     var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
-                    if(realFile.FileName.Contains(" "))
-                        realFile = realFile.GetBrotherFileWithName(realFile.FileName.Replace(" ", "%20"));
+                    /*if(realFile.FileName.Contains(" "))
+                        realFile = realFile.GetBrotherFileWithName(realFile.FileName.Replace(" ", "%20"));*/
 
                     if (realFile.Exists &&
-                        realFile.ToString().GetFileHash(HashType.MD5) == item.FileHash || realFile.FileName.ToLower().Contains("default"))
+                        realFile.ToString().GetFileHash(HashType.MD5) == item.FileHash /* || realFile.FileName.ToLower().Contains("default") */)
                         continue;
                     data.ToProcess.Add(item);
                 }
@@ -413,10 +397,6 @@ namespace LoE_Launcher.Core
             if (realFile.Exists)
             {
                 var compressedFile = realFile.GetBrotherFileWithName(realFile.FileName + ".jar");
-                if (compressedFile.FileName.Contains(" "))
-                {
-                    compressedFile = compressedFile.GetBrotherFileWithName(compressedFile.FileName.Replace(" ", "%20"));
-                }
                 using (var inputStream = new FileStream(realFile.Path, FileMode.Open))
                 using (var outputStream = new FileStream(compressedFile.Path, FileMode.Create))
                 {

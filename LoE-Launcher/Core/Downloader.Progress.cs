@@ -26,7 +26,7 @@ namespace LoE_Launcher.Core
                 }
                 else
                 {
-                    return "Preparing...";
+                    return "Verifying Files...";
                 }
             }
         }
