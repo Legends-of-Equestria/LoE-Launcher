@@ -4,10 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ICSharpCode.SharpZipLib.GZip;
 using LoE_Launcher.Properties;
 //using NDepend.Path;
 using Newtonsoft.Json;
@@ -21,7 +20,6 @@ namespace LoE_Launcher.Core
 
         private IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
         private IRelativeDirectoryPath _gameInstallationFolder = ".\\game".ToRelativeDirectoryPathAuto();
-        private IRelativeDirectoryPath _toolsFolder = ".\\tools".ToRelativeDirectoryPathAuto();
         private IAbsoluteDirectoryPath _launcherPath =
             Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location).ToAbsoluteDirectoryPathAuto();
 
@@ -45,13 +43,9 @@ namespace LoE_Launcher.Core
             _settings = settingsFile.Exists ? 
                 JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path)) 
                 : new Settings();
-
-            if (OperatingSystem == OS.X11)
-                _toolsFolder = "/usr/bin/".ToRelativeDirectoryPathAuto();
         }
 
         public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
-        public IAbsoluteDirectoryPath ToolsFolder => _toolsFolder.GetAbsolutePathFrom(_launcherPath);
         public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
         public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
         public GameState State => _state;
@@ -129,14 +123,12 @@ namespace LoE_Launcher.Core
             {
                 logger.Error(ex, "DoInstallation->PrepareUpdate failed");
 
-                await ExtractContent();
                 await Cleanup();
                 await RefreshState();
                 MessageBox.Show("The Launcher ran into a critical error while trying to patch your game. Please try again later.\n\nException: " + ex.ToString());
                 return;
             }
             await InstallUpdate();
-            await ExtractContent();
             await Cleanup();
             await RefreshState();
         }
@@ -251,8 +243,6 @@ namespace LoE_Launcher.Core
 										item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
 											.FileNameWithoutExtension);
 							lastUnzip = UnzipFile(absolutePathFrom);
-							//UnzipFile(GameInstallFolder.GetChildFileWithName(item.InstallPath.ToString()).GetBrotherFileWithName(item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
-							//                .FileNameWithoutExtension));
 							Progress.Count();
 						}
 					}
@@ -278,16 +268,6 @@ namespace LoE_Launcher.Core
             }
         }
 
-        public async Task ExtractContent()
-        {
-            //throw new Exception("HAHA");
-            Progress = new UnzipProgress(this) { Marquee = true };
-            using (new Processing(Progress))
-            {
-                await UnzipAllContent();
-            }
-        }
-
         public async Task Cleanup()
         {
             Progress = new CleanupProgress(this) { Marquee = true };
@@ -297,53 +277,15 @@ namespace LoE_Launcher.Core
             }
         }
 
-        private async Task UnzipAllContent()
+        private Task UnzipFile(IAbsoluteFilePath file)
         {
-            return;
-            foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles("*.jar", SearchOption.AllDirectories))
+            return Task.Run(() =>
             {
-                file.Rename(Path.GetFileNameWithoutExtension(file.Name) + ".gz");
-            }
-            
-            var fileName = ToolsFolder.GetChildFileWithName("gunzip".SetExeName()).ToString();
-
-            if(OperatingSystem == OS.Mac || OperatingSystem == OS.X11){
-                    fileName = "gunzip";
-                }
-
-            Console.WriteLine(fileName);
-            new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
-                "-r \"" + GameInstallFolder.DirectoryName + "\"")
-            {
-                UseShellExecute = Platform.UseShellExecute,
-                WindowStyle = ProcessWindowStyle.Minimized,
-                WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
-            });
-            
-            CleanGameFolder();
-        }
-
-        private Task<int> UnzipFile(IAbsoluteFilePath file)
-        {
-            if(File.Exists(file.FileNameWithoutExtension + ".gz"))
-                File.Delete(file.FileNameWithoutExtension + ".gz");
-
-            file.FileInfo.Rename(file.FileNameWithoutExtension + ".gz");
-
-            var nFile = file.GetBrotherFileWithName(file.FileNameWithoutExtension + ".gz");
-
-            var fileName = ToolsFolder.GetChildFileWithName("gunzip".SetExeName()).ToString();
-
-            if(OperatingSystem == OS.Mac || OperatingSystem == OS.X11){
-                    fileName = "gunzip";
-                }
-
-            return new Process().RunAsTask(new ProcessStartInfo(fileName,
-                "\"" + nFile + "\"")
-            {
-                UseShellExecute = Platform.UseShellExecute,
-                WindowStyle = ProcessWindowStyle.Hidden,
-                WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
+                using (var inputStream = new FileStream(file.Path, FileMode.Open))
+                using (var outputStream = new FileStream(file.GetBrotherFileWithName(file.FileNameWithoutExtension).Path, FileMode.Create))
+                {
+                    GZip.Decompress(inputStream, outputStream, false);
+                };
             });
         }
 
@@ -470,24 +412,15 @@ namespace LoE_Launcher.Core
         {
             if (realFile.Exists)
             {
-                var fileName = ToolsFolder.GetChildFileWithName("gzip".SetExeName()).ToString();
-                
-                if(OperatingSystem == OS.Mac || OperatingSystem == OS.X11){
-                    fileName = "gzip";
-                }
-
-                new Process().RunInlineAndWait(new ProcessStartInfo(fileName,
-                    "\"" + realFile + "\"")
-                {
-                    WorkingDirectory = GameInstallFolder.ParentDirectoryPath.ToString()
-                });
-                var compressedFile = realFile.GetBrotherFileWithName(realFile.FileName + ".gz");
-                var newName = compressedFile.FileNameWithoutExtension + ".jar";
-                compressedFile.FileInfo.Rename(newName);
-                compressedFile = realFile.GetBrotherFileWithName(realFile.FileName + ".jar");
+                var compressedFile = realFile.GetBrotherFileWithName(realFile.FileName + ".jar");
                 if (compressedFile.FileName.Contains(" "))
                 {
-                    compressedFile.FileInfo.Rename(compressedFile.FileName.Replace(" ", "%20"));
+                    compressedFile = compressedFile.GetBrotherFileWithName(compressedFile.FileName.Replace(" ", "%20"));
+                }
+                using (var inputStream = new FileStream(realFile.Path, FileMode.Open))
+                using (var outputStream = new FileStream(compressedFile.Path, FileMode.Create))
+                {
+                    GZip.Compress(inputStream, outputStream, false);
                 }
             }
         }
