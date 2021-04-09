@@ -47,6 +47,8 @@ namespace LoE_Launcher.Core
         public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
         public GameState State => _state;
 
+        public long BytesDownloaded { get; private set; }
+
         public async Task RefreshState()
         {
             try
@@ -135,44 +137,23 @@ namespace LoE_Launcher.Core
             Progress = new PreparingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
-
+                var tasks = new List<Task>(_data.ToProcess.Count);
                 Progress.ResetCounter(_data.ToProcess.Count, true);
+
                 foreach (var controlFileItem in _data.ToProcess)
                 {
-                    await Task.Run(() => CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder)));
-                    Progress.Count();
+                    tasks.Add(Task.Run(() =>
+                    {
+                        CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder));
+                        Progress.Count();
+                    }));
                 }
+
+                await Task.WhenAll(tasks);
             }
         }
 
-        const int BYTES_TO_READ = sizeof(Int64);
         private readonly Settings _settings;
-
-        static bool FilesAreEqual(FileInfo first, FileInfo second)
-        {
-            if (first.Length != second.Length)
-                return false;
-
-            int iterations = (int)Math.Ceiling((double)first.Length / BYTES_TO_READ);
-
-            using (FileStream fs1 = first.OpenRead())
-            using (FileStream fs2 = second.OpenRead())
-            {
-                byte[] one = new byte[BYTES_TO_READ];
-                byte[] two = new byte[BYTES_TO_READ];
-
-                for (int i = 0; i < iterations; i++)
-                {
-                    fs1.Read(one, 0, BYTES_TO_READ);
-                    fs2.Read(two, 0, BYTES_TO_READ);
-
-                    if (BitConverter.ToInt64(one, 0) != BitConverter.ToInt64(two, 0))
-                        return false;
-                }
-            }
-
-            return true;
-        }
 
         public async Task InstallUpdate()
         {
@@ -185,9 +166,12 @@ namespace LoE_Launcher.Core
 
         private async Task UpdateFiles(int retries = 0)
         {
+            var installProgress = Progress as InstallingProgress;
+
             int tries = 0;
             var queue = new Queue<ControlFileItem>(_data.ToProcess);
             Progress.ResetCounter(queue.Count, true);
+            BytesDownloaded = 0;
             while (tries <= retries)
             {
                 tries++;
@@ -207,7 +191,34 @@ namespace LoE_Launcher.Core
                         var zsyncFilePath = item.InstallPath.GetAbsolutePathFrom(GameInstallFolder).Path;
                         var objFilePath = zsyncFilePath.Substring(0, zsyncFilePath.Length - ControlFileItem.ZsyncExtension.Length);
 
-                        var bytesRead = zsyncnet.Zsync.Sync(zsyncUri, new FileInfo(objFilePath), new Uri(objUri));
+                        var fileName = new CustomFilePath(objFilePath).FileNameWithoutExtension;
+
+                        long bytesRead;
+                        try
+                        {
+                            bytesRead = zsyncnet.Zsync.Sync(zsyncUri, new FileInfo(objFilePath), new Uri(objUri), (ss) =>
+                            {
+                                string flavor;
+                                switch (ss)
+                                {
+                                    case zsyncnet.SyncState.CalcDiff: flavor = $"{fileName} diff"; break;
+                                    case zsyncnet.SyncState.CopyExisting: flavor = $"{fileName} copying parts"; break;
+                                    case zsyncnet.SyncState.DownloadPatch: flavor = $"{fileName} downloading patch"; break;
+                                    case zsyncnet.SyncState.DownloadNew: flavor = $"{fileName} downloading"; break;
+                                    case zsyncnet.SyncState.PatchFile: flavor = $"{fileName} patching"; break;
+                                    default:
+                                        flavor = "";
+                                        break;
+                                }
+                                installProgress.FlavorText = flavor;
+                            });
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("zsync exception: " + e);
+                            bytesRead = 0;
+                            File.Delete(objFilePath);
+                        }
 
 						if (bytesRead == 0)
                         {
@@ -215,6 +226,7 @@ namespace LoE_Launcher.Core
                         }
 						else
 						{
+                            BytesDownloaded += bytesRead;
                             //but don't do more than one unzip at a time, because it's probably hd speed limited.
                             //so wait for last one to finish before starting our next one.
                             await lastUnzip;
@@ -248,6 +260,8 @@ namespace LoE_Launcher.Core
             {
                 //throw new Exception("Failed to get all files!");
             }
+
+            installProgress.FlavorText = "";
         }
 
         public async Task Cleanup()

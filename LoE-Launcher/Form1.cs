@@ -157,7 +157,7 @@ namespace LoE_Launcher
         {
             pbState.Maximum = _downloader.Progress.Max;
             pbState.Value = _downloader.Progress.Current;
-            lblDownloadedAmount.Text = _downloader.Progress.Text;
+            lblDownloadedAmount.Text = $"{_downloader.Progress.Text}\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
             if (_downloader.Progress.Marquee)
             {
                 pbState.Style = ProgressBarStyle.Marquee;
@@ -202,6 +202,17 @@ namespace LoE_Launcher
             }
 
             btnAction.Enabled = enabledState;
+        }
+
+        static String BytesToString(long byteCount)
+        {
+            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            if (byteCount == 0)
+                return "0" + suf[0];
+            long bytes = Math.Abs(byteCount);
+            int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
+            double num = Math.Round(bytes / Math.Pow(1024, place), 1);
+            return (Math.Sign(byteCount) * num).ToString() + suf[place];
         }
     }
 }

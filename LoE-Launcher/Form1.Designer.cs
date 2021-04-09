@@ -55,7 +55,7 @@
             // 
             this.pbState.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.pbState.Location = new System.Drawing.Point(12, 242);
+            this.pbState.Location = new System.Drawing.Point(12, 232);
             this.pbState.Name = "pbState";
             this.pbState.Size = new System.Drawing.Size(398, 23);
             this.pbState.TabIndex = 1;
@@ -65,7 +65,7 @@
             this.lblDownloadedAmount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.lblDownloadedAmount.AutoSize = true;
             this.lblDownloadedAmount.ForeColor = System.Drawing.Color.Silver;
-            this.lblDownloadedAmount.Location = new System.Drawing.Point(12, 276);
+            this.lblDownloadedAmount.Location = new System.Drawing.Point(12, 258);
             this.lblDownloadedAmount.Name = "lblDownloadedAmount";
             this.lblDownloadedAmount.Size = new System.Drawing.Size(135, 13);
             this.lblDownloadedAmount.TabIndex = 2;

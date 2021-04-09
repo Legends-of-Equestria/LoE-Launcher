@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LoE_Launcher.Core
 {
     public class ProgressData
     {
+        private readonly object countLock = new object();
+
         protected Downloader Model { get; private set; }
         public int Max { get; set; } = 100;
         public int Current { get; set; } = 0;
@@ -31,12 +29,15 @@ namespace LoE_Launcher.Core
 
         public void Count(int count = 1)
         {
-            if (Current + count > Max)
+            lock (countLock)
             {
-                throw new ArithmeticException("Current can not be higher than Maximum");
-                //return;
+                if (Current + count > Max)
+                {
+                    throw new ArithmeticException("Current can not be higher than Maximum");
+                    //return;
+                }
+                Current += count;
             }
-            Current += count;
         }
 
         protected virtual string GetText()

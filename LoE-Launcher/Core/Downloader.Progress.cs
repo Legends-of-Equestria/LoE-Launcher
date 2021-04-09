@@ -52,6 +52,8 @@ namespace LoE_Launcher.Core
         }
         public class InstallingProgress : ProgressData
         {
+            public string FlavorText { get; set; }
+
             public InstallingProgress(Downloader model) : base(model)
             {
             }
@@ -66,7 +68,11 @@ namespace LoE_Launcher.Core
                 {
                     if (Marquee)
                         return "Installing...";
-                    return "Installing ({0}/{1})...".Format(Current, Max);
+
+                    if (!string.IsNullOrWhiteSpace(FlavorText))
+                        return $"Installing ({Current}/{Max})... {FlavorText}";
+
+                    return $"Installing ({Current}/{Max})...";
                 }
             }
         }

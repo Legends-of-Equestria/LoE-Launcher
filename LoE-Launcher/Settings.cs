@@ -2,7 +2,7 @@
 {
     public class Settings
     {
-        public bool IgnoreSSLCertificates { get; set; } = true;
+        public bool IgnoreSSLCertificates { get; set; } = false;
 
         public string ZsyncLocation { get; set; } = "http://patches.legendsofequestria.com/zsync/{version}/";
         
