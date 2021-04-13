@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.Icon = LoE_Launcher.Properties.Resources.LoEIcon;
             this.components = new System.ComponentModel.Container();
             this.btnAction = new System.Windows.Forms.Button();
             this.pbState = new System.Windows.Forms.ProgressBar();
