@@ -61,16 +61,6 @@ namespace LoE_Launcher.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] CelestiaMediumRedux_Name {
-            get {
-                object obj = ResourceManager.GetObject("CelestiaMediumRedux_Name", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap LoE_Logo_Vector {

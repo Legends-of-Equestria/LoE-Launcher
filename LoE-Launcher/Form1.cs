@@ -19,11 +19,9 @@ namespace LoE_Launcher
     public partial class Form1 : Form
     {
         Downloader _downloader = new Downloader();
-        private PrivateFontCollection _celestiaFont;
 
         public Form1()
         {
-            _celestiaFont = LoadPrivateFont(Resources.CelestiaMediumRedux_Name);
             InitializeComponent();
             
             MakeTransparent(pictureBox2, pictureBox1);
