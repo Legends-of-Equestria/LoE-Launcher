@@ -15,7 +15,7 @@ public static class FileSystemInfoExtensions
 
     public static string SetExeName(this string name)
     {
-        if (Platform.OperatingSystem == OS.WindowsX64 || Platform.OperatingSystem == OS.WindowsX86)
+        if (PlatformUtils.OperatingSystem == OS.WindowsX64 || PlatformUtils.OperatingSystem == OS.WindowsX86)
         {
             return $"{name}.exe";
         }

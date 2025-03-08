@@ -27,7 +27,7 @@
                    WidthRequest="203"
                    HeightRequest="108" />
 
-            <!-- Bottom controls layout -->
+                       <!-- Bottom controls layout -->
             <VerticalStackLayout VerticalOptions="End"
                                  Margin="16,0,16,16"
                                  Spacing="8">
@@ -49,11 +49,6 @@
                            Text="000/000 Files Downloaded"
                            TextColor="Silver"
                            Grid.Column="0" />
-
-                    <Label x:Name="lblTimeRemaining"
-                           Text="Time remaining: calculating..."
-                           TextColor="Silver"
-                           Grid.Column="1" />
                 </Grid>
 
                 <!-- Bottom row with version and button -->

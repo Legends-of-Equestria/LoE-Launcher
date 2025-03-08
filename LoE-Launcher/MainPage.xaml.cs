@@ -2,7 +2,6 @@
 using System.Globalization;
 using LoE_Launcher.Core;
 using LoE_Launcher.Core.Utils;
-using Platform = LoE_Launcher.Core.Utils.Platform;
 
 namespace LoE_Launcher;
 
@@ -10,17 +9,14 @@ public partial class MainPage : ContentPage
 {
     private readonly Downloader _downloader;
 
-    private long _lastBytesDownloaded = 0;
-    private DateTime _lastSpeedCheck = DateTime.Now;
-    private double _downloadSpeed = 0; // bytes per second
-    private TimeSpan _estimatedTimeRemaining = TimeSpan.Zero;
-    private bool _showTimeRemaining = false;
-
-    private Queue<double> _speedSamples = new Queue<double>();
-    private const int MaxSpeedSamples = 5;
-    private TimeSpan _lastReportedTimeRemaining = TimeSpan.Zero;
-    private const double TimeRemainingChangeThreshold = 0.25;
-
+    private int _gameState = 0; // 0=Unknown, 1=NotFound, 2=UpdateAvailable, 3=UpToDate, 4=Offline, 5=OutOfDate
+    private int _progressCurrent = 0;
+    private int _progressMax = 100;
+    private string _progressText = "Ready";
+    private bool _progressMarquee = false;
+    private bool _progressProcessing = false;
+    private long _bytesDownloaded = 0;
+    
     private IDispatcherTimer _timer;
     private Stopwatch _downloadStopwatch = new Stopwatch();
 
@@ -36,14 +32,11 @@ public partial class MainPage : ContentPage
         // Create your downloader directly - no adapter needed
         _downloader = new Downloader();
 
-        // Hide time remaining initially
-        lblTimeRemaining.IsVisible = false;
-
         // Load the images from URLs
         LoadBackgroundImages();
 
         // Set platform information
-        lblVersion.Text = $"Launcher Version: 0.5 Platform: {Platform.OperatingSystem}";
+        lblVersion.Text = $"Launcher Version: 0.5 Platform: {PlatformUtils.OperatingSystem}";
 
         // Start the timer for UI updates
         _timer = Dispatcher.CreateTimer();
@@ -110,16 +103,10 @@ public partial class MainPage : ContentPage
 
             if (_downloader.Progress.Processing && _downloadStopwatch.IsRunning)
             {
-                UpdateDownloadStats();
+                lblDownloadedAmount.Text = $"{_progressText}\n{BytesToString(_bytesDownloaded)} downloaded";
             }
 
             lblDownloadedAmount.Text = $"{_downloader.Progress.Text}\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
-
-            lblTimeRemaining.IsVisible = _showTimeRemaining;
-            if (_showTimeRemaining)
-            {
-                lblTimeRemaining.Text = $"Time remaining: {FormatTimeRemaining(_estimatedTimeRemaining)}";
-            }
 
             var enabledState = true;
 
@@ -166,97 +153,6 @@ public partial class MainPage : ContentPage
         });
     }
 
-    private void UpdateDownloadStats()
-    {
-        if (_downloader.BytesDownloaded <= 0)
-        {
-            return;
-        }
-
-        var currentTime = DateTime.Now;
-        var elapsedSeconds = (currentTime - _lastSpeedCheck).TotalSeconds;
-
-        if (elapsedSeconds >= 0.5)
-        {
-            var bytesDelta = _downloader.BytesDownloaded - _lastBytesDownloaded;
-
-            if (bytesDelta > 0 && elapsedSeconds > 0)
-            {
-                var instantSpeed = bytesDelta / elapsedSeconds;
-
-                _speedSamples.Enqueue(instantSpeed);
-                if (_speedSamples.Count > MaxSpeedSamples)
-                {
-                    _speedSamples.Dequeue();
-                }
-
-                _downloadSpeed = _speedSamples.Average();
-            }
-
-            _lastBytesDownloaded = _downloader.BytesDownloaded;
-            _lastSpeedCheck = currentTime;
-
-            if (_downloadSpeed > 0 && _downloader.Progress is { Current: > 0, Max: > 0 })
-            {
-                var progressFraction = (double)_downloader.Progress.Current / _downloader.Progress.Max;
-                var estimatedTotalBytes = _downloader.BytesDownloaded / progressFraction;
-                var bytesRemaining = Math.Max(0, estimatedTotalBytes - _downloader.BytesDownloaded);
-
-                var secondsRemaining = bytesRemaining / _downloadSpeed;
-                var newEstimate = TimeSpan.FromSeconds(secondsRemaining);
-
-                // Apply hysteresis/smoothing to prevent wild jumps
-                if (_lastReportedTimeRemaining == TimeSpan.Zero ||
-                    Math.Abs(1 - (newEstimate.TotalSeconds / Math.Max(1, _lastReportedTimeRemaining.TotalSeconds))) > TimeRemainingChangeThreshold)
-                {
-                    // Only update if the change is significant
-                    _estimatedTimeRemaining = TimeSpan.FromSeconds(Math.Round(secondsRemaining));
-                    _lastReportedTimeRemaining = _estimatedTimeRemaining;
-                }
-            }
-            else if (_downloadSpeed <= 0 || _downloader.Progress.Current <= 0)
-            {
-                // Avoid displaying "NaN" or weird estimates by reverting to "calculating..."
-                _estimatedTimeRemaining = TimeSpan.Zero;
-            }
-        }
-    }
-
-    private static string FormatTimeRemaining(TimeSpan timeSpan)
-    {
-        if (timeSpan == TimeSpan.Zero || timeSpan.TotalSeconds < 0)
-        {
-            return "calculating...";
-        }
-
-        if (timeSpan.TotalHours >= 1)
-        {
-            // Round to nearest minute when in hours
-            var hours = (int)timeSpan.TotalHours;
-            var minutes = (int)Math.Round(timeSpan.Minutes / 5.0) * 5; // Round to nearest 5 minutes
-            return $"about {hours}h {(minutes > 0 ? $"{minutes}m" : "")}";
-        }
-        else if (timeSpan.TotalMinutes >= 1)
-        {
-            if (timeSpan.TotalMinutes > 10)
-            {
-                return $"about {(int)timeSpan.TotalMinutes}m";
-            }
-            else
-            {
-                return $"{(int)timeSpan.TotalMinutes}m {timeSpan.Seconds}s";
-            }
-        }
-        else if (timeSpan.TotalSeconds >= 5)
-        {
-            return $"{(int)timeSpan.TotalSeconds}s";
-        }
-        else
-        {
-            return "almost done";
-        }
-    }
-
     private async void OnActionButtonClicked(object sender, EventArgs e)
     {
         // Disable button to prevent multiple clicks
@@ -291,16 +187,12 @@ public partial class MainPage : ContentPage
 
     private async Task InstallOrUpdateGame()
     {
-        _showTimeRemaining = true;
         _downloadStopwatch.Restart();
-        _lastBytesDownloaded = 0;
-        _lastSpeedCheck = DateTime.Now;
 
         try
         {
             await Task.Run(() => _downloader.DoInstallation());
 
-            // Completion indication
             var originalColor = pbState.ProgressColor;
             pbState.ProgressColor = Color.FromArgb("#4CAF50"); // Green
             await Task.Delay(1000);
@@ -309,7 +201,6 @@ public partial class MainPage : ContentPage
         finally
         {
             _downloadStopwatch.Stop();
-            _showTimeRemaining = false;
         }
     }
 
@@ -317,7 +208,7 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            var currentOS = Platform.OperatingSystem;
+            var currentOS = PlatformUtils.OperatingSystem;
 
             switch (currentOS)
             {
@@ -326,7 +217,7 @@ public partial class MainPage : ContentPage
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = Path.Combine(_downloader.GameInstallFolder.Path, "loe.exe"),
-                        UseShellExecute = Platform.UseShellExecute
+                        UseShellExecute = PlatformUtils.UseShellExecute
                     });
                     break;
 
@@ -346,7 +237,7 @@ public partial class MainPage : ContentPage
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = macAppPath,
-                        UseShellExecute = Platform.UseShellExecute
+                        UseShellExecute = PlatformUtils.UseShellExecute
                     });
                     break;
 
@@ -366,7 +257,7 @@ public partial class MainPage : ContentPage
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = linuxExePath,
-                        UseShellExecute = Platform.UseShellExecute
+                        UseShellExecute = PlatformUtils.UseShellExecute
                     });
                     break;
 

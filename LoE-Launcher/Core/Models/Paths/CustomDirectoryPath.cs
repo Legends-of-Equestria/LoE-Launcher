@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using LoE_Launcher.Core.Utils;
-namespace LoE_Launcher.Core.Models.Paths.Windows;
+
+namespace LoE_Launcher.Core.Models.Paths;
 
 [method: DebuggerStepThrough]
 public class CustomDirectoryPath(string path) : IRelativeDirectoryPath, IAbsoluteDirectoryPath
 {
-    public string Path { get; } = path.Replace(".\\", "").Replace('\\', System.IO.Path.DirectorySeparatorChar);
+    public string Path { get; } = NormalizePath(path);
      
     public DirectoryInfo DirectoryInfo => new(Path);
     public string DirectoryName => System.IO.Path.GetFileName(Path);
@@ -32,4 +33,16 @@ public class CustomDirectoryPath(string path) : IRelativeDirectoryPath, IAbsolut
     }
         
     public override string ToString() => Path;
+    
+    /// <summary>
+    /// Normalizes path separators based on current platform
+    /// </summary>
+    private static string NormalizePath(string inputPath)
+    {
+        // Remove relative path prefix if present
+        var result = inputPath.Replace("./", "").Replace(".\\", "");
+        
+        // Replace Windows backslashes with the platform-specific directory separator
+        return result.Replace('\\', System.IO.Path.DirectorySeparatorChar);
+    }
 }

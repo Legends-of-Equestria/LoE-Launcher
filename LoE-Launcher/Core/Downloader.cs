@@ -1,8 +1,6 @@
 ﻿using LoE_Launcher.Core.Models;
 using LoE_Launcher.Core.Models.Paths;
 using LoE_Launcher.Core.Models.Paths.Json;
-using LoE_Launcher.Core.Models.Paths.Windows;
-using Platform = LoE_Launcher.Core.Utils.Platform;
 using System.Globalization;
 using ICSharpCode.SharpZipLib.GZip;
 using LoE_Launcher.Core.Utils;
@@ -32,7 +30,7 @@ public partial class Downloader
     public DownloadData _data = null;
     public ProgressData Progress { get; private set; }
     public long BytesDownloaded { get; private set; }
-    public static OS OperatingSystem => Platform.OperatingSystem;
+    public static OS OperatingSystem => PlatformUtils.OperatingSystem;
     public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);

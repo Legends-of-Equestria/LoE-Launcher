@@ -12,13 +12,13 @@ public enum OS
     Other
 }
 
-public static class Platform
+public static class PlatformUtils
 {
     public static OS OperatingSystem { get; }
         
     public static bool UseShellExecute => OperatingSystem is OS.WindowsX64 or OS.WindowsX86;
 
-    static Platform()
+    static PlatformUtils()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
