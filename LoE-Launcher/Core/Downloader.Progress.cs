@@ -11,7 +11,6 @@ partial class Downloader
 {
     public class RefreshProgress(Downloader model) : ProgressData(model)
     {
-
         protected override string GetText()
         {
             if (IsFinished)
@@ -20,6 +19,7 @@ partial class Downloader
                 {
                     return "Files to Update: {0}".Format(Model._data?.ToProcess.Count);
                 }
+
                 return "Ready to Launch!";
             }
             else
@@ -28,9 +28,9 @@ partial class Downloader
             }
         }
     }
+
     public class PreparingProgress(Downloader model) : ProgressData(model)
     {
-
         protected override string GetText()
         {
             if (IsFinished)
@@ -40,11 +40,15 @@ partial class Downloader
             else
             {
                 if (Marquee)
+                {
                     return "Preparing Install...";
+                }
+
                 return "Preparing Install ({0}/{1})...".Format(Current, Max);
             }
         }
     }
+
     public class InstallingProgress(Downloader model) : ProgressData(model)
     {
         public string FlavorText { get; set; }
@@ -58,78 +62,107 @@ partial class Downloader
             else
             {
                 if (Marquee)
-                    return "Installing...";
+                {
+                    
+                }
 
                 if (!string.IsNullOrWhiteSpace(FlavorText))
+                {
                     return $"Installing ({Current}/{Max})... {FlavorText}";
+                }
 
                 return $"Installing ({Current}/{Max})...";
             }
         }
     }
 
-    public class RepairingProgress(Downloader model) : ProgressData(model)
+    /// <summary>
+    /// Combined progress for the continuous installation process
+    /// </summary>
+    public class CombinedProgress(Downloader model) : InstallingProgress(model)
     {
+        public string CurrentOperation { get; set; } = "Preparing";
 
         protected override string GetText()
         {
             if (IsFinished)
-                return "Deleting...";
+            {
+                return "Update Complete";
+            }
             else
             {
                 if (Marquee)
-                    return "Deleting...";
-                else
-                    return $"Deleting ({Current}/{Max})";
+                {
+                    return $"{CurrentOperation}...";
+                }
+
+                if (!string.IsNullOrWhiteSpace(FlavorText))
+                {
+                    return $"{CurrentOperation} ({Current}/{Max})... {FlavorText}";
+                }
+                
+                return $"{CurrentOperation} ({Current}/{Max})...";
             }
         }
     }
 
-    public class UnzipProgress(Downloader model) : ProgressData(model)
+    public class RepairingProgress(Downloader model) : ProgressData(model)
     {
-
         protected override string GetText()
         {
             if (IsFinished)
             {
-                return "Extracting...";
+                return "Repairing...";
             }
             else
             {
-                return "Extracting...";
+                if (Marquee)
+                {
+                    return "Repairing...";
+                }
+
+                return "Repairing ({0}/{1})...".Format(Current, Max);
             }
         }
     }
+
+    public class LaunchingProgress(Downloader model) : ProgressData(model)
+    {
+        protected override string GetText()
+        {
+            if (IsFinished)
+            {
+                 return "Launching...";
+            }
+            else
+            {
+                return "Launching...";
+            }
+        }
+    }
+    
+    public class ErrorProgress(string errorMessage, Downloader model) : ProgressData(model)
+    {
+        private readonly string _errorMessage = errorMessage;
+        
+        protected override string GetText()
+        {
+            return _errorMessage;
+        }
+    }
+    
     public class CleanupProgress(Downloader model) : ProgressData(model)
     {
-
         protected override string GetText()
         {
             if (IsFinished)
             {
-                return "Cleaning up...";
+                return "Cleanup Complete";
             }
             else
             {
                 return "Cleaning up...";
             }
-        }
-    }
-    public class UpToDateProgress(Downloader model) : ProgressData(model)
-    {
-
-        protected override string GetText()
-        {
-            return "Up to date";
-        }
-    }
-
-    public class ErrorProgress(string message, Downloader model) : ProgressData(model)
-    {
-
-        protected override string GetText()
-        {
-            return message;
         }
     }
 }

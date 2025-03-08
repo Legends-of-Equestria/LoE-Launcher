@@ -1,4 +1,4 @@
-﻿using LoE_Launcher.Core.Models;
+using LoE_Launcher.Core.Models;
 using LoE_Launcher.Core.Models.Paths;
 using LoE_Launcher.Core.Models.Paths.Json;
 using System.Globalization;
@@ -107,7 +107,6 @@ public partial class Downloader
     private async Task GetVersion()
     {
         var data = await DownloadJson<VersionsControlFile>(new Uri(_settings.Stream));
-
         switch (OperatingSystem)
         {
             case OS.WindowsX86:
@@ -135,21 +134,40 @@ public partial class Downloader
     {
         try
         {
-            await PrepareUpdate();
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "DoInstallation->PrepareUpdate failed");
+            // First prepare all files - compression phase
+            Progress = new PreparingProgress(this) { Marquee = true };
+            using (new Processing(Progress))
+            {
+                var tasks = new List<Task>(_data.ToProcess.Count);
+                Progress.ResetCounter(_data.ToProcess.Count, true);
+
+                foreach (var controlFileItem in _data.ToProcess)
+                {
+                    tasks.Add(Task.Run(() => {
+                        CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder));
+                        Progress.Count();
+                    }));
+                }
+                await Task.WhenAll(tasks);
+            }
+
+            // Then install all files
+            Progress = new InstallingProgress(this) { Marquee = true };
+            using (new Processing(Progress))
+            {
+                await UpdateFiles(3);
+            }
 
             await Cleanup();
             await RefreshState();
-            // MessageBox.Show("The Launcher ran into a critical error while trying to patch your game. Please try again later.\n\nException: " + ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "DoInstallation failed");
+            await Cleanup();
+            await RefreshState();
             return;
         }
-
-        await InstallUpdate();
-        await Cleanup();
-        await RefreshState();
     }
 
     public async Task PrepareUpdate()
@@ -264,7 +282,6 @@ public partial class Downloader
             var testItem = queue.Peek();
             var testUri = testItem.GetContentUri(_data.ControlFile);
             Logger.Info($"Testing connection to: {testUri}");
-
             var response = await httpClient.GetAsync(testUri, HttpCompletionOption.ResponseHeadersRead);
             Logger.Info($"Test connection successful: {response.StatusCode}");
             return true;
@@ -281,26 +298,19 @@ public partial class Downloader
     {
         // Wait for any previous unzip operation to complete first
         await lastUnzip;
-
         var zsyncUri = item.GetContentUri(_data.ControlFile);
         var objUri = new Uri(zsyncUri.ToString().Substring(0, zsyncUri.ToString().Length - ControlFileItem.ZsyncExtension.Length));
-
         var zsyncFilePath = item.InstallPath.GetAbsolutePathFrom(GameInstallFolder).Path;
         var objFilePath = zsyncFilePath.Substring(0, zsyncFilePath.Length - ControlFileItem.ZsyncExtension.Length);
-
         var fileName = new CustomFilePath(objFilePath).FileNameWithoutExtension;
-
         EnsureDirectoryExists(objFilePath);
-
         long bytesRead = await DownloadFile(zsyncUri, objFilePath, objUri, fileName, installProgress);
-
         if (bytesRead > 0)
         {
             var fileToUnzip = item.InstallPath.GetAbsolutePathFrom(GameInstallFolder)
                 .GetBrotherFileWithName(
                     item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
                         .FileNameWithoutExtension);
-
             lastUnzip = UnzipFile(fileToUnzip)
                 .ContinueWith(t => {
                     if (t.IsFaulted)
@@ -309,7 +319,6 @@ public partial class Downloader
                     }
                 }, TaskContinuationOptions.ExecuteSynchronously);
         }
-
         return bytesRead;
     }
 
@@ -325,11 +334,9 @@ public partial class Downloader
     private async Task<long> DownloadFile(Uri zsyncUri, string objFilePath, Uri objUri, string fileName, InstallingProgress installProgress)
     {
         long bytesRead;
-
         try
         {
             bytesRead = await SyncFileWithZsync(zsyncUri, objFilePath, objUri, fileName, installProgress);
-
             if (bytesRead == 0)
             {
                 Logger.Info($"ZSync returned 0 bytes, trying direct download for: {fileName}");
@@ -340,9 +347,7 @@ public partial class Downloader
         {
             Logger.Error(e, $"File download failed for {fileName}");
             bytesRead = 0;
-
             DeleteFileIfExists(objFilePath);
-
             try
             {
                 Logger.Info($"Trying direct download fallback for: {fileName}");
@@ -354,7 +359,6 @@ public partial class Downloader
                 bytesRead = 0;
             }
         }
-
         return bytesRead;
     }
 
@@ -376,18 +380,14 @@ public partial class Downloader
     private static async Task<long> SyncFileWithZsync(Uri zsyncUri, string objFilePath, Uri objUri, string fileName, InstallingProgress installProgress)
     {
         Logger.Info($"Attempting zsync for: {fileName}");
-
         using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
         client.Timeout = TimeSpan.FromMinutes(5);
-
         var downloader = new RangeDownloader(objUri, client);
-
         try
         {
             var controlFile = DownloadControlFile(zsyncUri);
             var outputDir = new DirectoryInfo(Path.GetDirectoryName(objFilePath));
-
             zsyncnet.Zsync.Sync(controlFile, downloader, outputDir, (ss) => {
                 var flavor = ss switch
                 {
@@ -401,13 +401,11 @@ public partial class Downloader
                 installProgress.FlavorText = flavor;
                 Logger.Debug($"ZSync state: {ss} - {flavor}");
             });
-
             var fileInfo = new FileInfo(objFilePath);
             if (fileInfo.Exists)
             {
                 return fileInfo.Length;
             }
-
             return 0;
         }
         catch (Exception ex)
@@ -421,7 +419,6 @@ public partial class Downloader
     {
         Logger.Info($"Attempting direct download: {fileUri} -> {filePath}");
         var tempFilePath = filePath + ".tmp";
-
         try
         {
             var directory = Path.GetDirectoryName(filePath);
@@ -429,48 +426,38 @@ public partial class Downloader
             {
                 Directory.CreateDirectory(directory);
             }
-
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromMinutes(10);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
-
             using var response = await client.GetAsync(fileUri, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
-
             await using var contentStream = await response.Content.ReadAsStreamAsync();
             // Download to a temporary file first to avoid file locking issues
             await using var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
             var buffer = new byte[8192];
             long totalBytesRead = 0;
             int bytesRead;
-
             while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0)
             {
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
                 totalBytesRead += bytesRead;
             }
-
             // Close the filestream before attempting to move the file
             await fileStream.FlushAsync();
             await fileStream.DisposeAsync();
-
             // Delete the existing file if it exists before moving
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
             }
-
             // Now safely move the temp file to the actual destination
             File.Move(tempFilePath, filePath);
-
             Logger.Info($"Direct download complete: {totalBytesRead} bytes");
             return totalBytesRead;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, $"Direct download failed: {ex.Message}");
-
             // Clean up both the temp file and target file if they exist
             if (File.Exists(tempFilePath))
             {
@@ -483,7 +470,6 @@ public partial class Downloader
                     // Ignore deletion failures
                 }
             }
-
             if (File.Exists(filePath))
             {
                 try
@@ -503,11 +489,9 @@ public partial class Downloader
     {
         using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
-
         var request = new HttpRequestMessage(HttpMethod.Get, uri);
         var response = client.Send(request);
         response.EnsureSuccessStatusCode();
-
         using var stream = response.Content.ReadAsStream();
         return new zsyncnet.ControlFile(stream);
     }
@@ -515,7 +499,6 @@ public partial class Downloader
     public async Task Cleanup()
     {
         Progress = new CleanupProgress(this) { Marquee = true };
-
         using (new Processing(Progress))
         {
             const int maxRetries = 3;
@@ -532,7 +515,6 @@ public partial class Downloader
                     {
                         throw;
                     }
-
                     Logger.Warn($"Files still in use during cleanup, retry {i + 1}/{maxRetries}");
                     await Task.Delay(1000 * (i + 1));
                 }
@@ -548,9 +530,7 @@ public partial class Downloader
             {
                 Directory.CreateDirectory(GameInstallFolder.ToString());
             }
-
             var extensions = new[] { "*.zsync", "*.jar", "*.gz", "*.zs-old" };
-
             foreach (var extension in extensions)
             {
                 foreach (var file in GameInstallFolder.DirectoryInfo.EnumerateFiles(extension, SearchOption.AllDirectories))
@@ -582,13 +562,11 @@ public partial class Downloader
     private static async Task UnzipFile(IAbsoluteFilePath file)
     {
         var outputFile = file.GetBrotherFileWithName(file.FileNameWithoutExtension).Path;
-
         if (!await FileIsReadyAsync(file.Path, MaxFileCheckRetries, InitialFileCheckDelayMs))
         {
             Logger.Error($"File not ready for unzipping after {MaxFileCheckRetries} attempts: {file.Path}");
             throw new IOException($"File locked: {file.Path}");
         }
-
         try
         {
             await using (var inputStream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -614,7 +592,6 @@ public partial class Downloader
             Logger.Warn($"File does not exist: {filePath}");
             return false;
         }
-
         for (var i = 0; i < maxRetries; i++)
         {
             try
@@ -625,7 +602,6 @@ public partial class Downloader
                     var buffer = new byte[Math.Min(1024, fs.Length)];
                     await fs.ReadExactlyAsync(buffer, 0, buffer.Length);
                 }
-
                 return true;
             }
             catch (IOException ex) when (ex.Message.Contains("being used by another process"))
@@ -640,7 +616,6 @@ public partial class Downloader
                 return false;
             }
         }
-
         return false;
     }
 
@@ -651,31 +626,25 @@ public partial class Downloader
         {
             return null;
         }
-
         var data = new DownloadData(mainControlFile);
         var systemVersion = data.ControlFile.Version.ToSystemVersion();
-
         if (systemVersion.CompareTo(MaxVersionSupported) < 0 ||
             systemVersion.CompareTo(MaxVersionSupported) > 0)
         {
             _state = GameState.LauncherOutOfDate;
             return null;
         }
-
         Progress.ResetCounter(data.ControlFile.Content.Count, true);
-
         foreach (var item in data.ControlFile.Content)
         {
             try
             {
                 var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
-
                 if (realFile.Exists &&
                     realFile.ToString().GetFileHash(HashType.MD5) == item.FileHash)
                 {
                     continue;
                 }
-
                 data.ToProcess.Add(item);
             }
             catch (Exception e)
@@ -728,7 +697,6 @@ public partial class Downloader
     {
         public MainControlFile ControlFile { get; private set; } = controlFile;
         public List<ControlFileItem> ToProcess { get; set; } = new();
-
     }
 }
 
@@ -745,7 +713,6 @@ public enum GameState
 public class Processing : IDisposable
 {
     private readonly ProgressData _state;
-
     public Processing(ProgressData state)
     {
         _state = state;
