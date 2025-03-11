@@ -29,52 +29,27 @@ namespace zsyncnet.Sync
 
         public Stream DownloadRange(long from, long to)
         {
-            try
-            {
-                // last index is inclusive in http range
-                var range = new RangeHeaderValue(from, to - 1);
+            // last index is inclusive in http range
+            var range = new RangeHeaderValue(from, to - 1);
 
-                var req = new HttpRequestMessage
-                {
-                    RequestUri = _fileUri,
-                    Method = HttpMethod.Get,
-                    Headers = { Range = range }
-                };
-
-                var response = _client.Send(req, HttpCompletionOption.ResponseHeadersRead);
-                if (response.StatusCode != HttpStatusCode.PartialContent)
-                {
-                    Logger.Error($"Expected PartialContent (206) but got {response.StatusCode}");
-                    throw new HttpRequestException($"Expected PartialContent (206) but got {response.StatusCode}");
-                }
-                
-                return response.Content.ReadAsStream();
-            }
-            catch (Exception ex)
+            var req = new HttpRequestMessage
             {
-                Logger.Error(ex, $"Error downloading range: {ex.Message}");
-                throw;
-            }
+                RequestUri = _fileUri,
+                Headers = {Range = range}
+            };
+
+            Logger.Trace($"Downloading {range}");
+
+            var response = _client.Send(req, HttpCompletionOption.ResponseHeadersRead);
+            if (response.StatusCode != HttpStatusCode.PartialContent) throw new HttpRequestException();
+            return response.Content.ReadAsStream();
         }
 
         public Stream Download()
         {
-            try
-            {
-                // Use the synchronous Send method to avoid Task issues
-                var request = new HttpRequestMessage(HttpMethod.Get, _fileUri);
-                var response = _client.Send(request, HttpCompletionOption.ResponseHeadersRead);
-                
-                response.EnsureSuccessStatusCode();
-                
-                // Return the stream directly
-                return response.Content.ReadAsStream();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Error downloading file: {ex.Message}");
-                throw new HttpRequestException("Failed to download file", ex);
-            }
+            var response = _client.GetStreamAsync(_fileUri);
+            if (!response.IsCompletedSuccessfully) throw new HttpRequestException();
+            return response.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
         }
     }
 }
