@@ -1,0 +1,166 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Width="900" Height="550"
+        MinWidth="800" MinHeight="500"
+        x:Class="LoE_Launcher.MainWindow"
+        Title="LoE Launcher"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="30"
+        FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
+
+    <Window.Styles>
+        <Style Selector="Button.IconButton">
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="6" />
+        </Style>
+        <Style Selector="Button.IconButton:pointerover">
+            <Setter Property="Background" Value="#66FFFFFF" />
+            <Setter Property="RenderTransform" Value="scale(1.05)" />
+        </Style>
+        <Style Selector="Button.IconButton:pressed">
+            <Setter Property="Background" Value="#22FFFFFF" />
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+        <Style Selector="Button.settings-button:pointerover">
+            <Setter Property="Background" Value="#E49AE0" />
+            <Setter Property="BorderBrush" Value="#F8D78C" />
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+        <Style Selector="Button.settings-button:pressed">
+            <Setter Property="Background" Value="#B66DB2" />
+            <Setter Property="BorderBrush" Value="#E8B75C" />
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Image x:Name="backgroundImage"
+               Stretch="UniformToFill"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch" />
+
+        <Grid VerticalAlignment="Top">
+            <Grid VerticalAlignment="Top"
+                  Background="Transparent"
+                  IsHitTestVisible="True"
+                  Height="50"
+                  PointerPressed="OnTitleBarPointerPressed" />
+
+            <Image x:Name="logoImage"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   Width="203"
+                   Height="108"
+                   Margin="0,40,20,0" />
+        </Grid>
+
+        <StackPanel VerticalAlignment="Bottom"
+                    Margin="16,0,16,16"
+                    Spacing="12">
+
+            <Border Background="#20FFFFFF"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="#f0be4a"
+                    Padding="16,12">
+                <TextBlock x:Name="lblDownloadedAmount"
+                           Text="Ready to Launch!&#x0A;0B downloaded"
+                           FontSize="14"
+                           Foreground="#E0FFFFFF"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <Border Background="#20FFFFFF"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="#f0be4a"
+                    Padding="3"
+                    ClipToBounds="True">
+                <ProgressBar x:Name="pbState"
+                             Height="12"
+                             CornerRadius="4"
+                             HorizontalAlignment="Stretch"
+                             Value="100">
+                    <ProgressBar.Foreground>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Offset="0" Color="#9C69B5" />
+                            <GradientStop Offset="1" Color="#D686D2" />
+                        </LinearGradientBrush>
+                    </ProgressBar.Foreground>
+                </ProgressBar>
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock x:Name="lblVersion"
+                           Text="Launcher Version: 0.5 Platform: WindowsX64"
+                           Foreground="#E0FFFFFF"
+                           Grid.Column="0"
+                           Margin="4,0,10,0"
+                           VerticalAlignment="Center" />
+
+                <Button x:Name="btnSettings"
+                        Grid.Column="1"
+                        Margin="0,0,10,0"
+                        Classes="IconButton"
+                        Click="OnSettingsButtonClicked"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                    <TextBlock>
+                        <Image Width="20" Height="20" 
+                               Source="avares://LoE-Launcher/Assets/Gear.png" />
+                    </TextBlock>
+                </Button>
+
+                <Button x:Name="btnAction"
+                        Content="Launch"
+                        Foreground="White"
+                        Click="OnActionButtonClicked"
+                        Grid.Column="2"
+                        Width="140"
+                        Height="44"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        CornerRadius="22"
+                        VerticalContentAlignment="Center"
+                        HorizontalContentAlignment="Center"
+                        Padding="12,0">
+                    <Button.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Offset="0" Color="#9C69B5" />
+                            <GradientStop Offset="1" Color="#D686D2" />
+                        </LinearGradientBrush>
+                    </Button.Background>
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background">
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                    <GradientStop Offset="0" Color="#B37DC7" />
+                                    <GradientStop Offset="1" Color="#E49AE0" />
+                                </LinearGradientBrush>
+                            </Setter>
+                            <Setter Property="RenderTransform" Value="scale(1.03)" />
+                        </Style>
+                        <Style Selector="Button:pressed /template/ ContentPresenter">
+                            <Setter Property="Background">
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                    <GradientStop Offset="0" Color="#7E529A" />
+                                    <GradientStop Offset="1" Color="#B66DB2" />
+                                </LinearGradientBrush>
+                            </Setter>
+                            <Setter Property="RenderTransform" Value="scale(0.98)" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

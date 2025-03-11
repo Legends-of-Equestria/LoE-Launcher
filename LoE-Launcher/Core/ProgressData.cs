@@ -1,4 +1,5 @@
-﻿namespace LoE_Launcher.Core;
+﻿using System;
+namespace LoE_Launcher.Core;
 
 public class ProgressData(Downloader model)
 {
@@ -34,7 +35,18 @@ public class ProgressData(Downloader model)
             Current += count;
         }
     }
+    
+    public void SetCount(int value)
+    {
+        Current = value;
+    }
 
+    public void Complete()
+    {
+        Processing = false;
+        IsFinished = true;
+    }
+    
     protected virtual string GetText()
     {
         return "Processing....";

@@ -5,7 +5,11 @@ VisualStudioVersion = 17.12.35707.178 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zsyncnet", "zsyncnet\zsyncnet.csproj", "{A4F1CF37-C326-4CEB-8F2D-47F86788692C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoE-Launcher", "LoE-Launcher\LoE-Launcher.csproj", "{A7441E3E-19AD-44D1-AAA9-95ACA2963E30}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoE-Launcher", "LoE-Launcher\LoE-Launcher.csproj", "{C653147F-563E-45B4-AEDE-8D497ECB9B87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "Models\Models.csproj", "{B94EDCF3-5B4A-4926-9F33-FFB35135B5B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HashComparer", "HashComparer\HashComparer.csproj", "{D3285BA3-D96B-43C8-B6BE-43466029882E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +21,18 @@ Global
 		{A4F1CF37-C326-4CEB-8F2D-47F86788692C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4F1CF37-C326-4CEB-8F2D-47F86788692C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4F1CF37-C326-4CEB-8F2D-47F86788692C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A7441E3E-19AD-44D1-AAA9-95ACA2963E30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A7441E3E-19AD-44D1-AAA9-95ACA2963E30}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A7441E3E-19AD-44D1-AAA9-95ACA2963E30}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A7441E3E-19AD-44D1-AAA9-95ACA2963E30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C653147F-563E-45B4-AEDE-8D497ECB9B87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C653147F-563E-45B4-AEDE-8D497ECB9B87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C653147F-563E-45B4-AEDE-8D497ECB9B87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C653147F-563E-45B4-AEDE-8D497ECB9B87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B94EDCF3-5B4A-4926-9F33-FFB35135B5B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B94EDCF3-5B4A-4926-9F33-FFB35135B5B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B94EDCF3-5B4A-4926-9F33-FFB35135B5B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B94EDCF3-5B4A-4926-9F33-FFB35135B5B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3285BA3-D96B-43C8-B6BE-43466029882E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3285BA3-D96B-43C8-B6BE-43466029882E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3285BA3-D96B-43C8-B6BE-43466029882E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3285BA3-D96B-43C8-B6BE-43466029882E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

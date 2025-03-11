@@ -1,0 +1,55 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="LoE_Launcher.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Styles>
+        <FluentTheme />
+        
+        <!-- Custom styles -->
+        <Style Selector="Button.action">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.action:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+            <Setter Property="Opacity" Value="0.95" />
+        </Style>
+        
+        <Style Selector="Button.action:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
+            <Setter Property="Opacity" Value="0.9" />
+        </Style>
+        
+        <Style Selector="Border.glassPanel">
+            <Setter Property="Background" Value="#30000000" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BoxShadow" Value="0 4 20 0 #40000000" />
+        </Style>
+        
+        <Style Selector="ProgressBar">
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Foreground" Value="#3D85C6" />
+            <Setter Property="Background" Value="#20FFFFFF" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        
+        <Style Selector="TextBlock.statusText">
+            <Setter Property="Foreground" Value="#E0FFFFFF" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Application.Styles>
+</Application>
