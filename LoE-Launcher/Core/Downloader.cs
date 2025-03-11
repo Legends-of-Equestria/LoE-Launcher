@@ -79,6 +79,63 @@ public partial class Downloader
         _settings = settingsFile.Exists
             ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path), Settings)
             : new Settings();
+            
+        Task.Run(HandlePendingDeletions);
+    }
+
+    public async Task HandlePendingDeletions()
+    {
+        var pendingDeleteFile = Path.Combine(_launcherPath.Path, "pending_delete.txt");
+        if (!File.Exists(pendingDeleteFile))
+        {
+            return;
+        }
+        
+        try
+        {
+            var filesToDelete = File.ReadAllLines(pendingDeleteFile);
+            var successfulDeletions = new List<string>();
+            
+            foreach (var file in filesToDelete)
+            {
+                if (string.IsNullOrWhiteSpace(file) || !File.Exists(file))
+                {
+                    successfulDeletions.Add(file);
+                    continue;
+                }
+                
+                try
+                {
+                    if (await IsFileDeleteableAsync(file, 3))
+                    {
+                        File.Delete(file);
+                        successfulDeletions.Add(file);
+                        Logger.Info($"Deleted pending file: {file}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, $"Failed to delete pending file: {file}");
+                }
+            }
+            
+            if (successfulDeletions.Count > 0)
+            {
+                var remainingFiles = filesToDelete.Except(successfulDeletions).ToArray();
+                if (remainingFiles.Length > 0)
+                {
+                    File.WriteAllLines(pendingDeleteFile, remainingFiles);
+                }
+                else
+                {
+                    File.Delete(pendingDeleteFile);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error handling pending deletions");
+        }
     }
 
     public async Task RefreshState()
@@ -505,7 +562,7 @@ public partial class Downloader
 
         var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
 
-        bool unzipSuccessful = await UnzipFile(fileToUnzip);
+        var unzipSuccessful = await UnzipFile(fileToUnzip);
 
         if (!unzipSuccessful)
         {
@@ -513,22 +570,33 @@ public partial class Downloader
             return bytesRead;
         }
 
-        // Update hash cache when file exists
-        if (realFile.Exists)
+        if (!realFile.Exists)
         {
-            var fileInfo = new FileInfo(realFile.Path);
-            if (fileInfo.Length > 0)
-            {
-                // Update hash cache with the expected hash (not calculated hash)
-                // This ensures future runs will consider the file up-to-date
-                hashCacheUpdates[realFile.Path] = new FileHashCache
-                {
-                    FilePath = realFile.Path,
-                    Hash = item.FileHash,
-                    LastModifiedUtc = fileInfo.LastWriteTimeUtc,
-                    FileSize = fileInfo.Length
-                };
-            }
+            Logger.Error("File does not exist");
+            return bytesRead;
+        }
+
+        var fileInfo = new FileInfo(realFile.Path);
+        if (fileInfo.Length <= 0)
+        {
+            Logger.Warn($"File exists, but has no content : {realFile.Path}");
+            return bytesRead;
+        }
+        
+        var actualFileHash = realFile.ToString().GetFileHash(HashType.MD5);
+        Logger.Info($"File: {realFile.Path}, Actual Hash: {actualFileHash}, Expected Hash: {item.FileHash}");
+
+        hashCacheUpdates[realFile.Path] = new FileHashCache
+        {
+            FilePath = realFile.Path,
+            Hash = actualFileHash,
+            LastModifiedUtc = fileInfo.LastWriteTimeUtc,
+            FileSize = fileInfo.Length
+        };
+
+        if (actualFileHash != item.FileHash)
+        {
+            Logger.Warn($"Hash mismatch for {realFile.Path}: Expected {item.FileHash}, Got {actualFileHash}");
         }
 
         return bytesRead;
@@ -666,6 +734,78 @@ public partial class Downloader
         }
     }
 
+    private static async Task<bool> IsFileDeleteableAsync(string filePath, int maxRetries = 5, int initialDelayMs = 100)
+    {
+        if (!File.Exists(filePath))
+        {
+            return true;
+        }
+
+        for (var i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, 
+                    FileShare.ReadWrite | FileShare.Delete);
+                
+                var tempDeleteTest = filePath + ".deletetest";
+                try
+                {
+                    File.Create(tempDeleteTest).Dispose();
+                    File.Delete(tempDeleteTest);
+                    return true;
+                }
+                catch
+                {
+                    if (i == maxRetries - 1)
+                    {
+                        Logger.Warn($"Unable to create test file near {filePath}");
+                        return false;
+                    }
+                }
+            }
+            catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+            {
+                var delay = initialDelayMs * (1 << Math.Min(i, 10));
+                Logger.Debug($"File locked for deletion, retry {i + 1}/{maxRetries} in {delay}ms: {filePath}");
+                await Task.Delay(delay);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Error checking if file is deleteable: {filePath}");
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    private static async Task<string> GetSafeTargetPathAsync(string filePath)
+    {
+        if (!File.Exists(filePath) || await IsFileDeleteableAsync(filePath))
+        {
+            return filePath;
+        }
+        
+        var directory = Path.GetDirectoryName(filePath);
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+        var extension = Path.GetExtension(filePath);
+        
+        for (var i = 1; i <= 10; i++)
+        {
+            var alternativePath = Path.Combine(directory, $"{fileName}.new{i}{extension}");
+            if (!File.Exists(alternativePath))
+            {
+                Logger.Info($"Using alternative path: {alternativePath}");
+                return alternativePath;
+            }
+        }
+        
+        var guidPath = Path.Combine(directory, $"{fileName}.{Guid.NewGuid()}{extension}");
+        Logger.Info($"Using GUID alternative path: {guidPath}");
+        return guidPath;
+    }
+
     private static async Task<long> DirectDownloadFile(Uri fileUri, string filePath)
     {
         Logger.Info($"Attempting direct download: {fileUri} -> {filePath}");
@@ -701,45 +841,46 @@ public partial class Downloader
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(cts.Token);
 
-            Logger.Debug($"Creating temporary file: {tempFilePath}");
-            await using var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-
-            // Download data
-            var buffer = new byte[81920];
             long totalBytesRead = 0;
             int bytesRead;
             var startTime = DateTime.UtcNow;
             var lastProgressReport = DateTime.UtcNow;
-
-            while ((bytesRead = await contentStream.ReadAsync(buffer, cts.Token)) > 0)
+            
+            Logger.Debug($"Creating temporary file: {tempFilePath}");
+            await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
             {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token);
-                totalBytesRead += bytesRead;
+                var buffer = new byte[81920];
 
-                var now = DateTime.UtcNow;
-                if ((now - lastProgressReport).TotalSeconds >= 2)
+                while ((bytesRead = await contentStream.ReadAsync(buffer, cts.Token)) > 0)
                 {
-                    var progressElapsed = (now - startTime).TotalSeconds;
-                    var bytesPerSecond = totalBytesRead / progressElapsed;
-                    var percentComplete = contentLength > 0 ? (totalBytesRead * 100.0 / contentLength) : 0;
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token);
+                    totalBytesRead += bytesRead;
 
-                    Logger.Info($"Download progress: {totalBytesRead:N0}/{contentLength:N0} bytes ({percentComplete:F1}%) - {bytesPerSecond:N0} bytes/sec");
-                    lastProgressReport = now;
+                    var now = DateTime.UtcNow;
+                    if ((now - lastProgressReport).TotalSeconds >= 2)
+                    {
+                        var progressElapsed = (now - startTime).TotalSeconds;
+                        var bytesPerSecond = totalBytesRead / progressElapsed;
+                        var percentComplete = contentLength > 0 ? (totalBytesRead * 100.0 / contentLength) : 0;
+
+                        Logger.Info($"Download progress: {totalBytesRead:N0}/{contentLength:N0} bytes ({percentComplete:F1}%) - {bytesPerSecond:N0} bytes/sec");
+                        lastProgressReport = now;
+                    }
                 }
+
+                Logger.Info("Download completed, closing stream");
+                await fileStream.FlushAsync(cts.Token);
             }
-
-            Logger.Info("Download completed, closing stream");
-            await fileStream.FlushAsync(cts.Token);
-            await fileStream.DisposeAsync(); // I have trust issues, ok
-
-            if (File.Exists(filePath))
+            
+            var actualTargetPath = await GetSafeTargetPathAsync(filePath);
+            
+            Logger.Debug($"Moving temp file to destination: {tempFilePath} -> {actualTargetPath}");
+            File.Move(tempFilePath, actualTargetPath, true);
+            
+            if (actualTargetPath != filePath)
             {
-                Logger.Debug($"Deleting existing file: {filePath}");
-                File.Delete(filePath);
+                Logger.Info($"Used alternative path due to file lock. Original: {filePath}, Actual: {actualTargetPath}");
             }
-
-            Logger.Debug($"Moving temp file to destination: {tempFilePath} -> {filePath}");
-            File.Move(tempFilePath, filePath);
 
             var totalElapsed = (DateTime.UtcNow - startTime).TotalSeconds;
             var overallSpeed = totalBytesRead / totalElapsed;
@@ -750,38 +891,81 @@ public partial class Downloader
         catch (TaskCanceledException tcex)
         {
             Logger.Error(tcex, "Direct download timed out or was canceled");
-            CleanupDownloadFiles(tempFilePath, filePath);
+            await CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
         }
         catch (HttpRequestException hrex)
         {
             Logger.Error(hrex, $"HTTP error during direct download: {hrex.Message}");
-            CleanupDownloadFiles(tempFilePath, filePath);
+            await CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
         }
         catch (IOException ioex)
         {
             Logger.Error(ioex, $"IO error during direct download: {ioex.Message}");
-            CleanupDownloadFiles(tempFilePath, filePath);
+            
+            if (ioex.Message.Contains("being used by another process"))
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    var fileInfo = new FileInfo(tempFilePath);
+                    if (fileInfo.Length > 0)
+                    {
+                        try
+                        {
+                            var alternativePath = await GetSafeTargetPathAsync(filePath + ".alt");
+                            Logger.Info($"Attempting to save to alternative location due to lock: {alternativePath}");
+                            File.Move(tempFilePath, alternativePath, true);
+                            
+                            return fileInfo.Length;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error(ex, "Failed to use alternative path after lock");
+                        }
+                    }
+                }
+            }
+            
+            await CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, $"Direct download failed: {ex.Message}");
-            CleanupDownloadFiles(tempFilePath, filePath);
+            await CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
         }
     }
 
-    private static void CleanupDownloadFiles(string tempFilePath, string filePath)
+    private static async Task CleanupDownloadFiles(string tempFilePath, string filePath)
     {
-        // Clean up both the temp file and target file if they exist
         if (File.Exists(tempFilePath))
         {
             try
             {
                 Logger.Info($"Deleting temporary file: {tempFilePath}");
-                File.Delete(tempFilePath);
+
+                if (await IsFileDeleteableAsync(tempFilePath, 5))
+                {
+                    File.Delete(tempFilePath);
+                }
+                else
+                {
+                    Logger.Warn($"Unable to delete locked temporary file: {tempFilePath}");
+                    try
+                    {
+                        var pendingDeleteFile = Path.Combine(
+                            Path.GetDirectoryName(tempFilePath),
+                            "pending_delete.txt");
+                        
+                        File.AppendAllLines(pendingDeleteFile, new[] { tempFilePath });
+                    }
+                    catch
+                    {
+                        Logger.Warn($"Failed to schedule {tempFilePath} for later deletion");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -789,12 +973,20 @@ public partial class Downloader
             }
         }
 
-        if (File.Exists(filePath))
+        if (File.Exists(filePath) && File.Exists(tempFilePath) && new FileInfo(tempFilePath).Length > 0)
         {
             try
             {
                 Logger.Info($"Deleting target file: {filePath}");
-                File.Delete(filePath);
+                
+                if (await IsFileDeleteableAsync(filePath, 5))
+                {
+                    File.Delete(filePath);
+                }
+                else
+                {
+                    Logger.Warn($"Unable to delete locked target file: {filePath}");
+                }
             }
             catch (Exception ex)
             {
@@ -990,8 +1182,12 @@ public partial class Downloader
                 await using (var outputStream = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     await gzipStream.CopyToAsync(outputStream);
+                    await outputStream.FlushAsync();
                 }
-                Logger.Info($"Successfully unzipped: {file.Path}");
+            
+                var extractedSize = new FileInfo(outputFile).Length;
+                var originalSize = new FileInfo(file.Path).Length;
+                Logger.Info($"Unzipped file: {file.Path}, compressed size: {originalSize}, extracted size: {extractedSize}");
             }
             else
             {
