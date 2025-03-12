@@ -16,6 +16,7 @@ public class VersionsControlFile
 public class MainControlFile
 {
     [JsonProperty("Version")]
+    [JsonConverter(typeof(VersionInfoConverter))]
     public VersionInfo Version { get; set; }
 
     [JsonProperty("Content")]
