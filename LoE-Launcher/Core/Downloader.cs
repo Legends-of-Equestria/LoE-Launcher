@@ -1282,70 +1282,76 @@ public partial class Downloader
 
         Progress.ResetCounter(data.ControlFile.Content.Count, true);
 
-        var filesToProcess = new ConcurrentBag<ControlFileItem>();
+        var filesToProcess = new List<ControlFileItem>();
         var processedCount = 0;
 
         var hashCache = LoadHashCache();
-        var cacheUpdates = new ConcurrentDictionary<string, FileHashCache>();
+        var cacheUpdates = new Dictionary<string, FileHashCache>();
 
-        await Parallel.ForEachAsync(data.ControlFile.Content,
-            new ParallelOptions { MaxDegreeOfParallelism = Math.Max(Environment.ProcessorCount / 2, 1) }, (item, token) => {
-                try
+        // Group by directory for better locality, which minimizes disk seeks
+        var filesByDirectory = data.ControlFile.Content
+            .GroupBy(item => Path.GetDirectoryName(
+                item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder).Path))
+            .ToList();
+
+        // Process each directory sequentially
+        foreach (var item in filesByDirectory.SelectMany(directoryGroup => directoryGroup))
+        {
+            try
+            {
+                var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
+                var fileMatchesHash = false;
+
+                if (realFile.Exists)
                 {
-                    var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
-                    var fileMatchesHash = false;
+                    var fileInfo = new FileInfo(realFile.Path);
 
-                    if (realFile.Exists)
+                    if (hashCache.TryGetValue(realFile.Path, out var cachedInfo) &&
+                        fileInfo.LastWriteTimeUtc == cachedInfo.LastModifiedUtc &&
+                        fileInfo.Length == cachedInfo.FileSize)
                     {
-                        var fileInfo = new FileInfo(realFile.Path);
+                        fileMatchesHash = cachedInfo.Hash == item.FileHash;
+                        Logger.Info($"{item._installPath}: Hash : {cachedInfo.Hash} : {item.FileHash} : Match={fileMatchesHash}");
+                    }
+                    else
+                    {
+                        // No valid cache entry, try to get the hash directly
+                        var fileHash = realFile.ToString().GetFileHash(HashType.MD5);
+                        fileMatchesHash = fileHash == item.FileHash;
+                        Logger.Info($"{item._installPath}: Direct hash : {fileHash} : {item.FileHash} : Match={fileMatchesHash}");
 
-                        if (hashCache.TryGetValue(realFile.Path, out var cachedInfo) &&
-                            fileInfo.LastWriteTimeUtc == cachedInfo.LastModifiedUtc &&
-                            fileInfo.Length == cachedInfo.FileSize)
+                        // Add to cache updates regardless of match
+                        if (!hashCache.TryGetValue(realFile.Path, out var value) || value.Hash != fileHash)
                         {
-                            fileMatchesHash = cachedInfo.Hash == item.FileHash;
-                            Logger.Info($"{item._installPath}: Hash : {cachedInfo.Hash} : {item.FileHash} : Match={fileMatchesHash}");
-                        }
-                        else
-                        {
-                            // No valid cache entry, try to get the hash directly
-                            var fileHash = realFile.ToString().GetFileHash(HashType.MD5);
-                            fileMatchesHash = fileHash == item.FileHash;
-                            Logger.Info($"{item._installPath}: Direct hash : {fileHash} : {item.FileHash} : Match={fileMatchesHash}");
-
-                            // Add to cache updates regardless of match
-                            if (!hashCache.TryGetValue(realFile.Path, out var value) || value.Hash != fileHash)
+                            cacheUpdates[realFile.Path] = new FileHashCache
                             {
-                                cacheUpdates[realFile.Path] = new FileHashCache
-                                {
-                                    FilePath = realFile.Path,
-                                    Hash = fileHash,
-                                    LastModifiedUtc = fileInfo.LastWriteTimeUtc,
-                                    FileSize = fileInfo.Length
-                                };
-                                Logger.Info($"Adding cache entry for up-to-date file: {realFile.Path}");
-                            }
+                                FilePath = realFile.Path,
+                                Hash = fileHash,
+                                LastModifiedUtc = fileInfo.LastWriteTimeUtc,
+                                FileSize = fileInfo.Length
+                            };
+                            Logger.Info($"Adding cache entry for up-to-date file: {realFile.Path}");
                         }
                     }
+                }
 
-                    if (!fileMatchesHash)
-                    {
-                        filesToProcess.Add(item);
-                        Logger.Info($"Adding to process list: {item.InstallPath}");
-                    }
-                }
-                catch (Exception e)
+                if (!fileMatchesHash)
                 {
-                    Logger.Error(e, $"Issue with control file item {item.InstallPath}");
-                    throw;
+                    filesToProcess.Add(item);
+                    Logger.Info($"Adding to process list: {item.InstallPath}");
                 }
-                finally
-                {
-                    var currentProcessed = Interlocked.Increment(ref processedCount);
-                    Dispatcher.UIThread.Post(() => Progress.SetCount(currentProcessed));
-                }
-                return ValueTask.CompletedTask;
-            });
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, $"Issue with control file item {item.InstallPath}");
+                throw;
+            }
+            finally
+            {
+                processedCount++;
+                Dispatcher.UIThread.Post(() => Progress.SetCount(processedCount));
+            }
+        }
 
         foreach (var update in cacheUpdates)
         {
@@ -1354,7 +1360,7 @@ public partial class Downloader
 
         SaveHashCache(hashCache);
 
-        data.ToProcess = filesToProcess.ToList();
+        data.ToProcess = filesToProcess;
 
         return data;
     }
