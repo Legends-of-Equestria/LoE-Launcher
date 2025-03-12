@@ -346,7 +346,7 @@ public partial class MainWindow : Window
                     permissionProcess.RunInlineAndWait(new ProcessStartInfo
                     {
                         FileName = "chmod",
-                        Arguments = $"-R 777 {macAppPath}",
+                        Arguments = $"-R 777 \"{macAppPath}\"",
                         UseShellExecute = false,
                         WindowStyle = ProcessWindowStyle.Minimized
                     });
@@ -366,7 +366,7 @@ public partial class MainWindow : Window
                     linuxPermProcess.RunInlineAndWait(new ProcessStartInfo
                     {
                         FileName = "chmod",
-                        Arguments = $"-R 777 {linuxExePath}",
+                        Arguments = $"-R 777 \"{linuxExePath}\"",
                         UseShellExecute = false,
                         WindowStyle = ProcessWindowStyle.Minimized
                     });
