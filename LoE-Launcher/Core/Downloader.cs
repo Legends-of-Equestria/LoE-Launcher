@@ -1312,6 +1312,19 @@ public partial class Downloader
                             var fileHash = realFile.ToString().GetFileHash(HashType.MD5);
                             fileMatchesHash = fileHash == item.FileHash;
                             Logger.Info($"{item._installPath}: Direct hash : {fileHash} : {item.FileHash} : Match={fileMatchesHash}");
+
+                            // Add to cache updates regardless of match
+                            if (!hashCache.TryGetValue(realFile.Path, out var value) || value.Hash != fileHash)
+                            {
+                                cacheUpdates[realFile.Path] = new FileHashCache
+                                {
+                                    FilePath = realFile.Path,
+                                    Hash = fileHash,
+                                    LastModifiedUtc = fileInfo.LastWriteTimeUtc,
+                                    FileSize = fileInfo.Length
+                                };
+                                Logger.Info($"Adding cache entry for up-to-date file: {realFile.Path}");
+                            }
                         }
                     }
 
