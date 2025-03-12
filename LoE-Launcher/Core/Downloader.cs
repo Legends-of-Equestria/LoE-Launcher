@@ -79,7 +79,7 @@ public partial class Downloader
         _settings = settingsFile.Exists
             ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path), Settings)
             : new Settings();
-            
+
         Task.Run(HandlePendingDeletions);
     }
 
@@ -90,12 +90,12 @@ public partial class Downloader
         {
             return;
         }
-        
+
         try
         {
             var filesToDelete = File.ReadAllLines(pendingDeleteFile);
             var successfulDeletions = new List<string>();
-            
+
             foreach (var file in filesToDelete)
             {
                 if (string.IsNullOrWhiteSpace(file) || !File.Exists(file))
@@ -103,7 +103,7 @@ public partial class Downloader
                     successfulDeletions.Add(file);
                     continue;
                 }
-                
+
                 try
                 {
                     if (await IsFileDeleteableAsync(file, 3))
@@ -118,7 +118,7 @@ public partial class Downloader
                     Logger.Warn(ex, $"Failed to delete pending file: {file}");
                 }
             }
-            
+
             if (successfulDeletions.Count > 0)
             {
                 var remainingFiles = filesToDelete.Except(successfulDeletions).ToArray();
@@ -582,7 +582,7 @@ public partial class Downloader
             Logger.Warn($"File exists, but has no content : {realFile.Path}");
             return bytesRead;
         }
-        
+
         var actualFileHash = realFile.ToString().GetFileHash(HashType.MD5);
         Logger.Info($"File: {realFile.Path}, Actual Hash: {actualFileHash}, Expected Hash: {item.FileHash}");
 
@@ -745,9 +745,9 @@ public partial class Downloader
         {
             try
             {
-                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, 
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                     FileShare.ReadWrite | FileShare.Delete);
-                
+
                 var tempDeleteTest = filePath + ".deletetest";
                 try
                 {
@@ -776,7 +776,7 @@ public partial class Downloader
                 return false;
             }
         }
-        
+
         return false;
     }
 
@@ -786,11 +786,11 @@ public partial class Downloader
         {
             return filePath;
         }
-        
+
         var directory = Path.GetDirectoryName(filePath);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         var extension = Path.GetExtension(filePath);
-        
+
         for (var i = 1; i <= 10; i++)
         {
             var alternativePath = Path.Combine(directory, $"{fileName}.new{i}{extension}");
@@ -800,7 +800,7 @@ public partial class Downloader
                 return alternativePath;
             }
         }
-        
+
         var guidPath = Path.Combine(directory, $"{fileName}.{Guid.NewGuid()}{extension}");
         Logger.Info($"Using GUID alternative path: {guidPath}");
         return guidPath;
@@ -845,7 +845,7 @@ public partial class Downloader
             int bytesRead;
             var startTime = DateTime.UtcNow;
             var lastProgressReport = DateTime.UtcNow;
-            
+
             Logger.Debug($"Creating temporary file: {tempFilePath}");
             await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
             {
@@ -871,12 +871,12 @@ public partial class Downloader
                 Logger.Info("Download completed, closing stream");
                 await fileStream.FlushAsync(cts.Token);
             }
-            
+
             var actualTargetPath = await GetSafeTargetPathAsync(filePath);
-            
+
             Logger.Debug($"Moving temp file to destination: {tempFilePath} -> {actualTargetPath}");
             File.Move(tempFilePath, actualTargetPath, true);
-            
+
             if (actualTargetPath != filePath)
             {
                 Logger.Info($"Used alternative path due to file lock. Original: {filePath}, Actual: {actualTargetPath}");
@@ -903,7 +903,7 @@ public partial class Downloader
         catch (IOException ioex)
         {
             Logger.Error(ioex, $"IO error during direct download: {ioex.Message}");
-            
+
             if (ioex.Message.Contains("being used by another process"))
             {
                 if (File.Exists(tempFilePath))
@@ -916,7 +916,7 @@ public partial class Downloader
                             var alternativePath = await GetSafeTargetPathAsync(filePath + ".alt");
                             Logger.Info($"Attempting to save to alternative location due to lock: {alternativePath}");
                             File.Move(tempFilePath, alternativePath, true);
-                            
+
                             return fileInfo.Length;
                         }
                         catch (Exception ex)
@@ -926,7 +926,7 @@ public partial class Downloader
                     }
                 }
             }
-            
+
             await CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
         }
@@ -958,7 +958,7 @@ public partial class Downloader
                         var pendingDeleteFile = Path.Combine(
                             Path.GetDirectoryName(tempFilePath),
                             "pending_delete.txt");
-                        
+
                         File.AppendAllLines(pendingDeleteFile, new[] { tempFilePath });
                     }
                     catch
@@ -978,7 +978,7 @@ public partial class Downloader
             try
             {
                 Logger.Info($"Deleting target file: {filePath}");
-                
+
                 if (await IsFileDeleteableAsync(filePath, 5))
                 {
                     File.Delete(filePath);
@@ -1184,7 +1184,7 @@ public partial class Downloader
                     await gzipStream.CopyToAsync(outputStream);
                     await outputStream.FlushAsync();
                 }
-            
+
                 var extractedSize = new FileInfo(outputFile).Length;
                 var originalSize = new FileInfo(file.Path).Length;
                 Logger.Info($"Unzipped file: {file.Path}, compressed size: {originalSize}, extracted size: {extractedSize}");
@@ -1446,7 +1446,7 @@ public partial class Downloader
             await using var inputStream = new FileStream(realFile.Path, FileMode.Open);
             await using var outputStream = new FileStream(compressedFile.Path, FileMode.Create);
             await using var gzipStream = new GZipStream(outputStream, CompressionLevel.Optimal);
-            
+
             await inputStream.CopyToAsync(gzipStream);
         }
     }
