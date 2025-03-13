@@ -1095,6 +1095,11 @@ public partial class Downloader
                 }
 
                 _data = data;
+                
+                if (_data.ControlFile.RootUri == null)
+                {
+                    _data.ControlFile.RootUri = new Uri(ZsyncLocation);
+                }
 
                 if (!GameInstallFolder.Exists)
                 {
@@ -1123,6 +1128,7 @@ public partial class Downloader
         finally
         {
             Progress.Complete();
+            await RefreshState();
         }
     }
 

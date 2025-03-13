@@ -23,7 +23,7 @@ public class MainControlFile
     public List<ControlFileItem> Content { get; set; } = [];
 
     [JsonProperty("RootUri")]
-    public Uri RootUri { get; set; }
+    public Uri? RootUri { get; set; }
 
     public MainControlFile()
     {
