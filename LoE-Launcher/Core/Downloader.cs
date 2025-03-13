@@ -1068,6 +1068,9 @@ public partial class Downloader
         {
             using (new Processing(Progress))
             {
+                // Reset state from previous sessions
+                BytesDownloaded = 0;
+                
                 var cacheFile = Path.Combine(_launcherPath.Path, "hash_cache.json");
                 if (File.Exists(cacheFile))
                 {
