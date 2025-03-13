@@ -217,7 +217,21 @@ public partial class MainWindow : Window
                 _pbState.Value = progressPercentage * 100;
             }
 
-            _lblDownloadedAmount.Text = $"{_downloader.Progress.Text}\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
+            var statusText = _downloader.Progress.Text;
+            var sizeInfo = "";
+
+            if (_downloader.Progress.Processing || 
+                _downloader.State == GameState.NotFound || 
+                _downloader.State == GameState.UpdateAvailable)
+            {
+                sizeInfo = $"\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
+            }
+            else if (_downloader.State == GameState.UpToDate)
+            {
+                sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
+            }
+            
+            _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
 
             var enabledState = true;
 

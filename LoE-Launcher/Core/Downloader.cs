@@ -47,6 +47,7 @@ public partial class Downloader
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
     public GameState State => _state;
+    
     private string ZsyncLocation
     {
         get
@@ -57,6 +58,28 @@ public partial class Downloader
                 return string.Empty;
             }
             return _settings.FormatZsyncLocation(_versionDownload);
+        }
+    }
+    
+    public long TotalGameSize
+    {
+        get
+        {
+            if (!GameInstallFolder.Exists)
+            {
+                return 0;
+            }
+
+            try
+            {
+                return GameInstallFolder.DirectoryInfo.EnumerateFiles("*", SearchOption.AllDirectories)
+                    .Sum(file => file.Length);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error calculating total game size");
+                return 0;
+            }
         }
     }
 
