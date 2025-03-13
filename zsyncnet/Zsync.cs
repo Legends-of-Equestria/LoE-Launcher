@@ -75,15 +75,16 @@ namespace zsyncnet
             {
                 // File does not exist on disk, we just need to download it
                 stateProgress?.ReportState(SyncState.DownloadNew);
-                var downloadStream = downloader.Download();
-
-                var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-                downloadStream.CopyToWithProgress(stream, 2024, stateProgress, cancellationToken);
-
+                
+                using var downloadStream = downloader.Download();
+                using var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                
+                downloadStream.CopyToWithProgress(stream, 8192, stateProgress, cancellationToken);
                 File.SetLastWriteTime(path, controlFile.GetHeader().MTime);
+
                 return;
             }
-
+            
             var partFile = new FileInfo(path + ".part");
 
             var tmpStream = new FileStream(partFile.FullName, FileMode.OpenOrCreate, FileAccess.ReadWrite);

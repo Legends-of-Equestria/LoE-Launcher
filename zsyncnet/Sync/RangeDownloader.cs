@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using NLog;
 
 namespace zsyncnet.Sync
@@ -47,9 +48,20 @@ namespace zsyncnet.Sync
 
         public Stream Download()
         {
-            var response = _client.GetStreamAsync(_fileUri);
-            if (!response.IsCompletedSuccessfully) throw new HttpRequestException();
-            return response.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
+            var request = new HttpRequestMessage(HttpMethod.Get, _fileUri);
+            Logger.Trace($"Downloading complete file: {_fileUri}");
+    
+            try
+            {
+                var response = _client.Send(request, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                return response.Content.ReadAsStream();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Error downloading complete file: {_fileUri}");
+                throw;
+            }
         }
     }
 }
