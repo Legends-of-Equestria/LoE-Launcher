@@ -10,16 +10,16 @@ partial class Downloader
         {
             if (IsFinished)
             {
-                if (Model._data?.ToProcess.Count != 0)
+                if (Model._data.ToProcess.Count != 0)
                 {
-                    return "Files to Update: {0}".Format(Model._data?.ToProcess.Count);
+                    return "Files to update: {0}".Format(Model._data?.ToProcess.Count);
                 }
 
-                return "Ready to Launch!";
+                return "Ready to launch!";
             }
             else
             {
-                return "Verifying Files...";
+                return "Verifying files...";
             }
         }
     }
@@ -30,16 +30,16 @@ partial class Downloader
         {
             if (IsFinished)
             {
-                return "Preparing Install...";
+                return "Preparing install...";
             }
             else
             {
                 if (Marquee)
                 {
-                    return "Preparing Install...";
+                    return "Preparing install...";
                 }
 
-                return "Preparing Install ({0}/{1})...".Format(Current, Max);
+                return "Preparing install ({0}/{1})...".Format(Current, Max);
             }
         }
     }
@@ -82,7 +82,7 @@ partial class Downloader
         {
             if (IsFinished)
             {
-                return "Update Complete";
+                return "Update complete";
             }
             else
             {
@@ -152,7 +152,7 @@ partial class Downloader
         {
             if (IsFinished)
             {
-                return "Cleanup Complete";
+                return "Cleanup complete";
             }
             else
             {
