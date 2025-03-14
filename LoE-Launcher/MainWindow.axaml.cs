@@ -335,13 +335,15 @@ public partial class MainWindow : Window
             var statusText = _downloader.Progress.Text;
             var sizeInfo = "";
 
-            if (_downloader.Progress.Processing ||
-                _downloader.State == GameState.NotFound ||
-                _downloader.State == GameState.UpdateAvailable)
+            if (_downloader.State is GameState.Unknown)
+            {
+                sizeInfo = "";
+            } 
+            else if (_downloader.State is GameState.NotFound or GameState.UpdateAvailable)
             {
                 sizeInfo = $"\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
             }
-            else if (_downloader.State == GameState.UpToDate)
+            else
             {
                 sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
             }
