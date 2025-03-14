@@ -31,7 +31,7 @@ public partial class Downloader
     private static readonly Version MaxVersionSupported = new Version(0, 2);
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
-    private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\game".ToRelativeDirectoryPathAuto();
+    private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();
     private readonly IAbsoluteDirectoryPath _launcherPath =
         GetLauncherDirectory().ToAbsoluteDirectoryPathAuto();
     private readonly Settings _settings;
