@@ -41,13 +41,18 @@ public partial class Downloader
 
     public DownloadData _data = null;
     public ProgressData Progress { get; private set; }
-    public long BytesDownloaded { get; private set; }
+
+    public delegate void DownloadProgressCallback(long bytesAdded);
+
+    private long _bytesDownloaded;
+    public long BytesDownloaded => _bytesDownloaded;
+
     public static OS OperatingSystem => PlatformUtils.OperatingSystem;
     public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
     public GameState State => _state;
-    
+
     private string ZsyncLocation
     {
         get
@@ -60,7 +65,7 @@ public partial class Downloader
             return _settings.FormatZsyncLocation(_versionDownload);
         }
     }
-    
+
     public long TotalGameSize
     {
         get
@@ -452,7 +457,7 @@ public partial class Downloader
         var queue = new Queue<ControlFileItem>(_data.ToProcess);
 
         Progress.ResetCounter(queue.Count, true);
-        BytesDownloaded = 0;
+        _bytesDownloaded = 0;
 
         var hashCache = LoadHashCache();
         var hashCacheUpdates = new ConcurrentDictionary<string, FileHashCache>();
@@ -487,7 +492,6 @@ public partial class Downloader
                     }
                     else
                     {
-                        BytesDownloaded += bytesRead;
                         Progress.Count();
                     }
                 }
@@ -509,14 +513,14 @@ public partial class Downloader
             await Task.Delay(2000 * tries);
         }
 
-        // Apply all hash cache updates at once
-        if (hashCacheUpdates.Count > 0)
+        if (!hashCacheUpdates.IsEmpty)
         {
             Logger.Info($"Applying {hashCacheUpdates.Count} hash cache updates");
             foreach (var update in hashCacheUpdates)
             {
                 hashCache[update.Key] = update.Value;
             }
+
             SaveHashCache(hashCache);
         }
 
@@ -570,8 +574,7 @@ public partial class Downloader
 
         EnsureDirectoryExists(objFilePath);
 
-        // Single attempt download
-        var bytesRead = await DownloadFile(zsyncUri, objFilePath, objUri, fileName, installProgress);
+        var bytesRead = await DownloadFile(zsyncUri, objFilePath, objUri, fileName, installProgress, OnDownloadProgress);
         if (bytesRead <= 0)
         {
             Logger.Warn($"Download failed for {fileName}");
@@ -586,7 +589,6 @@ public partial class Downloader
         var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder);
 
         var unzipSuccessful = await UnzipFile(fileToUnzip);
-
         if (!unzipSuccessful)
         {
             Logger.Error($"Unzip operation failed for {fileToUnzip.Path}");
@@ -625,6 +627,7 @@ public partial class Downloader
         return bytesRead;
     }
 
+
     private static void EnsureDirectoryExists(string filePath)
     {
         var directory = Path.GetDirectoryName(filePath);
@@ -634,16 +637,17 @@ public partial class Downloader
         }
     }
 
-    private static async Task<long> DownloadFile(Uri zsyncUri, string objFilePath, Uri objUri, string fileName, InstallingProgress installProgress)
+    private static async Task<long> DownloadFile(Uri zsyncUri, string objFilePath, Uri objUri, string fileName,
+        InstallingProgress installProgress, DownloadProgressCallback progressCallback = null)
     {
         long bytesRead;
         try
         {
-            bytesRead = await SyncFileWithZsync(zsyncUri, objFilePath, objUri, fileName, installProgress);
+            bytesRead = await SyncFileWithZsync(zsyncUri, objFilePath, objUri, fileName, installProgress, progressCallback);
             if (bytesRead == 0)
             {
                 Logger.Info($"ZSync returned 0 bytes, trying direct download for: {fileName}");
-                bytesRead = await DirectDownloadFile(objUri, objFilePath);
+                bytesRead = await DirectDownloadFile(objUri, objFilePath, progressCallback);
             }
         }
         catch (Exception e)
@@ -653,7 +657,7 @@ public partial class Downloader
             try
             {
                 Logger.Info($"Trying direct download fallback for: {fileName}");
-                bytesRead = await DirectDownloadFile(objUri, objFilePath);
+                bytesRead = await DirectDownloadFile(objUri, objFilePath, progressCallback);
             }
             catch (Exception ex)
             {
@@ -663,6 +667,7 @@ public partial class Downloader
         }
         return bytesRead;
     }
+
 
     private static void DeleteFileIfExists(string filePath)
     {
@@ -679,7 +684,8 @@ public partial class Downloader
         }
     }
 
-    private static async Task<long> SyncFileWithZsync(Uri zsyncUri, string objFilePath, Uri objUri, string fileName, InstallingProgress installProgress)
+    private static async Task<long> SyncFileWithZsync(Uri zsyncUri, string objFilePath, Uri objUri,
+        string fileName, InstallingProgress installProgress, DownloadProgressCallback progressCallback = null)
     {
         Logger.Info($"Attempting zsync for: {fileName}");
 
@@ -687,7 +693,7 @@ public partial class Downloader
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
         client.Timeout = TimeSpan.FromMinutes(2);
 
-        var downloader = new RangeDownloader(objUri, client);
+        var downloader = new ProgressReportingRangeDownloader(objUri, client, progressCallback);
         try
         {
             Logger.Info($"Downloading control file from: {zsyncUri}");
@@ -704,6 +710,10 @@ public partial class Downloader
                 Logger.Info($"Control file downloaded successfully for {fileName}");
                 var outputDir = new DirectoryInfo(Path.GetDirectoryName(objFilePath));
 
+                var progressAdapter = progressCallback != null
+                    ? new Progress<ulong>(bytes => progressCallback((long)bytes))
+                    : null;
+
                 var syncTask = Task.Run(() => {
                     Zsync.Sync(controlFile, downloader, outputDir, (ss) => {
                         var flavor = ss switch
@@ -717,7 +727,7 @@ public partial class Downloader
                         };
                         installProgress.FlavorText = flavor;
                         Logger.Debug($"ZSync state: {ss} - {flavor}");
-                    }, cancellationToken: cts.Token);
+                    }, progressAdapter, cts.Token);
                 }, cts.Token);
 
                 var timeoutTask = Task.Delay(TimeSpan.FromMinutes(3), cts.Token);
@@ -829,7 +839,7 @@ public partial class Downloader
         return guidPath;
     }
 
-    private static async Task<long> DirectDownloadFile(Uri fileUri, string filePath)
+    private static async Task<long> DirectDownloadFile(Uri fileUri, string filePath, DownloadProgressCallback progressCallback = null)
     {
         Logger.Info($"Attempting direct download: {fileUri} -> {filePath}");
 
@@ -878,6 +888,8 @@ public partial class Downloader
                 {
                     await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token);
                     totalBytesRead += bytesRead;
+
+                    progressCallback?.Invoke(bytesRead);
 
                     var now = DateTime.UtcNow;
                     if ((now - lastProgressReport).TotalSeconds >= 2)
@@ -1092,8 +1104,8 @@ public partial class Downloader
             using (new Processing(Progress))
             {
                 // Reset state from previous sessions
-                BytesDownloaded = 0;
-                
+                _bytesDownloaded = 0;
+    
                 var cacheFile = Path.Combine(_launcherPath.Path, "hash_cache.json");
                 if (File.Exists(cacheFile))
                 {
@@ -1121,7 +1133,7 @@ public partial class Downloader
                 }
 
                 _data = data;
-                
+
                 if (_data.ControlFile.RootUri == null)
                 {
                     _data.ControlFile.RootUri = new Uri(ZsyncLocation);
@@ -1481,6 +1493,11 @@ public partial class Downloader
 
             await inputStream.CopyToAsync(gzipStream);
         }
+    }
+
+    private void OnDownloadProgress(long bytesAdded)
+    {
+        Interlocked.Add(ref _bytesDownloaded, bytesAdded);
     }
 
     private static string GetLauncherDirectory()
