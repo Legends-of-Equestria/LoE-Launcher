@@ -1,19 +1,24 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using Avalonia.Media;
-using Avalonia.Threading;
-using LoE_Launcher.Core;
-using NLog;
 using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
+using LoE_Launcher.Core;
 using Models.Utils;
+using NLog;
 
 namespace LoE_Launcher;
 
@@ -55,7 +60,7 @@ public partial class MainWindow : Window
             this.AttachDevTools();
 #endif
         _downloader = new Downloader();
-            
+
         LoadBackgroundImages();
 
         var platform = PlatformUtils.OperatingSystem;
@@ -131,16 +136,126 @@ public partial class MainWindow : Window
 
     private async void LoadBackgroundImages()
     {
+        _backgroundImage.Source = new Bitmap(
+            AssetLoader.Open(new Uri("avares://LoE-Launcher/Assets/Default-Background.png")));
+
+        _logoImage.Source = new Bitmap(
+            AssetLoader.Open(new Uri("avares://LoE-Launcher/Assets/Logo.png")));
+
         try
         {
-            // Todo: Move to our game server
-            _backgroundImage.Source = await LoadImageFromUrl("https://i.imgur.com/KMHXf0h.png");
-            _logoImage.Source = await LoadImageFromUrl("https://www.legendsofequestria.com/img/header.png");
+            var cachedImage = await LoadCachedImageImmediately("Background.png");
+            if (cachedImage != null)
+            {
+                _backgroundImage.Source = cachedImage;
+            }
+
+            _ = Task.Run(async () => {
+                try
+                {
+                    var updatedImage = await UpdateCachedImage("http://theslowly.me/downloads/Background.png", "Background.png");
+                    if (updatedImage != null)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            _backgroundImage.Source = updatedImage;
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Unable to update remote background image");
+                }
+            });
         }
         catch (Exception ex)
         {
-            await ShowErrorMessage("Image Load Error", $"Failed to load images: {ex.Message}");
-            Background = new SolidColorBrush(Color.Parse("#9381BD")); // Fallback to lavender color
+            Logger.Warn(ex, "Unable to load cached background image");
+        }
+    }
+
+    private async Task<Bitmap?> LoadCachedImageImmediately(string cacheFileName)
+    {
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, "ImageCache");
+        var cachePath = Path.Combine(cacheDir, cacheFileName);
+
+        if (File.Exists(cachePath))
+        {
+            try
+            {
+                await using var fileReader = File.OpenRead(cachePath);
+                return new Bitmap(fileReader);
+            }
+            catch
+            {
+                // ignore 
+            }
+        }
+        
+        return null;
+    }
+
+    private async Task<Bitmap?> UpdateCachedImage(string url, string cacheFileName)
+    {
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, "ImageCache");
+        Directory.CreateDirectory(cacheDir);
+        var cachePath = Path.Combine(cacheDir, cacheFileName);
+        var tempPath = Path.Combine(cacheDir, $"temp_{cacheFileName}");
+
+        try
+        {
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            if (File.Exists(cachePath))
+            {
+                var lastModified = File.GetLastWriteTimeUtc(cachePath);
+                client.DefaultRequestHeaders.IfModifiedSince = lastModified;
+            }
+
+            using var response = await client.GetAsync(url);
+
+            if (response.StatusCode == HttpStatusCode.NotModified)
+            {
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var memoryStream = new MemoryStream();
+
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            await using (var fileStream = File.Create(tempPath))
+            {
+                memoryStream.Position = 0;
+                await memoryStream.CopyToAsync(fileStream);
+            }
+
+            File.Move(tempPath, cachePath, true);
+
+            memoryStream.Position = 0;
+            return new Bitmap(memoryStream);
+        }
+        catch
+        {
+            if (File.Exists(tempPath))
+            {
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+            
+            return null;
         }
     }
 
@@ -157,7 +272,7 @@ public partial class MainWindow : Window
             ]
         };
     }
-        
+
     private static LinearGradientBrush CreateHorizontalGradientBrush(string leftColor, string rightColor)
     {
         return new LinearGradientBrush
@@ -172,7 +287,7 @@ public partial class MainWindow : Window
         };
     }
 
-    private void OnTitleBarPointerPressed(object sender, Avalonia.Input.PointerPressedEventArgs e)
+    private void OnTitleBarPointerPressed(object sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
@@ -180,7 +295,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task<Avalonia.Media.Imaging.Bitmap?> LoadImageFromUrl(string url)
+    private async Task<Bitmap?> LoadImageFromUrl(string url)
     {
         try
         {
@@ -192,7 +307,7 @@ public partial class MainWindow : Window
             await stream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
-            return new Avalonia.Media.Imaging.Bitmap(memoryStream);
+            return new Bitmap(memoryStream);
         }
         catch
         {
@@ -220,8 +335,8 @@ public partial class MainWindow : Window
             var statusText = _downloader.Progress.Text;
             var sizeInfo = "";
 
-            if (_downloader.Progress.Processing || 
-                _downloader.State == GameState.NotFound || 
+            if (_downloader.Progress.Processing ||
+                _downloader.State == GameState.NotFound ||
                 _downloader.State == GameState.UpdateAvailable)
             {
                 sizeInfo = $"\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
@@ -230,7 +345,7 @@ public partial class MainWindow : Window
             {
                 sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
             }
-            
+
             _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
 
             var enabledState = true;
@@ -443,9 +558,9 @@ public partial class MainWindow : Window
         var button = new Button
         {
             Content = text,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Height = 44,
             FontSize = 15,
             FontWeight = FontWeight.Medium,
@@ -558,8 +673,8 @@ public partial class MainWindow : Window
 
         var buttonPanel = new StackPanel
         {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
             Spacing = 15
         };
 
@@ -569,8 +684,8 @@ public partial class MainWindow : Window
             Width = 100,
             Height = 38,
             CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
             Background = new SolidColorBrush(Color.Parse("#D686D2")),
             FontWeight = FontWeight.Medium
@@ -582,8 +697,8 @@ public partial class MainWindow : Window
             Width = 100,
             Height = 38,
             CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
             Background = new SolidColorBrush(Color.Parse("#7A68B5")),
             FontWeight = FontWeight.Medium
@@ -646,11 +761,11 @@ public partial class MainWindow : Window
             Width = 120,
             Height = 38,
             CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
             Background = CreateGradientBrush("#D686D2", "#9C69B5"),
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = FontWeight.Medium
         };
 
@@ -699,11 +814,11 @@ public partial class MainWindow : Window
             Width = 120,
             Height = 38,
             CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
             Background = CreateHorizontalGradientBrush("#D32F2F", "#F44336"),
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = FontWeight.Medium
         };
 
@@ -716,10 +831,10 @@ public partial class MainWindow : Window
 
         await messageBox.ShowDialog(this);
     }
-    
+
     private static string BytesToString(long byteCount)
     {
-        string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        string[] suf = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
         if (byteCount == 0)
         {
             return $"0{suf[0]}";
