@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -46,6 +47,15 @@ public partial class MainWindow : Window
     private readonly IBrush _launchColor;
     private readonly IBrush _errorColor;
 
+    private bool _isDraggingLogo;
+    private Point _lastLogoPosition;
+    private Point _pointerStartPosition;
+    private Point _lastPointerPosition;
+    private readonly TransformGroup _logoTransform = new TransformGroup();
+    private ScaleTransform _logoScaleTransform;
+    private RotateTransform _logoRotateTransform;
+    private TranslateTransform _logoTranslateTransform;
+
     public MainWindow()
     {
         Logger.Info("Starting LoE Launcher");
@@ -62,6 +72,7 @@ public partial class MainWindow : Window
         _downloader = new Downloader();
 
         LoadBackgroundImages();
+        SetupDraggableLogo();
 
         var platform = PlatformUtils.OperatingSystem;
         _lblVersion.Text = $"Launcher Version: 0.5 Platform: {platform}";
@@ -85,14 +96,123 @@ public partial class MainWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
 
-        // Get references to UI elements
-        // If these return null, something is seriously wrong
         _backgroundImage = this.FindControl<Image>("backgroundImage")!;
         _logoImage = this.FindControl<Image>("logoImage")!;
         _lblDownloadedAmount = this.FindControl<TextBlock>("lblDownloadedAmount")!;
         _lblVersion = this.FindControl<TextBlock>("lblVersion")!;
         _pbState = this.FindControl<ProgressBar>("pbState")!;
         _btnAction = this.FindControl<Button>("btnAction")!;
+    }
+
+    private void SetupDraggableLogo()
+    {
+        _logoScaleTransform = new ScaleTransform();
+        _logoRotateTransform = new RotateTransform();
+        _logoTranslateTransform = new TranslateTransform();
+        
+        _logoTransform.Children.Add(_logoScaleTransform);
+        _logoTransform.Children.Add(_logoRotateTransform);
+        _logoTransform.Children.Add(_logoTranslateTransform);
+        
+        _logoImage.RenderTransform = _logoTransform;
+        
+        _logoImage.Transitions = new Transitions
+        {
+            new TransformOperationsTransition
+            {
+                Property = Visual.RenderTransformProperty,
+                Duration = TimeSpan.FromMilliseconds(200)
+            }
+        };
+        
+        ToolTip.SetTip(_logoImage, "You discovered me!");
+        _logoImage.Cursor = new Cursor(StandardCursorType.Hand);
+        
+        _logoImage.PointerPressed += OnLogoPointerPressed;
+        _logoImage.PointerMoved += OnLogoPointerMoved;
+        _logoImage.PointerReleased += OnLogoPointerReleased;
+        _logoImage.PointerCaptureLost += OnLogoPointerCaptureLost;
+    }
+
+    private void OnLogoPointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(_logoImage).Properties.IsLeftButtonPressed)
+        {
+            _isDraggingLogo = true;
+            
+            _pointerStartPosition = e.GetPosition(this);
+            _lastPointerPosition = _pointerStartPosition;
+            _lastLogoPosition = new Point(_logoTranslateTransform.X, _logoTranslateTransform.Y);
+            
+            _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 0.95;
+            
+            e.Pointer.Capture(_logoImage);
+            e.Handled = true;
+            
+            Logger.Info("Logo drag started");
+        }
+    }
+
+    private void OnLogoPointerMoved(object sender, PointerEventArgs e)
+    {
+        if (!_isDraggingLogo) return;
+        
+        var currentPosition = e.GetPosition(this);
+        
+        double dragDeltaX = currentPosition.X - _pointerStartPosition.X;
+        double dragDeltaY = currentPosition.Y - _pointerStartPosition.Y;
+        
+        double moveDeltaX = currentPosition.X - _lastPointerPosition.X;
+        
+        double newX = _lastLogoPosition.X + dragDeltaX;
+        double newY = _lastLogoPosition.Y + dragDeltaY;
+        
+        _logoTranslateTransform.X = newX;
+        _logoTranslateTransform.Y = newY;
+        
+        _logoRotateTransform.Angle = Math.Clamp(moveDeltaX * 2, -10, 10);
+        
+        _lastPointerPosition = currentPosition;
+        
+        e.Handled = true;
+    }
+
+    private void OnLogoPointerReleased(object sender, PointerReleasedEventArgs e)
+    {
+        if (!_isDraggingLogo) return;
+        
+        FinalizeLogoDrag();
+        e.Handled = true;
+    }
+
+    private void OnLogoPointerCaptureLost(object sender, PointerCaptureLostEventArgs e)
+    {
+        if (_isDraggingLogo)
+        {
+            FinalizeLogoDrag();
+        }
+    }
+
+    private void FinalizeLogoDrag()
+    {
+        _isDraggingLogo = false;
+        
+        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 1.0;
+        
+        var timer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        
+        timer.Tick += (s, e) =>
+        {
+            _logoRotateTransform.Angle = 0;
+            timer.Stop();
+        };
+        
+        timer.Start();
+        
+        Logger.Info($"Logo dropped at position: {_logoTranslateTransform.X}, {_logoTranslateTransform.Y}");
     }
 
     private async void InitializeDownloader()

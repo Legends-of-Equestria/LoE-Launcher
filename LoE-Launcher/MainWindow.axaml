@@ -15,15 +15,26 @@
         FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
 
     <Window.Styles>
+        <Style Selector="Button">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
         <Style Selector="Button.IconButton">
             <Setter Property="Background" Value="#33FFFFFF" />
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="36" />
-            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="19" />
             <Setter Property="Padding" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#40F0BE4A" />
         </Style>
         <Style Selector="Button.IconButton:pointerover">
             <Setter Property="Background" Value="#66FFFFFF" />
+            <Setter Property="BorderBrush" Value="#80F0BE4A" />
             <Setter Property="RenderTransform" Value="scale(1.05)" />
         </Style>
         <Style Selector="Button.IconButton:pressed">
@@ -40,13 +51,28 @@
             <Setter Property="BorderBrush" Value="#E8B75C" />
             <Setter Property="RenderTransform" Value="scale(0.98)" />
         </Style>
+        <Style Selector="Border.InfoPanel">
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
     </Window.Styles>
 
     <Grid>
-        <Image x:Name="backgroundImage"
-               Stretch="UniformToFill"
-               HorizontalAlignment="Stretch"
-               VerticalAlignment="Stretch" />
+        <Panel>
+            <Image x:Name="backgroundImage"
+                   Stretch="UniformToFill"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch" />
+            <Rectangle Fill="#25000000" />
+        </Panel>
 
         <Grid VerticalAlignment="Top">
             <Grid VerticalAlignment="Top"
@@ -64,32 +90,32 @@
         </Grid>
 
         <StackPanel VerticalAlignment="Bottom"
-                    Margin="16,0,16,16"
-                    Spacing="12">
+                    Margin="20,0,20,20"
+                    Spacing="14">
 
-            <Border Background="#20FFFFFF"
-                    CornerRadius="8"
-                    BorderThickness="1"
-                    BorderBrush="#f0be4a"
-                    Padding="16,12">
+            <Border Classes="InfoPanel"
+                    Padding="18,14">
                 <TextBlock x:Name="lblDownloadedAmount"
                            Text="Ready to Launch!&#x0A;0B downloaded"
                            FontSize="14"
-                           Foreground="#E0FFFFFF"
+                           FontWeight="Medium"
+                           Foreground="#F0FFFFFF"
                            TextWrapping="Wrap" />
             </Border>
 
-            <Border Background="#20FFFFFF"
-                    CornerRadius="8"
-                    BorderThickness="1"
-                    BorderBrush="#f0be4a"
-                    Padding="3"
+            <Border Classes="InfoPanel"
+                    Padding="4"
                     ClipToBounds="True">
                 <ProgressBar x:Name="pbState"
-                             Height="12"
-                             CornerRadius="4"
+                             Height="14"
+                             CornerRadius="5"
                              HorizontalAlignment="Stretch"
                              Value="100">
+                    <ProgressBar.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Value" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                        </Transitions>
+                    </ProgressBar.Transitions>
                     <ProgressBar.Foreground>
                         <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
                             <GradientStop Offset="0" Color="#9C69B5" />
@@ -100,12 +126,17 @@
             </Border>
 
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock x:Name="lblVersion"
-                           Text="Launcher Version: 0.5 Platform: WindowsX64"
-                           Foreground="#E0FFFFFF"
-                           Grid.Column="0"
-                           Margin="4,0,10,0"
-                           VerticalAlignment="Center" />
+                <Border Grid.Column="0" 
+                        Background="#15FFFFFF" 
+                        CornerRadius="6" 
+                        Padding="10,5"
+                        Margin="0,0,10,0">
+                    <TextBlock x:Name="lblVersion"
+                               Text="Launcher Version: 0.5 Platform: WindowsX64"
+                               Foreground="#E0FFFFFF"
+                               FontSize="12"
+                               VerticalAlignment="Center" />
+                </Border>
 
                 <Button x:Name="btnSettings"
                         Grid.Column="1"
@@ -113,11 +144,12 @@
                         Classes="IconButton"
                         Click="OnSettingsButtonClicked"
                         HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center">
-                    <TextBlock>
+                        VerticalContentAlignment="Center"
+                        ToolTip.Tip="Settings">
+                    <Panel>
                         <Image Width="20" Height="20" 
                                Source="avares://LoE-Launcher/Assets/Gear.png" />
-                    </TextBlock>
+                    </Panel>
                 </Button>
 
                 <Button x:Name="btnAction"
@@ -125,11 +157,11 @@
                         Foreground="White"
                         Click="OnActionButtonClicked"
                         Grid.Column="2"
-                        Width="140"
-                        Height="44"
+                        Width="150"
+                        Height="46"
                         FontSize="16"
                         FontWeight="SemiBold"
-                        CornerRadius="22"
+                        CornerRadius="23"
                         VerticalContentAlignment="Center"
                         HorizontalContentAlignment="Center"
                         Padding="12,0">
