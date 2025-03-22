@@ -147,7 +147,7 @@
                         VerticalContentAlignment="Center"
                         ToolTip.Tip="Settings">
                     <Panel>
-                        <Image Width="20" Height="20" 
+                        <Image Width="26" Height="26" 
                                Source="avares://LoE-Launcher/Assets/Gear.png" />
                     </Panel>
                 </Button>
