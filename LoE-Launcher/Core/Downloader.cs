@@ -41,11 +41,14 @@ public partial class Downloader
 
     public DownloadData _data = null;
     public ProgressData Progress { get; private set; }
-
+    
     public delegate void DownloadProgressCallback(long bytesAdded);
 
     private long _bytesDownloaded;
     public long BytesDownloaded => _bytesDownloaded;
+  
+    private readonly DownloadStats _downloadStats = new DownloadStats();
+    public DownloadStats DownloadStats => _downloadStats;
 
     public static OS OperatingSystem => PlatformUtils.OperatingSystem;
     public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
@@ -328,6 +331,8 @@ public partial class Downloader
                 _state = GameState.Unknown;
                 return;
             }
+            
+            _downloadStats.Reset();
 
             // First prepare all files - compression phase
             Logger.Info("Starting compression phase");
@@ -1498,6 +1503,14 @@ public partial class Downloader
     private void OnDownloadProgress(long bytesAdded)
     {
         Interlocked.Add(ref _bytesDownloaded, bytesAdded);
+    
+        double progressPercentage = 0;
+        if (Progress.Max > 0)
+        {
+            progressPercentage = (double)Progress.Current / Progress.Max * 100;
+        }
+    
+        _downloadStats.Update(_bytesDownloaded, progressPercentage);
     }
 
     private static string GetLauncherDirectory()

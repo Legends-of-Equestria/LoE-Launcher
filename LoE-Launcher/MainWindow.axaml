@@ -95,12 +95,25 @@
 
             <Border Classes="InfoPanel"
                     Padding="18,14">
-                <TextBlock x:Name="lblDownloadedAmount"
-                           Text="Ready to Launch!&#x0A;0B downloaded"
-                           FontSize="14"
-                           FontWeight="Medium"
-                           Foreground="#F0FFFFFF"
-                           TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="lblDownloadedAmount"
+                               Grid.Column="0"
+                               Text="Ready to Launch!&#x0A;0B downloaded"
+                               FontSize="14"
+                               FontWeight="Medium"
+                               Foreground="#F0FFFFFF"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                    <TextBlock x:Name="lblDownloadStats"
+                               Grid.Column="1"
+                               Text=""
+                               FontSize="14"
+                               Foreground="#E0FFFFFF"
+                               IsVisible="False"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Top"
+                               Margin="10,0,0,0" />
+                </Grid>
             </Border>
 
             <Border Classes="InfoPanel"
@@ -113,7 +126,7 @@
                              Value="100">
                     <ProgressBar.Transitions>
                         <Transitions>
-                            <DoubleTransition Property="Value" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                            <DoubleTransition Property="Value" Duration="0:0:0.3" Easing="CubicEaseOut" />
                         </Transitions>
                     </ProgressBar.Transitions>
                     <ProgressBar.Foreground>
@@ -126,9 +139,9 @@
             </Border>
 
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <Border Grid.Column="0" 
-                        Background="#15FFFFFF" 
-                        CornerRadius="6" 
+                <Border Grid.Column="0"
+                        Background="#15FFFFFF"
+                        CornerRadius="6"
                         Padding="10,5"
                         Margin="0,0,10,0">
                     <TextBlock x:Name="lblVersion"
@@ -147,7 +160,7 @@
                         VerticalContentAlignment="Center"
                         ToolTip.Tip="Settings">
                     <Panel>
-                        <Image Width="26" Height="26" 
+                        <Image Width="26" Height="26"
                                Source="avares://LoE-Launcher/Assets/Gear.png" />
                     </Panel>
                 </Button>

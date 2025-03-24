@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private Image _backgroundImage;
     private Image _logoImage;
     private TextBlock _lblDownloadedAmount;
+    private TextBlock _lblDownloadStats;
     private TextBlock _lblVersion;
     private ProgressBar _pbState;
     private Button _btnAction;
@@ -102,6 +103,7 @@ public partial class MainWindow : Window
         _lblVersion = this.FindControl<TextBlock>("lblVersion")!;
         _pbState = this.FindControl<ProgressBar>("pbState")!;
         _btnAction = this.FindControl<Button>("btnAction")!;
+        _lblDownloadStats = this.FindControl<TextBlock>("lblDownloadStats")!;
     }
 
     private void SetupDraggableLogo()
@@ -109,13 +111,13 @@ public partial class MainWindow : Window
         _logoScaleTransform = new ScaleTransform();
         _logoRotateTransform = new RotateTransform();
         _logoTranslateTransform = new TranslateTransform();
-        
+
         _logoTransform.Children.Add(_logoScaleTransform);
         _logoTransform.Children.Add(_logoRotateTransform);
         _logoTransform.Children.Add(_logoTranslateTransform);
-        
+
         _logoImage.RenderTransform = _logoTransform;
-        
+
         _logoImage.Transitions = new Transitions
         {
             new TransformOperationsTransition
@@ -124,10 +126,10 @@ public partial class MainWindow : Window
                 Duration = TimeSpan.FromMilliseconds(200)
             }
         };
-        
+
         ToolTip.SetTip(_logoImage, "You discovered me!");
         _logoImage.Cursor = new Cursor(StandardCursorType.Hand);
-        
+
         _logoImage.PointerPressed += OnLogoPointerPressed;
         _logoImage.PointerMoved += OnLogoPointerMoved;
         _logoImage.PointerReleased += OnLogoPointerReleased;
@@ -139,16 +141,16 @@ public partial class MainWindow : Window
         if (e.GetCurrentPoint(_logoImage).Properties.IsLeftButtonPressed)
         {
             _isDraggingLogo = true;
-            
+
             _pointerStartPosition = e.GetPosition(this);
             _lastPointerPosition = _pointerStartPosition;
             _lastLogoPosition = new Point(_logoTranslateTransform.X, _logoTranslateTransform.Y);
-            
+
             _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 0.95;
-            
+
             e.Pointer.Capture(_logoImage);
             e.Handled = true;
-            
+
             Logger.Info("Logo drag started");
         }
     }
@@ -156,31 +158,31 @@ public partial class MainWindow : Window
     private void OnLogoPointerMoved(object sender, PointerEventArgs e)
     {
         if (!_isDraggingLogo) return;
-        
+
         var currentPosition = e.GetPosition(this);
-        
-        double dragDeltaX = currentPosition.X - _pointerStartPosition.X;
-        double dragDeltaY = currentPosition.Y - _pointerStartPosition.Y;
-        
-        double moveDeltaX = currentPosition.X - _lastPointerPosition.X;
-        
-        double newX = _lastLogoPosition.X + dragDeltaX;
-        double newY = _lastLogoPosition.Y + dragDeltaY;
-        
+
+        var dragDeltaX = currentPosition.X - _pointerStartPosition.X;
+        var dragDeltaY = currentPosition.Y - _pointerStartPosition.Y;
+
+        var moveDeltaX = currentPosition.X - _lastPointerPosition.X;
+
+        var newX = _lastLogoPosition.X + dragDeltaX;
+        var newY = _lastLogoPosition.Y + dragDeltaY;
+
         _logoTranslateTransform.X = newX;
         _logoTranslateTransform.Y = newY;
-        
+
         _logoRotateTransform.Angle = Math.Clamp(moveDeltaX * 2, -10, 10);
-        
+
         _lastPointerPosition = currentPosition;
-        
+
         e.Handled = true;
     }
 
     private void OnLogoPointerReleased(object sender, PointerReleasedEventArgs e)
     {
         if (!_isDraggingLogo) return;
-        
+
         FinalizeLogoDrag();
         e.Handled = true;
     }
@@ -196,22 +198,21 @@ public partial class MainWindow : Window
     private void FinalizeLogoDrag()
     {
         _isDraggingLogo = false;
-        
+
         _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 1.0;
-        
+
         var timer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(100)
         };
-        
-        timer.Tick += (s, e) =>
-        {
+
+        timer.Tick += (s, e) => {
             _logoRotateTransform.Angle = 0;
             timer.Stop();
         };
-        
+
         timer.Start();
-        
+
         Logger.Info($"Logo dropped at position: {_logoTranslateTransform.X}, {_logoTranslateTransform.Y}");
     }
 
@@ -310,7 +311,7 @@ public partial class MainWindow : Window
                 // ignore 
             }
         }
-        
+
         return null;
     }
 
@@ -374,7 +375,7 @@ public partial class MainWindow : Window
                     // ignore
                 }
             }
-            
+
             return null;
         }
     }
@@ -458,14 +459,35 @@ public partial class MainWindow : Window
             if (_downloader.State is GameState.Unknown)
             {
                 sizeInfo = "";
+                _lblDownloadStats.IsVisible = false;
             } 
             else if (_downloader.State is GameState.NotFound or GameState.UpdateAvailable)
             {
                 sizeInfo = $"\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
+            
+                var showStats = _downloader.Progress.Processing && 
+                    !_downloader.Progress.Marquee &&
+                    _downloader.DownloadStats.HasValidSpeed;
+                             
+                _lblDownloadStats.IsVisible = showStats;
+            
+                if (showStats)
+                {
+                    var speedText = _downloader.DownloadStats.CurrentSpeed;
+                    var statsText = speedText;
+                
+                    if (_downloader.DownloadStats.HasValidTimeEstimate)
+                    {
+                        statsText += $" • {_downloader.DownloadStats.TimeRemaining} remaining";
+                    }
+                
+                    _lblDownloadStats.Text = statsText;
+                }
             }
             else
             {
                 sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
+                _lblDownloadStats.IsVisible = false;
             }
 
             _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
