@@ -785,6 +785,70 @@ public partial class MainWindow : Window
         }
     }
 
+    private static void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://www.youtube.com/@legendsofequestria",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open YouTube link");
+        }
+    }
+
+    private static void OnDiscordButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://discord.com/invite/legendsofeq",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open Discord link");
+        }
+    }
+
+    private static void OnTwitterButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://twitter.com/LegendsofEq",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open Twitter link");
+        }
+    }
+
+    private static void OnFacebookButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://www.facebook.com/LegendsOfEquestria",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open Facebook link");
+        }
+    }
+
     private async Task<bool> ShowConfirmDialog(string title, string message)
     {
         var result = false;

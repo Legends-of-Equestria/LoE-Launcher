@@ -10,9 +10,9 @@ partial class Downloader
         {
             if (IsFinished)
             {
-                if (Model._data.ToProcess.Count != 0)
+                if (Model._data?.ToProcess?.Count > 0)
                 {
-                    return "Files to update: {0}".Format(Model._data?.ToProcess.Count);
+                    return "Files to update: {0}".Format(Model._data.ToProcess.Count);
                 }
 
                 return "Ready to launch!";
