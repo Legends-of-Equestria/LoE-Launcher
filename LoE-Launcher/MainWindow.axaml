@@ -239,60 +239,46 @@
                 </ProgressBar>
             </Border>
 
-            <Grid ColumnDefinitions="*,Auto">
-                <Border Grid.Column="0"
-                        Background="#15FFFFFF"
-                        CornerRadius="6"
-                        Padding="10,5"
-                        Margin="0,0,10,0">
-                    <TextBlock x:Name="lblVersion"
-                               Text="Launcher Version: 0.5 Platform: WindowsX64"
-                               Foreground="#E0FFFFFF"
-                               FontSize="12"
-                               VerticalAlignment="Center" />
-                </Border>
-
-                <Button x:Name="btnAction"
-                        Content="Launch"
-                        Foreground="White"
-                        Click="OnActionButtonClicked"
-                        Grid.Column="1"
-                        Width="150"
-                        Height="46"
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        CornerRadius="23"
-                        VerticalContentAlignment="Center"
-                        HorizontalContentAlignment="Center"
-                        Padding="12,0">
-                    <Button.Background>
-                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                            <GradientStop Offset="0" Color="#9C69B5" />
-                            <GradientStop Offset="1" Color="#D686D2" />
-                        </LinearGradientBrush>
-                    </Button.Background>
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background">
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                                    <GradientStop Offset="0" Color="#B37DC7" />
-                                    <GradientStop Offset="1" Color="#E49AE0" />
-                                </LinearGradientBrush>
-                            </Setter>
-                            <Setter Property="RenderTransform" Value="scale(1.03)" />
-                        </Style>
-                        <Style Selector="Button:pressed /template/ ContentPresenter">
-                            <Setter Property="Background">
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                                    <GradientStop Offset="0" Color="#7E529A" />
-                                    <GradientStop Offset="1" Color="#B66DB2" />
-                                </LinearGradientBrush>
-                            </Setter>
-                            <Setter Property="RenderTransform" Value="scale(0.98)" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
-            </Grid>
+            <Button x:Name="btnAction"
+                    Content="Launch"
+                    Foreground="White"
+                    Click="OnActionButtonClicked"
+                    Width="150"
+                    Height="46"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    CornerRadius="23"
+                    VerticalContentAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    HorizontalAlignment="Right"
+                    Padding="12,0">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Offset="0" Color="#9C69B5" />
+                        <GradientStop Offset="1" Color="#D686D2" />
+                    </LinearGradientBrush>
+                </Button.Background>
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background">
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                <GradientStop Offset="0" Color="#B37DC7" />
+                                <GradientStop Offset="1" Color="#E49AE0" />
+                            </LinearGradientBrush>
+                        </Setter>
+                        <Setter Property="RenderTransform" Value="scale(1.03)" />
+                    </Style>
+                    <Style Selector="Button:pressed /template/ ContentPresenter">
+                        <Setter Property="Background">
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                <GradientStop Offset="0" Color="#7E529A" />
+                                <GradientStop Offset="1" Color="#B66DB2" />
+                            </LinearGradientBrush>
+                        </Setter>
+                        <Setter Property="RenderTransform" Value="scale(0.98)" />
+                    </Style>
+                </Button.Styles>
+            </Button>
         </StackPanel>
     </Grid>
 </Window>

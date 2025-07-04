@@ -39,7 +39,6 @@ public partial class MainWindow : Window
     private Image _logoImage;
     private TextBlock _lblDownloadedAmount;
     private TextBlock _lblDownloadStats;
-    private TextBlock _lblVersion;
     private ProgressBar _pbState;
     private Button _btnAction;
 
@@ -75,9 +74,7 @@ public partial class MainWindow : Window
         LoadBackgroundImages();
         SetupDraggableLogo();
 
-        var platform = PlatformUtils.OperatingSystem;
-        _lblVersion.Text = $"Launcher Version: 0.5 Platform: {platform}";
-        Logger.Info($"Running on platform: {platform}");
+        Logger.Info($"Running on platform: {PlatformUtils.OperatingSystem}");
 
         _timer = new DispatcherTimer
         {
@@ -100,7 +97,6 @@ public partial class MainWindow : Window
         _backgroundImage = this.FindControl<Image>("backgroundImage")!;
         _logoImage = this.FindControl<Image>("logoImage")!;
         _lblDownloadedAmount = this.FindControl<TextBlock>("lblDownloadedAmount")!;
-        _lblVersion = this.FindControl<TextBlock>("lblVersion")!;
         _pbState = this.FindControl<ProgressBar>("pbState")!;
         _btnAction = this.FindControl<Button>("btnAction")!;
         _lblDownloadStats = this.FindControl<TextBlock>("lblDownloadStats")!;
