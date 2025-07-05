@@ -7,6 +7,7 @@
         MinWidth="800" MinHeight="500"
         x:Class="LoE_Launcher.MainWindow"
         Title="LoE Launcher"
+        Icon="avares://LoE-Launcher/Assets/Icon.ico"
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"

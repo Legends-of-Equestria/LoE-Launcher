@@ -40,6 +40,7 @@
         <AvaloniaResource Include="Assets\launch-button.png" />
         <AvaloniaResource Include="Assets\progress-bg.png" />
         <AvaloniaResource Include="Assets\progress-fill.png" />
+        <AvaloniaResource Include="Assets\Icon.ico" />
     </ItemGroup>
     
 </Project>
