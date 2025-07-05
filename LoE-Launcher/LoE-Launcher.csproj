@@ -37,6 +37,9 @@
         <AvaloniaResource Include="Assets\Gear.png" />
         <AvaloniaResource Include="Assets\Default-Background.png" />
         <AvaloniaResource Include="Assets\Logo.png" />
+        <AvaloniaResource Include="Assets\launch-button.png" />
+        <AvaloniaResource Include="Assets\progress-bg.png" />
+        <AvaloniaResource Include="Assets\progress-fill.png" />
     </ItemGroup>
     
 </Project>

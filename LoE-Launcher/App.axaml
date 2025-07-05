@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:LoE_Launcher.Utils"
              x:Class="LoE_Launcher.App"
              RequestedThemeVariant="Dark">
 
@@ -16,23 +17,23 @@
                 </Transitions>
             </Setter>
         </Style>
-        
+
         <Style Selector="Button.action:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.03)" />
             <Setter Property="Opacity" Value="0.95" />
         </Style>
-        
+
         <Style Selector="Button.action:pressed">
             <Setter Property="RenderTransform" Value="scale(0.97)" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
-        
+
         <Style Selector="Border.glassPanel">
             <Setter Property="Background" Value="#30000000" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="BoxShadow" Value="0 4 20 0 #40000000" />
         </Style>
-        
+
         <Style Selector="ProgressBar">
             <Setter Property="Height" Value="8" />
             <Setter Property="Foreground" Value="#3D85C6" />
@@ -46,10 +47,168 @@
             <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="Foreground" Value="White" />
         </Style>
-        
+
         <Style Selector="TextBlock.statusText">
             <Setter Property="Foreground" Value="#E0FFFFFF" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
     </Application.Styles>
+
+    <Application.Resources>
+        <ControlTheme x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid>
+                        <!-- Base texture -->
+                        <Image x:Name="ButtonTexture"
+                               Source="avares://LoE-Launcher/Assets/launch-button.png"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Opacity="1">
+                            <Image.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                </Transitions>
+                            </Image.Transitions>
+                        </Image>
+
+                        <!-- Tint overlay with opacity mask -->
+                        <Rectangle x:Name="TintLayer"
+                                   Fill="Transparent"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Opacity="0"
+                                   IsHitTestVisible="False">
+                            <Rectangle.OpacityMask>
+                                <ImageBrush Source="avares://LoE-Launcher/Assets/launch-button.png"
+                                            Stretch="Uniform" />
+                            </Rectangle.OpacityMask>
+                            <Rectangle.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Fill" Duration="0:0:0.15" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                </Transitions>
+                            </Rectangle.Transitions>
+                        </Rectangle>
+
+                        <!-- Content -->
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="White"
+                                          TextElement.FontSize="32"
+                                          TextElement.FontWeight="Bold" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+
+            <!-- Normal state -->
+            <Style Selector="^:not(:pointerover):not(:pressed) /template/ Rectangle#TintLayer">
+                <Setter Property="Fill" Value="Transparent" />
+                <Setter Property="Opacity" Value="0" />
+            </Style>
+
+            <!-- Hover effects -->
+            <Style Selector="^:pointerover /template/ Image#ButtonTexture">
+                <Setter Property="Opacity" Value="0.95" />
+            </Style>
+            <Style Selector="^:pointerover /template/ Rectangle#TintLayer">
+                <Setter Property="Fill" Value="#FFFFFF" />
+                <Setter Property="Opacity" Value="0.15" />
+            </Style>
+            <Style Selector="^:pointerover">
+                <Setter Property="RenderTransform" Value="scale(1.02)" />
+            </Style>
+
+            <!-- Pressed effects -->
+            <Style Selector="^:pressed /template/ Image#ButtonTexture">
+                <Setter Property="Opacity" Value="0.85" />
+            </Style>
+            <Style Selector="^:pressed /template/ Rectangle#TintLayer">
+                <Setter Property="Fill" Value="#000000" />
+                <Setter Property="Opacity" Value="0.25" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="scale(0.98)" />
+            </Style>
+
+            <!-- Disabled state -->
+            <Style Selector="^:disabled /template/ Image#ButtonTexture">
+                <Setter Property="Opacity" Value="0.5" />
+            </Style>
+            <Style Selector="^:disabled /template/ Rectangle#TintLayer">
+                <Setter Property="Fill" Value="#808080" />
+                <Setter Property="Opacity" Value="0.3" />
+            </Style>
+
+            <!-- Add smooth transitions for transform -->
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </ControlTheme>
+
+        <ControlTheme x:Key="TexturedProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid>
+                        <Viewbox Stretch="Uniform"
+                                 StretchDirection="DownOnly"
+                                 VerticalAlignment="Center"
+                                 HorizontalAlignment="Center">
+                            <Grid>
+                                <Image x:Name="SizingImage"
+                                       Source="avares://LoE-Launcher/Assets/progress-bg.png"
+                                       Stretch="None"
+                                       Opacity="0"
+                                       IsHitTestVisible="False" />
+
+                                <Grid Width="{Binding Bounds.Width, ElementName=SizingImage}"
+                                      Height="{Binding Bounds.Height, ElementName=SizingImage}"
+                                      ClipToBounds="True">
+                                    <Border x:Name="PART_Indicator"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Stretch"
+                                            Background="Transparent"
+                                            ClipToBounds="True">
+                                        <Image Source="avares://LoE-Launcher/Assets/progress-fill.png"
+                                               Width="{Binding Bounds.Width, ElementName=SizingImage}"
+                                               Height="{Binding Bounds.Height, ElementName=SizingImage}"
+                                               Stretch="Fill"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <Image Source="avares://LoE-Launcher/Assets/progress-bg.png"
+                                       Stretch="None"
+                                       IsHitTestVisible="False" />
+                            </Grid>
+                        </Viewbox>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+            
+            <Style Selector="^:horizontal /template/ Border#PART_Indicator">
+                <Setter Property="Width" Value="{Binding $parent[Grid].Width}" />
+            </Style>
+            
+            <Style Selector="^:horizontal /template/ Border#PART_Indicator">
+                <Setter Property="Width" Value="{Binding $parent[Grid].Width}" />
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Width" Duration="0:0:0.25" Easing="QuadraticEaseOut" />
+                    </Transitions>
+                </Setter>
+            </Style>
+            
+            <Style Selector="^:disabled /template/ Image">
+                <Setter Property="Opacity" Value="0.5" />
+            </Style>
+        </ControlTheme>
+        
+    </Application.Resources>
 </Application>

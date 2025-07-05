@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -26,6 +27,7 @@ namespace LoE_Launcher;
 public partial class MainWindow : Window
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private const string CacheDirectoryName = "Cache";
 
     private readonly Downloader _downloader;
     private readonly HttpClient _httpClient = new HttpClient();
@@ -37,10 +39,9 @@ public partial class MainWindow : Window
 
     private Image _backgroundImage;
     private Image _logoImage;
-    private TextBlock _lblDownloadedAmount;
-    private TextBlock _lblDownloadStats;
     private ProgressBar _pbState;
     private Button _btnAction;
+    private StackPanel _changelogPanel;
 
     private readonly IBrush _downloadColor;
     private readonly IBrush _updateColor;
@@ -77,7 +78,8 @@ public partial class MainWindow : Window
 #endif
         _downloader = new Downloader();
 
-        LoadBackgroundImages();
+        _ = LoadBackgroundImages();
+        _ = LoadChangelog();
         SetupDraggableLogo();
 
         Logger.Info($"Running on platform: {PlatformUtils.OperatingSystem}");
@@ -102,10 +104,9 @@ public partial class MainWindow : Window
 
         _backgroundImage = this.FindControl<Image>("backgroundImage")!;
         _logoImage = this.FindControl<Image>("logoImage")!;
-        _lblDownloadedAmount = this.FindControl<TextBlock>("lblDownloadedAmount")!;
         _pbState = this.FindControl<ProgressBar>("pbState")!;
         _btnAction = this.FindControl<Button>("btnAction")!;
-        _lblDownloadStats = this.FindControl<TextBlock>("lblDownloadStats")!;
+        _changelogPanel = this.FindControl<StackPanel>("changelogPanel")!;
     }
 
     private void SetupDraggableLogo()
@@ -152,6 +153,9 @@ public partial class MainWindow : Window
         if (e.GetCurrentPoint(_logoImage).Properties.IsLeftButtonPressed)
         {
             _isDraggingLogo = true;
+
+            // Clear tooltip while dragging
+            ToolTip.SetTip(_logoImage, null);
 
             _pointerStartPosition = e.GetPosition(this);
             _lastPointerPosition = _pointerStartPosition;
@@ -319,12 +323,10 @@ public partial class MainWindow : Window
 
     private void OnLogoPointerEntered(object? sender, PointerEventArgs e)
     {
-        if (!_hasShownTooltip)
+        // Only show tooltip if logo is not moving and not being dragged
+        if (!_isDraggingLogo && !_physicsTimer.IsEnabled)
         {
             ToolTip.SetTip(_logoImage, "You discovered me! Drag me around!");
-            _hasShownTooltip = true;
-            
-            _logoImage.PointerEntered -= OnLogoPointerEntered;
         }
     }
 
@@ -391,7 +393,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void LoadBackgroundImages()
+    private async Task LoadBackgroundImages()
     {
         _backgroundImage.Source = new Bitmap(
             AssetLoader.Open(new Uri("avares://LoE-Launcher/Assets/Default-Background.png")));
@@ -432,7 +434,7 @@ public partial class MainWindow : Window
 
     private async Task<Bitmap?> LoadCachedImageImmediately(string cacheFileName)
     {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, "ImageCache");
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
         var cachePath = Path.Combine(cacheDir, cacheFileName);
 
         if (File.Exists(cachePath))
@@ -453,7 +455,7 @@ public partial class MainWindow : Window
 
     private async Task<Bitmap?> UpdateCachedImage(string url, string cacheFileName)
     {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, "ImageCache");
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
         Directory.CreateDirectory(cacheDir);
         var cachePath = Path.Combine(cacheDir, cacheFileName);
         var tempPath = Path.Combine(cacheDir, $"temp_{cacheFileName}");
@@ -544,13 +546,6 @@ public partial class MainWindow : Window
         };
     }
 
-    private void OnTitleBarPointerPressed(object sender, PointerPressedEventArgs e)
-    {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            BeginMoveDrag(e);
-        }
-    }
 
     private async Task<Bitmap?> LoadImageFromUrl(string url)
     {
@@ -595,7 +590,7 @@ public partial class MainWindow : Window
             if (_downloader.State is GameState.Unknown)
             {
                 sizeInfo = "";
-                _lblDownloadStats.IsVisible = false;
+                // _lblDownloadStats.IsVisible = false;
             } 
             else if (_downloader.State is GameState.NotFound or GameState.UpdateAvailable)
             {
@@ -605,7 +600,7 @@ public partial class MainWindow : Window
                     !_downloader.Progress.Marquee &&
                     _downloader.DownloadStats.HasValidSpeed;
                              
-                _lblDownloadStats.IsVisible = showStats;
+                // _lblDownloadStats.IsVisible = showStats;
             
                 if (showStats)
                 {
@@ -617,16 +612,16 @@ public partial class MainWindow : Window
                         statsText += $" • {_downloader.DownloadStats.TimeRemaining} remaining";
                     }
                 
-                    _lblDownloadStats.Text = statsText;
+                    // _lblDownloadStats.Text = statsText;
                 }
             }
             else
             {
                 sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
-                _lblDownloadStats.IsVisible = false;
+                // _lblDownloadStats.IsVisible = false;
             }
 
-            _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
+            // _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
 
             var enabledState = true;
 
@@ -669,6 +664,9 @@ public partial class MainWindow : Window
                 enabledState = false;
             }
 
+            // Show progress bar during processing, show action button when not processing
+            _pbState.IsVisible = _downloader.Progress.Processing;
+            _btnAction.IsVisible = !_downloader.Progress.Processing;
             _btnAction.IsEnabled = enabledState;
         });
     }
@@ -905,9 +903,7 @@ public partial class MainWindow : Window
         {
             ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
 
-            var logDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "LoE_Launcher", "Logs");
+            var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
 
             Process.Start(new ProcessStartInfo
             {
@@ -1188,5 +1184,188 @@ public partial class MainWindow : Window
         var place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
         var num = Math.Round(bytes / Math.Pow(1024, place), 1);
         return (Math.Sign(byteCount) * num).ToString(CultureInfo.InvariantCulture) + suf[place];
+    }
+
+    private async Task LoadChangelog()
+    {
+        SetChangelogContent("Loading...");
+
+        try
+        {
+            var cachedChangelog = await LoadCachedChangelogImmediately("Changelog.txt");
+            if (cachedChangelog != null)
+            {
+                FormatAndDisplayChangelog(cachedChangelog);
+            }
+
+            _ = Task.Run(async () => {
+                try
+                {
+                    var updatedChangelog = await UpdateCachedChangelog("https://loedata.legendsofequestria.com/data/Changelog.txt", "Changelog.txt");
+                    if (updatedChangelog != null)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => {
+                            FormatAndDisplayChangelog(updatedChangelog);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Unable to update remote changelog");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Unable to load cached changelog");
+        }
+    }
+
+    private async Task<string?> LoadCachedChangelogImmediately(string cacheFileName)
+    {
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
+        var cachePath = Path.Combine(cacheDir, cacheFileName);
+
+        if (File.Exists(cachePath))
+        {
+            try
+            {
+                return await File.ReadAllTextAsync(cachePath);
+            }
+            catch
+            {
+                // ignore 
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<string?> UpdateCachedChangelog(string url, string cacheFileName)
+    {
+        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
+        Directory.CreateDirectory(cacheDir);
+        var cachePath = Path.Combine(cacheDir, cacheFileName);
+        var tempPath = Path.Combine(cacheDir, $"temp_{cacheFileName}");
+
+        try
+        {
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            if (File.Exists(cachePath))
+            {
+                var lastModified = File.GetLastWriteTimeUtc(cachePath);
+                client.DefaultRequestHeaders.IfModifiedSince = lastModified;
+            }
+
+            using var response = await client.GetAsync(url);
+
+            if (response.StatusCode == HttpStatusCode.NotModified)
+            {
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            
+            await File.WriteAllTextAsync(tempPath, content);
+            File.Move(tempPath, cachePath, true);
+
+            return content;
+        }
+        catch
+        {
+            if (File.Exists(tempPath))
+            {
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            return null;
+        }
+    }
+
+    private void SetChangelogContent(string text)
+    {
+        _changelogPanel.Children.Clear();
+        var textBlock = new TextBlock
+        {
+            Text = text,
+            FontSize = 14,
+            Foreground = new SolidColorBrush(Color.Parse("#F0FFFFFF")),
+            TextWrapping = TextWrapping.Wrap
+        };
+        _changelogPanel.Children.Add(textBlock);
+    }
+
+    private void FormatAndDisplayChangelog(string rawText)
+    {
+        _changelogPanel.Children.Clear();
+        
+        var lines = rawText.Split('\n');
+        
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            
+            // Handle empty lines for spacing
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                _changelogPanel.Children.Add(new Panel { Height = 8 });
+                continue;
+            }
+            
+            // Handle headers, which are # with at least one space
+            if (trimmed.StartsWith("# "))
+            {
+                var headerText = trimmed.Substring(2).Trim();
+                var headerBlock = new TextBlock
+                {
+                    Text = headerText,
+                    FontSize = 16,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = new SolidColorBrush(Color.Parse("#FFFFFF")),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 8, 0, 4)
+                };
+                _changelogPanel.Children.Add(headerBlock);
+                continue;
+            }
+            
+            // Handle regular content lines
+            var contentText = trimmed;
+            
+            // Add bullet point if not already present
+            if (!contentText.StartsWith('•') && !contentText.StartsWith('-') && !contentText.StartsWith('*'))
+            {
+                contentText = $"• {contentText}";
+            }
+            else
+            {
+                // Replace existing bullet types with •
+                contentText = contentText.Replace("- ", "• ").Replace("* ", "• ");
+            }
+            
+            var contentBlock = new TextBlock
+            {
+                Text = contentText,
+                FontSize = 14,
+                Foreground = new SolidColorBrush(Color.Parse("#F0FFFFFF")),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 1, 0, 1)
+            };
+            _changelogPanel.Children.Add(contentBlock);
+        }
     }
 }
