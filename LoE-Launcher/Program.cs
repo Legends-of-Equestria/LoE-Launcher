@@ -88,8 +88,7 @@ internal class Program
 
     private static string GetLogDirectory()
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var logDirectory = Path.Combine(appDataPath, "LoE_Launcher", "Logs");
+        var logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
             
         if (!Directory.Exists(logDirectory))
         {
