@@ -410,7 +410,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedImage = await UpdateCachedImage("http://theslowly.me/downloads/Background.png", "Background.png");
+                    var updatedImage = await UpdateCachedImage("https://loedata.legendsofequestria.com/data/Background.png", "Background.png");
                     if (updatedImage != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
@@ -921,7 +921,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
+    private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
@@ -937,7 +937,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void OnDiscordButtonClicked(object? sender, RoutedEventArgs e)
+    private void OnDiscordButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
@@ -953,7 +953,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void OnTwitterButtonClicked(object? sender, RoutedEventArgs e)
+    private void OnTwitterButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
@@ -969,7 +969,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void OnFacebookButtonClicked(object? sender, RoutedEventArgs e)
+    private void OnFacebookButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
