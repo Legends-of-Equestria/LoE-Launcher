@@ -55,6 +55,12 @@ public partial class MainWindow : Window
     private ScaleTransform _logoScaleTransform;
     private RotateTransform _logoRotateTransform;
     private TranslateTransform _logoTranslateTransform;
+    
+    private Point _logoVelocity;
+    private double _logoAngularVelocity;
+    private DispatcherTimer _physicsTimer;
+    private DateTime _lastMoveTime;
+    private bool _hasShownTooltip;
 
     public MainWindow()
     {
@@ -114,25 +120,34 @@ public partial class MainWindow : Window
 
         _logoImage.RenderTransform = _logoTransform;
 
-        _logoImage.Transitions = new Transitions
-        {
+        _logoImage.Transitions =
+        [
             new TransformOperationsTransition
             {
                 Property = Visual.RenderTransformProperty,
-                Duration = TimeSpan.FromMilliseconds(200)
+                Duration = TimeSpan.FromMilliseconds(300)
             }
-        };
+        ];
 
-        ToolTip.SetTip(_logoImage, "You discovered me!");
         _logoImage.Cursor = new Cursor(StandardCursorType.Hand);
+        _logoImage.PointerEntered += OnLogoPointerEntered;
 
+        _logoVelocity = new Point(0, 0);
+        _logoAngularVelocity = 0;
+        
+        _physicsTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(16)
+        };
+        _physicsTimer.Tick += OnPhysicsTick;
+        
         _logoImage.PointerPressed += OnLogoPointerPressed;
         _logoImage.PointerMoved += OnLogoPointerMoved;
         _logoImage.PointerReleased += OnLogoPointerReleased;
         _logoImage.PointerCaptureLost += OnLogoPointerCaptureLost;
     }
 
-    private void OnLogoPointerPressed(object sender, PointerPressedEventArgs e)
+    private void OnLogoPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(_logoImage).Properties.IsLeftButtonPressed)
         {
@@ -141,13 +156,18 @@ public partial class MainWindow : Window
             _pointerStartPosition = e.GetPosition(this);
             _lastPointerPosition = _pointerStartPosition;
             _lastLogoPosition = new Point(_logoTranslateTransform.X, _logoTranslateTransform.Y);
+            _lastMoveTime = DateTime.UtcNow;
 
-            _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 0.95;
+            _physicsTimer.Stop();
+            _logoVelocity = new Point(0, 0);
+            _logoAngularVelocity = 0;
+
+            _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 0.9;
+            _logoRotateTransform.Angle = (Random.Shared.NextDouble() - 0.5) * 6;
 
             e.Pointer.Capture(_logoImage);
             e.Handled = true;
 
-            Logger.Info("Logo drag started");
         }
     }
 
@@ -156,21 +176,38 @@ public partial class MainWindow : Window
         if (!_isDraggingLogo) return;
 
         var currentPosition = e.GetPosition(this);
+        var currentTime = DateTime.UtcNow;
+        var deltaTime = (currentTime - _lastMoveTime).TotalSeconds;
+
+        if (deltaTime > 0)
+        {
+            var velocityX = (currentPosition.X - _lastPointerPosition.X) / deltaTime;
+            var velocityY = (currentPosition.Y - _lastPointerPosition.Y) / deltaTime;
+            _logoVelocity = new Point(
+                _logoVelocity.X * 0.7 + velocityX * 0.3,
+                _logoVelocity.Y * 0.7 + velocityY * 0.3
+            );
+        }
 
         var dragDeltaX = currentPosition.X - _pointerStartPosition.X;
         var dragDeltaY = currentPosition.Y - _pointerStartPosition.Y;
 
-        var moveDeltaX = currentPosition.X - _lastPointerPosition.X;
-
         var newX = _lastLogoPosition.X + dragDeltaX;
         var newY = _lastLogoPosition.Y + dragDeltaY;
 
-        _logoTranslateTransform.X = newX;
-        _logoTranslateTransform.Y = newY;
+        var constrainedPosition = ApplyBoundaryConstraints(new Point(newX, newY));
+        _logoTranslateTransform.X = constrainedPosition.X;
+        _logoTranslateTransform.Y = constrainedPosition.Y;
 
-        _logoRotateTransform.Angle = Math.Clamp(moveDeltaX * 2, -10, 10);
+        var speed = Math.Sqrt(_logoVelocity.X * _logoVelocity.X + _logoVelocity.Y * _logoVelocity.Y);
+        var rotationAngle = Math.Clamp(_logoVelocity.X * 0.05, -15, 15);
+        _logoRotateTransform.Angle = rotationAngle;
+        var scaleBoost = Math.Min(speed * 0.0001, 0.05);
+        var targetScale = 0.9 + scaleBoost;
+        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = targetScale;
 
         _lastPointerPosition = currentPosition;
+        _lastMoveTime = currentTime;
 
         e.Handled = true;
     }
@@ -178,6 +215,8 @@ public partial class MainWindow : Window
     private void OnLogoPointerReleased(object sender, PointerReleasedEventArgs e)
     {
         if (!_isDraggingLogo) return;
+
+        _logoAngularVelocity = _logoRotateTransform.Angle * 0.2;
 
         FinalizeLogoDrag();
         e.Handled = true;
@@ -195,21 +234,122 @@ public partial class MainWindow : Window
     {
         _isDraggingLogo = false;
 
-        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 1.0;
+        _physicsTimer.Start();
 
-        var timer = new DispatcherTimer
+    }
+
+    private void OnPhysicsTick(object? sender, EventArgs e)
+    {
+        const double friction = 0.95;
+        const double angularFriction = 0.92;
+        const double minVelocity = 5.0;
+        const double minAngularVelocity = 0.5;
+
+        _logoVelocity = new Point(_logoVelocity.X * friction, _logoVelocity.Y * friction);
+        _logoAngularVelocity *= angularFriction;
+
+        var deltaTime = 0.016;
+        var newX = _logoTranslateTransform.X + _logoVelocity.X * deltaTime;
+        var newY = _logoTranslateTransform.Y + _logoVelocity.Y * deltaTime;
+        
+        var unconstrainedPosition = new Point(newX, newY);
+        var constrainedPosition = ApplyBoundaryConstraints(unconstrainedPosition);
+        
+        // Check for boundary collisions and apply bounce
+        var hitBoundaryX = Math.Abs(constrainedPosition.X - newX) > 0.1;
+        var hitBoundaryY = Math.Abs(constrainedPosition.Y - newY) > 0.1;
+        
+        if (hitBoundaryX || hitBoundaryY)
         {
-            Interval = TimeSpan.FromMilliseconds(100)
-        };
+            
+            if (hitBoundaryX)
+            {
+                _logoVelocity = new Point(_logoVelocity.X * -0.4, _logoVelocity.Y * 0.8); // Bounce X
+                _logoAngularVelocity += (Random.Shared.NextDouble() - 0.5) * 50; // Add spin
+            }
+            if (hitBoundaryY)
+            {
+                _logoVelocity = new Point(_logoVelocity.X * 0.8, _logoVelocity.Y * -0.4); // Bounce Y
+                _logoAngularVelocity += (Random.Shared.NextDouble() - 0.5) * 50; // Add spin
+            }
+        }
+        
+        _logoTranslateTransform.X = constrainedPosition.X;
+        _logoTranslateTransform.Y = constrainedPosition.Y;
 
-        timer.Tick += (s, e) => {
-            _logoRotateTransform.Angle = 0;
-            timer.Stop();
-        };
+        // Apply angular velocity to rotation
+        _logoRotateTransform.Angle += _logoAngularVelocity * deltaTime;
 
-        timer.Start();
+        // Gradually return scale to normal
+        var currentScale = _logoScaleTransform.ScaleX;
+        var targetScale = 1.0;
+        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 
+            currentScale + (targetScale - currentScale) * 0.1;
 
-        Logger.Info($"Logo dropped at position: {_logoTranslateTransform.X}, {_logoTranslateTransform.Y}");
+        var speed = Math.Sqrt(_logoVelocity.X * _logoVelocity.X + _logoVelocity.Y * _logoVelocity.Y);
+        if (speed < minVelocity && Math.Abs(_logoAngularVelocity) < minAngularVelocity)
+        {
+            _physicsTimer.Stop();
+            
+            var finalTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            var startAngle = _logoRotateTransform.Angle;
+            var startScale = _logoScaleTransform.ScaleX;
+            var animationTime = 0.0;
+            const double animationDuration = 0.5;
+            
+            finalTimer.Tick += (s, args) =>
+            {
+                animationTime += 0.016;
+                var progress = Math.Min(animationTime / animationDuration, 1.0);
+                var easeProgress = 1 - Math.Pow(1 - progress, 3); // Ease-out cubic
+                
+                _logoRotateTransform.Angle = startAngle * (1 - easeProgress);
+                _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 
+                    startScale + (1.0 - startScale) * easeProgress;
+                
+                if (progress >= 1.0)
+                {
+                    finalTimer.Stop();
+                }
+            };
+            
+            finalTimer.Start();
+        }
+    }
+
+    private void OnLogoPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (!_hasShownTooltip)
+        {
+            ToolTip.SetTip(_logoImage, "You discovered me! Drag me around!");
+            _hasShownTooltip = true;
+            
+            _logoImage.PointerEntered -= OnLogoPointerEntered;
+        }
+    }
+
+    private Point ApplyBoundaryConstraints(Point position)
+    {
+        var windowWidth = Math.Max(this.ClientSize.Width, 800);
+        var windowHeight = Math.Max(this.ClientSize.Height, 500);
+        var logoWidth = Math.Max(_logoImage.Bounds.Width, 203);
+        var logoHeight = Math.Max(_logoImage.Bounds.Height, 108);
+        
+        var logoInitialX = windowWidth - 20 - logoWidth;
+        var logoInitialY = 40;
+        
+        var currentAbsoluteX = logoInitialX + position.X;
+        var currentAbsoluteY = logoInitialY + position.Y;
+        
+        var minAbsoluteX = -logoWidth * 0.7;
+        var maxAbsoluteX = windowWidth - logoWidth * 0.3;
+        var minAbsoluteY = -logoHeight * 0.7;
+        var maxAbsoluteY = windowHeight - logoHeight * 0.3;
+        
+        var constrainedAbsoluteX = Math.Clamp(currentAbsoluteX, minAbsoluteX, maxAbsoluteX);
+        var constrainedAbsoluteY = Math.Clamp(currentAbsoluteY, minAbsoluteY, maxAbsoluteY);
+        
+        return new Point(constrainedAbsoluteX - logoInitialX, constrainedAbsoluteY - logoInitialY);
     }
 
     private async void InitializeDownloader()
