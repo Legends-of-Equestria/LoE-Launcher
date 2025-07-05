@@ -42,6 +42,10 @@ public partial class MainWindow : Window
     private ProgressBar _pbState;
     private Button _btnAction;
     private StackPanel _changelogPanel;
+    private Grid _progressOverlay;
+    private TextBlock _progressPercentage;
+    private TextBlock _downloadSpeed;
+    private TextBlock _downloadStatus;
 
     private readonly IBrush _downloadColor;
     private readonly IBrush _updateColor;
@@ -107,6 +111,10 @@ public partial class MainWindow : Window
         _pbState = this.FindControl<ProgressBar>("pbState")!;
         _btnAction = this.FindControl<Button>("btnAction")!;
         _changelogPanel = this.FindControl<StackPanel>("changelogPanel")!;
+        _progressOverlay = this.FindControl<Grid>("progressOverlay")!;
+        _progressPercentage = this.FindControl<TextBlock>("progressPercentage")!;
+        _downloadSpeed = this.FindControl<TextBlock>("downloadSpeed")!;
+        _downloadStatus = this.FindControl<TextBlock>("downloadStatus")!;
     }
 
     private void SetupDraggableLogo()
@@ -585,43 +593,6 @@ public partial class MainWindow : Window
             }
 
             var statusText = _downloader.Progress.Text;
-            var sizeInfo = "";
-
-            if (_downloader.State is GameState.Unknown)
-            {
-                sizeInfo = "";
-                // _lblDownloadStats.IsVisible = false;
-            } 
-            else if (_downloader.State is GameState.NotFound or GameState.UpdateAvailable)
-            {
-                sizeInfo = $"\n{BytesToString(_downloader.BytesDownloaded)} downloaded";
-            
-                var showStats = _downloader.Progress.Processing && 
-                    !_downloader.Progress.Marquee &&
-                    _downloader.DownloadStats.HasValidSpeed;
-                             
-                // _lblDownloadStats.IsVisible = showStats;
-            
-                if (showStats)
-                {
-                    var speedText = _downloader.DownloadStats.CurrentSpeed;
-                    var statsText = speedText;
-                
-                    if (_downloader.DownloadStats.HasValidTimeEstimate)
-                    {
-                        statsText += $" • {_downloader.DownloadStats.TimeRemaining} remaining";
-                    }
-                
-                    // _lblDownloadStats.Text = statsText;
-                }
-            }
-            else
-            {
-                sizeInfo = $"\nGame size: {BytesToString(_downloader.TotalGameSize)}";
-                // _lblDownloadStats.IsVisible = false;
-            }
-
-            // _lblDownloadedAmount.Text = $"{statusText}{sizeInfo}";
 
             var enabledState = true;
 
@@ -668,6 +639,31 @@ public partial class MainWindow : Window
             _pbState.IsVisible = _downloader.Progress.Processing;
             _btnAction.IsVisible = !_downloader.Progress.Processing;
             _btnAction.IsEnabled = enabledState;
+
+            if (_downloader.Progress.Processing)
+            {
+                _progressOverlay.IsVisible = true;
+                
+                var progressPercentage = _downloader.Progress.Max > 0
+                    ? (double)_downloader.Progress.Current / _downloader.Progress.Max
+                    : 0;
+                _progressPercentage.Text = $"{Math.Round(progressPercentage * 100)}%";
+                
+                if (_downloader.DownloadStats.HasValidSpeed)
+                {
+                    _downloadSpeed.Text = _downloader.DownloadStats.CurrentSpeed;
+                }
+                else
+                {
+                    _downloadSpeed.Text = "";
+                }
+                
+                _downloadStatus.Text = statusText;
+            }
+            else
+            {
+                _progressOverlay.IsVisible = false;
+            }
         });
     }
 
@@ -1400,7 +1396,7 @@ public partial class MainWindow : Window
             // Handle headers, which are # with at least one space
             if (trimmed.StartsWith("# "))
             {
-                var headerText = trimmed.Substring(2).Trim();
+                var headerText = trimmed[2..].Trim();
                 var headerBlock = new TextBlock
                 {
                     Text = headerText,

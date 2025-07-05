@@ -235,6 +235,49 @@
                              VerticalAlignment="Stretch"
                              Value="100" />
 
+                <!-- Progress overlay text -->
+                <Grid x:Name="progressOverlay"
+                      IsVisible="False"
+                      Width="280"
+                      Height="90" ColumnDefinitions="*,*">
+
+                    <!-- Left side - Progress percentage -->
+                    <TextBlock x:Name="progressPercentage"
+                               Grid.Column="0"
+                               Text="75%"
+                               FontSize="32"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               TextAlignment="Center"
+                               TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
+                    
+                    <!-- Right side - Speed and status -->
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Left"
+                                Margin="-20,0,15,0"
+                                Spacing="2">
+                        <TextBlock x:Name="downloadSpeed"
+                                   Text="0.0 MB/s"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Left"
+                                   TextAlignment="Left"
+                                   TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
+                        <TextBlock x:Name="downloadStatus"
+                                   Text="Checking..."
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   Foreground="#E0FFFFFF"
+                                   HorizontalAlignment="Left"
+                                   TextAlignment="Left"
+                                   TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
+                    </StackPanel>
+                </Grid>
+
                 <Button x:Name="btnAction"
                         Content="Launch"
                         Theme="{StaticResource ActionButton}"

@@ -61,10 +61,10 @@ partial class Downloader
                     
                 }
 
-                if (!string.IsNullOrWhiteSpace(FlavorText))
-                {
-                    return $"Installing ({Current}/{Max})... {FlavorText}";
-                }
+                // if (!string.IsNullOrWhiteSpace(FlavorText))
+                // {
+                //     return $"Installing ({Current}/{Max})... {FlavorText}";
+                // }
 
                 return $"Installing ({Current}/{Max})...";
             }
@@ -91,10 +91,10 @@ partial class Downloader
                     return $"{CurrentOperation}...";
                 }
 
-                if (!string.IsNullOrWhiteSpace(FlavorText))
-                {
-                    return $"{CurrentOperation} ({Current}/{Max})... {FlavorText}";
-                }
+                // if (!string.IsNullOrWhiteSpace(FlavorText))
+                // {
+                //     return $"{CurrentOperation} ({Current}/{Max})... {FlavorText}";
+                // }
                 
                 return $"{CurrentOperation} ({Current}/{Max})...";
             }
@@ -138,11 +138,9 @@ partial class Downloader
     
     public class ErrorProgress(string errorMessage, Downloader model) : ProgressData(model)
     {
-        private readonly string _errorMessage = errorMessage;
-        
         protected override string GetText()
         {
-            return _errorMessage;
+            return errorMessage;
         }
     }
     
