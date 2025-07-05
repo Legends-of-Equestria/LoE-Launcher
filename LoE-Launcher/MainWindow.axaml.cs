@@ -803,55 +803,128 @@ public partial class MainWindow : Window
         var settingsMenu = new Window
         {
             Title = "Settings",
-            Width = 320,
+            Width = 340,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#7A68B5")),
+            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
             TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
             ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30
+            ExtendClientAreaTitleBarHeightHint = 30,
+            CanResize = false
         };
 
-        var panel = new StackPanel
+        var contentPanel = new StackPanel
         {
-            Margin = new Thickness(20, 50, 20, 20),
+            Margin = new Thickness(25, 50, 25, 25),
             Spacing = 15
         };
 
-        var repairButton = CreateSettingsButton("Repair Game Files");
-        var logFolderButton = CreateSettingsButton("Open Log Folder");
+        // Title
+        var titleText = new TextBlock
+        {
+            Text = "Settings",
+            FontSize = 22,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
+        var logFolderButton = CreateSettingsButton("Open Log Folder", "View launcher logs and debug information");
 
         repairButton.Click += OnRepairGameClicked;
         logFolderButton.Click += OnOpenLogFolderClicked;
 
-        panel.Children.Add(repairButton);
-        panel.Children.Add(logFolderButton);
+        contentPanel.Children.Add(titleText);
+        contentPanel.Children.Add(repairButton);
+        contentPanel.Children.Add(logFolderButton);
 
-        settingsMenu.Content = panel;
+        settingsMenu.Content = contentPanel;
         await settingsMenu.ShowDialog(this);
     }
 
-    private Button CreateSettingsButton(string text)
+    private Button CreateSettingsButton(string text, string description)
     {
         var button = new Button
         {
-            Content = text,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Height = 44,
-            FontSize = 15,
-            FontWeight = FontWeight.Medium,
-            CornerRadius = new CornerRadius(22),
+            Height = 55,
+            CornerRadius = new CornerRadius(10),
             Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#D686D2")),
-            Padding = new Thickness(0),
+            Background = new SolidColorBrush(Color.Parse("#30FFFFFF")),
+            Padding = new Thickness(20, 12),
             BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.Parse("#E8B75C"))
+            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
+            Cursor = new Cursor(StandardCursorType.Hand)
         };
 
-        // Add custom hover style
-        button.Classes.Add("settings-button");
+        var contentPanel = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 0
+        };
+
+        var titleText = new TextBlock
+        {
+            Text = text,
+            FontSize = 15,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center
+        };
+
+        var descText = new TextBlock
+        {
+            Text = description,
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.Parse("#D0FFFFFF")),
+            TextWrapping = TextWrapping.Wrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, -2, 0, 0)
+        };
+
+        contentPanel.Children.Add(titleText);
+        contentPanel.Children.Add(descText);
+
+        button.Content = contentPanel;
+
+        // Add hover effects similar to changelog panel
+        button.PointerEntered += (s, e) => {
+            button.Background = new SolidColorBrush(Color.Parse("#50FFFFFF"));
+            button.BorderBrush = new SolidColorBrush(Color.Parse("#FFD700"));
+            button.RenderTransform = new ScaleTransform { ScaleX = 1.02, ScaleY = 1.02 };
+        };
+
+        button.PointerExited += (s, e) => {
+            button.Background = new SolidColorBrush(Color.Parse("#30FFFFFF"));
+            button.BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a"));
+            button.RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
+        };
+
+        // Add transitions
+        button.Transitions = new Transitions
+        {
+            new TransformOperationsTransition
+            {
+                Property = Visual.RenderTransformProperty,
+                Duration = TimeSpan.FromMilliseconds(200)
+            },
+            new BrushTransition
+            {
+                Property = Button.BackgroundProperty,
+                Duration = TimeSpan.FromMilliseconds(200)
+            },
+            new BrushTransition
+            {
+                Property = Button.BorderBrushProperty,
+                Duration = TimeSpan.FromMilliseconds(200)
+            }
+        };
 
         return button;
     }
@@ -901,8 +974,6 @@ public partial class MainWindow : Window
     {
         try
         {
-            ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
-
             var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
 
             Process.Start(new ProcessStartInfo
