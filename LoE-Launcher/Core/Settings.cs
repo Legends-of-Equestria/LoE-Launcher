@@ -8,6 +8,8 @@ public class Settings
         
     public string Stream { get; set; } = "http://patches.legendsofequestria.com/zsync/versions3.json";
 
+    public string LauncherVersionUrl { get; set; } = "http://patches.legendsofequestria.com/launcher-version.json";
+
     internal string FormatZsyncLocation(string version)
         => ZsyncLocation.Replace("{version}", version);
 }

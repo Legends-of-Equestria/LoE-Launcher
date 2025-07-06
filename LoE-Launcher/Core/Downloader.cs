@@ -28,7 +28,7 @@ public partial class Downloader
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int MaxFileCheckRetries = 10;
     private static readonly int InitialFileCheckDelayMs = 100;
-    private static readonly Version MaxVersionSupported = new Version(0, 2);
+    private static readonly VersionInfo CurrentLauncherVersion = new VersionInfo { Major = 1, Minor = 0, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();
@@ -182,6 +182,15 @@ public partial class Downloader
             {
                 try
                 {
+                    // Check launcher version compatibility first
+                    await CheckLauncherVersion();
+                    
+                    if (_state == GameState.LauncherOutOfDate)
+                    {
+                        Logger.Warn("Launcher is out of date, stopping refresh");
+                        return;
+                    }
+
                     await GetVersion();
 
                     if (_state == GameState.Offline)
@@ -277,6 +286,40 @@ public partial class Downloader
         {
             Logger.Info($"State refresh completed. Final state: {_state}");
             Progress.Complete();
+        }
+    }
+
+    private async Task CheckLauncherVersion()
+    {
+        Logger.Info($"Checking launcher version compatibility from {_settings.LauncherVersionUrl}");
+        
+        try
+        {
+            var launcherVersionInfo = await DownloadJson<LauncherVersionInfo>(new Uri(_settings.LauncherVersionUrl));
+            
+            if (launcherVersionInfo == null)
+            {
+                Logger.Warn("Could not retrieve launcher version info, assuming compatible");
+                return;
+            }
+
+            Logger.Info($"Current launcher version: {CurrentLauncherVersion}");
+            Logger.Info($"Server required version: {launcherVersionInfo.RequiredVersion}");
+            
+            if (!launcherVersionInfo.IsCompatible(CurrentLauncherVersion))
+            {
+                Logger.Warn($"Launcher version {CurrentLauncherVersion} is not compatible with server requirements");
+                Logger.Warn($"Server requires: {launcherVersionInfo.RequiredVersion}");
+                _state = GameState.LauncherOutOfDate;
+                return;
+            }
+
+            Logger.Info($"Launcher version {CurrentLauncherVersion} is compatible");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to check launcher version, assuming compatible");
+            // Don't block the launcher if version check fails - assume compatible
         }
     }
 
@@ -1321,13 +1364,6 @@ public partial class Downloader
         }
 
         var data = new DownloadData(mainControlFile);
-        var systemVersion = data.ControlFile.Version.ToSystemVersion();
-        if (systemVersion.CompareTo(MaxVersionSupported) < 0 ||
-            systemVersion.CompareTo(MaxVersionSupported) > 0)
-        {
-            _state = GameState.LauncherOutOfDate;
-            return null;
-        }
 
         Progress.ResetCounter(data.ControlFile.Content.Count, true);
 

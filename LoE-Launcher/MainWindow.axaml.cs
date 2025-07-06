@@ -625,9 +625,9 @@ public partial class MainWindow : Window
                     enabledState = false;
                     break;
                 case GameState.LauncherOutOfDate:
-                    _btnAction.Content = "Error";
+                    _btnAction.Content = "Update Required";
                     _btnAction.Background = _errorColor;
-                    enabledState = false;
+                    enabledState = true;
                     break;
             }
 
@@ -688,6 +688,9 @@ public partial class MainWindow : Window
                     break;
                 case GameState.UpToDate:
                     LaunchGame();
+                    break;
+                case GameState.LauncherOutOfDate:
+                    await ShowLauncherUpdateDialog();
                     break;
             }
         }
@@ -1070,6 +1073,124 @@ public partial class MainWindow : Window
         {
             Logger.Error(ex, "Failed to open game logs directory");
         }
+    }
+
+    private async Task ShowLauncherUpdateDialog()
+    {
+        var updateDialog = new Window
+        {
+            Title = "Launcher Update Required",
+            Width = 400,
+            Height = 200,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
+            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
+            ExtendClientAreaToDecorationsHint = true,
+            ExtendClientAreaTitleBarHeightHint = 30,
+            CanResize = false
+        };
+
+        var contentPanel = new StackPanel
+        {
+            Margin = new Thickness(25, 50, 25, 25),
+            Spacing = 15,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        var titleText = new TextBlock
+        {
+            Text = "Launcher Update Required",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        var messageText = new TextBlock
+        {
+            Text = "Your launcher is out of date. Please download the latest version to continue.",
+            FontSize = 14,
+            Foreground = Brushes.White,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 10
+        };
+
+        var downloadButton = new Button
+        {
+            Content = "Download Latest",
+            Width = 130,
+            Height = 40,
+            Background = new SolidColorBrush(Color.Parse("#B37DC7")),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(8),
+            FontWeight = FontWeight.SemiBold,
+            FontSize = 14,
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+
+        var cancelButton = new Button
+        {
+            Content = "Cancel",
+            Width = 90,
+            Height = 40,
+            Background = new SolidColorBrush(Color.Parse("#7A7A7A")),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(8),
+            FontSize = 14,
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+
+        // Add hover effects
+        downloadButton.PointerEntered += (s, args) => 
+            downloadButton.Background = new SolidColorBrush(Color.Parse("#C489DB"));
+        downloadButton.PointerExited += (s, args) => 
+            downloadButton.Background = new SolidColorBrush(Color.Parse("#B37DC7"));
+            
+        cancelButton.PointerEntered += (s, args) => 
+            cancelButton.Background = new SolidColorBrush(Color.Parse("#8A8A8A"));
+        cancelButton.PointerExited += (s, args) => 
+            cancelButton.Background = new SolidColorBrush(Color.Parse("#7A7A7A"));
+
+        downloadButton.Click += (s, args) =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://legendsofequestria.com/downloads",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to open download URL");
+            }
+            updateDialog.Close();
+        };
+
+        cancelButton.Click += (s, args) => updateDialog.Close();
+
+        buttonPanel.Children.Add(downloadButton);
+        buttonPanel.Children.Add(cancelButton);
+
+        contentPanel.Children.Add(titleText);
+        contentPanel.Children.Add(messageText);
+        contentPanel.Children.Add(buttonPanel);
+
+        updateDialog.Content = contentPanel;
+        await updateDialog.ShowDialog(this);
     }
 
     private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
