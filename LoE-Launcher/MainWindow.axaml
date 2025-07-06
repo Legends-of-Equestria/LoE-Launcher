@@ -223,7 +223,7 @@
             <Button x:Name="btnSettings"
                     Classes="SettingsButton"
                     Click="OnSettingsButtonClicked"
-                    ToolTip.Tip="Settings"
+                    ToolTip.Tip="Options"
                     VerticalAlignment="Center" />
 
             <!-- Progress bar and action button in the same position -->

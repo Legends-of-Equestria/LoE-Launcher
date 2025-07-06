@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
@@ -798,7 +799,7 @@ public partial class MainWindow : Window
     {
         var settingsMenu = new Window
         {
-            Title = "Settings",
+            Title = "Options",
             Width = 340,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -818,7 +819,7 @@ public partial class MainWindow : Window
         // Title
         var titleText = new TextBlock
         {
-            Text = "Settings",
+            Text = "Options",
             FontSize = 22,
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,
@@ -827,14 +828,17 @@ public partial class MainWindow : Window
         };
 
         var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
-        var logFolderButton = CreateSettingsButton("Open Log Folder", "View launcher logs and debug information");
+        var logFolderButton = CreateSettingsButton("Open Launcher Logs", "View launcher logs and debug information");
+        var gameLogsButton = CreateSettingsButton("Open Game Logs", "View Unity game logs and debug information");
 
         repairButton.Click += OnRepairGameClicked;
         logFolderButton.Click += OnOpenLogFolderClicked;
+        gameLogsButton.Click += OnOpenGameLogsClicked;
 
         contentPanel.Children.Add(titleText);
         contentPanel.Children.Add(repairButton);
         contentPanel.Children.Add(logFolderButton);
+        contentPanel.Children.Add(gameLogsButton);
 
         settingsMenu.Content = contentPanel;
         await settingsMenu.ShowDialog(this);
@@ -981,6 +985,90 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to open log directory");
+        }
+    }
+
+    private void OnOpenGameLogsClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var logPath = UnityPlayerLogHelper.GetPlayerLogPath("LoE", "Legends of Equestria");
+            
+            if (UnityPlayerLogHelper.PlayerLogExists("LoE", "Legends of Equestria"))
+            {
+                if (PlatformUtils.OperatingSystem == OS.WindowsX86 || PlatformUtils.OperatingSystem == OS.WindowsX64)
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"/select,\"{logPath}\"",
+                        UseShellExecute = false
+                    });
+                }
+                else
+                {
+                    var logDir = Path.GetDirectoryName(logPath);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = logDir,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            else
+            {
+                var messageBox = new Window
+                {
+                    Title = "Game Logs Not Found",
+                    Width = 300,
+                    Height = 150,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Background = new SolidColorBrush(Color.Parse("#9C69B5")),
+                    CanResize = false
+                };
+
+                var messagePanel = new StackPanel
+                {
+                    Margin = new Thickness(20),
+                    Spacing = 15,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                var messageText = new TextBlock
+                {
+                    Text = "Game logs not found. Launch the game at least once to generate logs.",
+                    FontSize = 14,
+                    Foreground = Brushes.White,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+                var okButton = new Button
+                {
+                    Content = "OK",
+                    Width = 80,
+                    Height = 30,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Background = new SolidColorBrush(Color.Parse("#B37DC7")),
+                    Foreground = Brushes.White,
+                    BorderThickness = new Thickness(0),
+                    CornerRadius = new CornerRadius(5)
+                };
+
+                okButton.Click += (s, args) => messageBox.Close();
+
+                messagePanel.Children.Add(messageText);
+                messagePanel.Children.Add(okButton);
+                messageBox.Content = messagePanel;
+
+                messageBox.ShowDialog(this);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open game logs directory");
         }
     }
 
