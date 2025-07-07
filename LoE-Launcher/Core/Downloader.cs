@@ -28,7 +28,7 @@ public partial class Downloader
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int MaxFileCheckRetries = 10;
     private static readonly int InitialFileCheckDelayMs = 100;
-    private static readonly VersionInfo CurrentLauncherVersion = new VersionInfo { Major = 1, Minor = 0, Build = 0, Revision = 0 };
+    private static readonly VersionInfo CurrentLauncherVersion = new() { Major = 1, Minor = 0, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();

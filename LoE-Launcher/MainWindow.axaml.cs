@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
@@ -727,7 +728,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void LaunchGame()
+    private async void LaunchGame()
     {
         try
         {
@@ -789,12 +790,22 @@ public partial class MainWindow : Window
                 default:
                     throw new PlatformNotSupportedException("This platform is not supported.");
             }
+
+            // Wait briefly for game to launch, then close launcher
+            Logger.Info("Game launched successfully");
+            await Task.Delay(1500);
+            
+            Logger.Info("Closing launcher after game launch");
+            this.Close();
         }
         catch (Exception ex)
         {
-            Dispatcher.UIThread.Post(async () => {
-                await ShowErrorMessage("Launch Error", ex.Message);
-            });
+            Logger.Error(ex, "Failed to launch game");
+            await ShowErrorMessage("Launch Error", ex.Message);
+        }
+        finally
+        {
+            // Cleanup handled by window closing
         }
     }
 
@@ -1080,8 +1091,8 @@ public partial class MainWindow : Window
         var updateDialog = new Window
         {
             Title = "Launcher Update Required",
-            Width = 400,
-            Height = 200,
+            Width = 450,
+            SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Background = new SolidColorBrush(Color.Parse("#9C69B5")),
             TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
@@ -1092,8 +1103,8 @@ public partial class MainWindow : Window
 
         var contentPanel = new StackPanel
         {
-            Margin = new Thickness(25, 50, 25, 25),
-            Spacing = 15,
+            Margin = new Thickness(30, 50, 30, 30),
+            Spacing = 20,
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -1122,46 +1133,11 @@ public partial class MainWindow : Window
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 10
+            Spacing = 15
         };
 
-        var downloadButton = new Button
-        {
-            Content = "Download Latest",
-            Width = 130,
-            Height = 40,
-            Background = new SolidColorBrush(Color.Parse("#B37DC7")),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(8),
-            FontWeight = FontWeight.SemiBold,
-            FontSize = 14,
-            Cursor = new Cursor(StandardCursorType.Hand)
-        };
-
-        var cancelButton = new Button
-        {
-            Content = "Cancel",
-            Width = 90,
-            Height = 40,
-            Background = new SolidColorBrush(Color.Parse("#7A7A7A")),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(8),
-            FontSize = 14,
-            Cursor = new Cursor(StandardCursorType.Hand)
-        };
-
-        // Add hover effects
-        downloadButton.PointerEntered += (s, args) => 
-            downloadButton.Background = new SolidColorBrush(Color.Parse("#C489DB"));
-        downloadButton.PointerExited += (s, args) => 
-            downloadButton.Background = new SolidColorBrush(Color.Parse("#B37DC7"));
-            
-        cancelButton.PointerEntered += (s, args) => 
-            cancelButton.Background = new SolidColorBrush(Color.Parse("#8A8A8A"));
-        cancelButton.PointerExited += (s, args) => 
-            cancelButton.Background = new SolidColorBrush(Color.Parse("#7A7A7A"));
+        var downloadButton = CreateCustomButton("Download Latest", "#D686D2", "#E8A6E2", 140);
+        var cancelButton = CreateCustomButton("Cancel", "#8A7AB8", "#A691C7", 100);
 
         downloadButton.Click += (s, args) =>
         {
@@ -1191,6 +1167,49 @@ public partial class MainWindow : Window
 
         updateDialog.Content = contentPanel;
         await updateDialog.ShowDialog(this);
+    }
+
+    private Button CreateCustomButton(string text, string normalColor, string hoverColor, int width)
+    {
+        var normalBrush = new SolidColorBrush(Color.Parse(normalColor));
+        var hoverBrush = new SolidColorBrush(Color.Parse(hoverColor));
+        
+        var border = new Border
+        {
+            Background = normalBrush,
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(0),
+            Width = width,
+            Height = 40,
+            Child = new TextBlock
+            {
+                Text = text,
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.SemiBold,
+                FontSize = 14,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+
+        var button = new Button
+        {
+            Content = border,
+            Width = width,
+            Height = 40,
+            Cursor = new Cursor(StandardCursorType.Hand),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0)
+        };
+
+        // Add hover effects directly on the border
+        button.PointerEntered += (s, args) => border.Background = hoverBrush;
+        button.PointerExited += (s, args) => border.Background = normalBrush;
+        button.PointerPressed += (s, args) => border.Background = new SolidColorBrush(Color.Parse(normalColor)) { Opacity = 0.8 };
+        button.PointerReleased += (s, args) => border.Background = hoverBrush;
+
+        return button;
     }
 
     private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
