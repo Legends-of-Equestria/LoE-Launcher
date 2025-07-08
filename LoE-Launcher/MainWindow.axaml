@@ -100,6 +100,13 @@
             <Rectangle Fill="#25000000" />
         </Panel>
 
+        <!-- Draggable title bar area -->
+        <Rectangle x:Name="titleBarArea"
+                   Height="30"
+                   VerticalAlignment="Top"
+                   HorizontalAlignment="Stretch"
+                   Fill="Transparent" />
+
         <Grid VerticalAlignment="Top">
 
             <!-- Social Media Panel - Top Left -->

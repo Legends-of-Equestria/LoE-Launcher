@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -23,6 +24,7 @@ using Avalonia.VisualTree;
 using LoE_Launcher.Core;
 using Models.Utils;
 using NLog;
+using Path = System.IO.Path;
 
 namespace LoE_Launcher;
 
@@ -48,6 +50,7 @@ public partial class MainWindow : Window
     private TextBlock _progressPercentage;
     private TextBlock _downloadSpeed;
     private TextBlock _downloadStatus;
+    private Rectangle _titleBarArea;
 
     private readonly IBrush _downloadColor;
     private readonly IBrush _updateColor;
@@ -87,6 +90,7 @@ public partial class MainWindow : Window
         _ = LoadBackgroundImages();
         _ = LoadChangelog();
         SetupDraggableLogo();
+        SetupTitleBarDrag();
 
         Logger.Info($"Running on platform: {PlatformUtils.OperatingSystem}");
 
@@ -117,6 +121,7 @@ public partial class MainWindow : Window
         _progressPercentage = this.FindControl<TextBlock>("progressPercentage")!;
         _downloadSpeed = this.FindControl<TextBlock>("downloadSpeed")!;
         _downloadStatus = this.FindControl<TextBlock>("downloadStatus")!;
+        _titleBarArea = this.FindControl<Rectangle>("titleBarArea")!;
     }
 
     private void SetupDraggableLogo()
@@ -156,6 +161,19 @@ public partial class MainWindow : Window
         _logoImage.PointerMoved += OnLogoPointerMoved;
         _logoImage.PointerReleased += OnLogoPointerReleased;
         _logoImage.PointerCaptureLost += OnLogoPointerCaptureLost;
+    }
+
+    private void SetupTitleBarDrag()
+    {
+        _titleBarArea.PointerPressed += OnTitleBarPointerPressed;
+    }
+
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(_titleBarArea).Properties.IsLeftButtonPressed)
+        {
+            this.BeginMoveDrag(e);
+        }
     }
 
     private void OnLogoPointerPressed(object? sender, PointerPressedEventArgs e)
