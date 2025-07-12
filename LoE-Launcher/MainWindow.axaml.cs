@@ -860,8 +860,8 @@ public partial class MainWindow : Window
         };
 
         var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
+        var gameLogsButton = CreateSettingsButton("Open Game Logs", "View Legends of Equestria game logs and debug information");
         var logFolderButton = CreateSettingsButton("Open Launcher Logs", "View launcher logs and debug information");
-        var gameLogsButton = CreateSettingsButton("Open Game Logs", "View Unity game logs and debug information");
 
         repairButton.Click += OnRepairGameClicked;
         logFolderButton.Click += OnOpenLogFolderClicked;
@@ -869,8 +869,8 @@ public partial class MainWindow : Window
 
         contentPanel.Children.Add(titleText);
         contentPanel.Children.Add(repairButton);
-        contentPanel.Children.Add(logFolderButton);
         contentPanel.Children.Add(gameLogsButton);
+        contentPanel.Children.Add(logFolderButton);
 
         settingsMenu.Content = contentPanel;
         await settingsMenu.ShowDialog(this);
@@ -998,7 +998,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+            var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Launcher Logs");
 
             Process.Start(new ProcessStartInfo
             {

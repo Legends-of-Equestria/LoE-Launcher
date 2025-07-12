@@ -228,7 +228,8 @@
                    VerticalAlignment="Top"
                    Width="203"
                    Height="108"
-                   Margin="0,40,20,0" />
+                   Margin="0,40,20,0"
+                   ZIndex="100" />
         </Grid>
 
         <!-- Changelog section -->

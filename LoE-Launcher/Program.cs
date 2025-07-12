@@ -100,7 +100,7 @@ internal class Program
 
     private static string GetLogDirectory()
     {
-        var logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+        var logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Launcher Logs");
             
         if (!Directory.Exists(logDirectory))
         {
