@@ -44,38 +44,75 @@
             <Setter Property="Width" Value="70" />
             <Setter Property="Height" Value="70" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
             <Setter Property="Template">
                 <ControlTemplate>
-                    <Border x:Name="PART_Border"
-                            Background="#9C69B5"
-                            CornerRadius="35"
-                            BorderThickness="0">
-                        <Image x:Name="PART_Icon"
-                               Width="36" Height="36"
-                               Source="avares://LoE-Launcher/Assets/Gear.png"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Opacity="1.0" />
-                        <Border.Transitions>
-                            <Transitions>
-                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
-                                <BrushTransition Property="Background" Duration="0:0:0.15" />
-                            </Transitions>
-                        </Border.Transitions>
-                    </Border>
+                    <Grid>
+                        <Border x:Name="PART_Border"
+                                Background="#9C69B5"
+                                CornerRadius="35"
+                                BorderThickness="0">
+                            <Image x:Name="PART_Icon"
+                                   Width="36" Height="36"
+                                   Source="avares://LoE-Launcher/Assets/Gear.png"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Opacity="1.0">
+                                <Image.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                    </Transitions>
+                                </Image.Transitions>
+                            </Image>
+                        </Border>
+                        
+                        <Rectangle x:Name="TintLayer"
+                                   Fill="Transparent"
+                                   RadiusX="35"
+                                   RadiusY="35"
+                                   Opacity="0"
+                                   IsHitTestVisible="False">
+                            <Rectangle.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Fill" Duration="0:0:0.2" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                </Transitions>
+                            </Rectangle.Transitions>
+                        </Rectangle>
+                    </Grid>
                 </ControlTemplate>
             </Setter>
         </Style>
-        <Style Selector="Button.SettingsButton:pointerover /template/ Border#PART_Border">
-            <Setter Property="Background" Value="#B37DC7" />
-            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        
+        <Style Selector="Button.SettingsButton:not(:pointerover):not(:pressed) /template/ Rectangle#TintLayer">
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="Opacity" Value="0" />
         </Style>
+        
         <Style Selector="Button.SettingsButton:pointerover /template/ Image#PART_Icon">
-            <Setter Property="Opacity" Value="1.0" />
+            <Setter Property="Opacity" Value="0.95" />
         </Style>
-        <Style Selector="Button.SettingsButton:pressed /template/ Border#PART_Border">
-            <Setter Property="Background" Value="#7E529A" />
-            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        <Style Selector="Button.SettingsButton:pointerover /template/ Rectangle#TintLayer">
+            <Setter Property="Fill" Value="#FFFFFF" />
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <Style Selector="Button.SettingsButton:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+        
+        <Style Selector="Button.SettingsButton:pressed /template/ Image#PART_Icon">
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+        <Style Selector="Button.SettingsButton:pressed /template/ Rectangle#TintLayer">
+            <Setter Property="Fill" Value="#000000" />
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+        <Style Selector="Button.SettingsButton:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
         </Style>
         <Style Selector="Border.InfoPanel">
             <Setter Property="Background" Value="#30FFFFFF" />

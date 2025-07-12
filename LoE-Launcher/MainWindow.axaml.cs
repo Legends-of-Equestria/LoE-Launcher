@@ -890,7 +890,15 @@ public partial class MainWindow : Window
             Padding = new Thickness(20, 12),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
-            Cursor = new Cursor(StandardCursorType.Hand)
+            Cursor = new Cursor(StandardCursorType.Hand),
+            Transitions = new Transitions
+            {
+                new TransformOperationsTransition
+                {
+                    Property = Visual.RenderTransformProperty,
+                    Duration = TimeSpan.FromMilliseconds(200)
+                }
+            }
         };
 
         var contentPanel = new StackPanel
@@ -925,37 +933,21 @@ public partial class MainWindow : Window
 
         button.Content = contentPanel;
 
-        // Add hover effects similar to changelog panel
+        // Simple hover effects with same scaling as main buttons
         button.PointerEntered += (s, e) => {
-            button.Background = new SolidColorBrush(Color.Parse("#50FFFFFF"));
-            button.BorderBrush = new SolidColorBrush(Color.Parse("#FFD700"));
-            button.RenderTransform = new ScaleTransform { ScaleX = 1.02, ScaleY = 1.02 };
+            button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
         };
 
         button.PointerExited += (s, e) => {
-            button.Background = new SolidColorBrush(Color.Parse("#30FFFFFF"));
-            button.BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a"));
             button.RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
         };
 
-        // Add transitions
-        button.Transitions = new Transitions
-        {
-            new TransformOperationsTransition
-            {
-                Property = Visual.RenderTransformProperty,
-                Duration = TimeSpan.FromMilliseconds(200)
-            },
-            new BrushTransition
-            {
-                Property = Button.BackgroundProperty,
-                Duration = TimeSpan.FromMilliseconds(200)
-            },
-            new BrushTransition
-            {
-                Property = Button.BorderBrushProperty,
-                Duration = TimeSpan.FromMilliseconds(200)
-            }
+        button.PointerPressed += (s, e) => {
+            button.RenderTransform = new ScaleTransform { ScaleX = 0.97, ScaleY = 0.97 };
+        };
+
+        button.PointerReleased += (s, e) => {
+            button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
         };
 
         return button;

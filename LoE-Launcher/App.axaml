@@ -68,7 +68,7 @@
                                Opacity="1">
                             <Image.Transitions>
                                 <Transitions>
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                                 </Transitions>
                             </Image.Transitions>
                         </Image>
@@ -76,8 +76,8 @@
                         <!-- Tint overlay with opacity mask -->
                         <Rectangle x:Name="TintLayer"
                                    Fill="Transparent"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
                                    Opacity="0"
                                    IsHitTestVisible="False">
                             <Rectangle.OpacityMask>
@@ -86,8 +86,8 @@
                             </Rectangle.OpacityMask>
                             <Rectangle.Transitions>
                                 <Transitions>
-                                    <BrushTransition Property="Fill" Duration="0:0:0.15" />
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                    <BrushTransition Property="Fill" Duration="0:0:0.2" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                                 </Transitions>
                             </Rectangle.Transitions>
                         </Rectangle>
@@ -115,10 +115,10 @@
             </Style>
             <Style Selector="^:pointerover /template/ Rectangle#TintLayer">
                 <Setter Property="Fill" Value="#FFFFFF" />
-                <Setter Property="Opacity" Value="0.15" />
+                <Setter Property="Opacity" Value="0.4" />
             </Style>
             <Style Selector="^:pointerover">
-                <Setter Property="RenderTransform" Value="scale(1.02)" />
+                <Setter Property="RenderTransform" Value="scale(1.03)" />
             </Style>
 
             <!-- Pressed effects -->
@@ -127,10 +127,10 @@
             </Style>
             <Style Selector="^:pressed /template/ Rectangle#TintLayer">
                 <Setter Property="Fill" Value="#000000" />
-                <Setter Property="Opacity" Value="0.25" />
+                <Setter Property="Opacity" Value="0.5" />
             </Style>
             <Style Selector="^:pressed">
-                <Setter Property="RenderTransform" Value="scale(0.98)" />
+                <Setter Property="RenderTransform" Value="scale(0.97)" />
             </Style>
 
             <!-- Disabled state -->
@@ -145,7 +145,7 @@
             <!-- Add smooth transitions for transform -->
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
                 </Transitions>
             </Setter>
         </ControlTheme>
