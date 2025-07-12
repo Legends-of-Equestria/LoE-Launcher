@@ -382,6 +382,8 @@ public partial class Downloader
             Progress = new PreparingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
+                var maxConcurrency = Math.Max(1, Environment.ProcessorCount - 1);
+                var semaphore = new SemaphoreSlim(maxConcurrency);
                 var tasks = new List<Task>(_data.ToProcess.Count);
                 Progress.ResetCounter(_data.ToProcess.Count, true);
                 var processedCount = 0;
@@ -391,6 +393,7 @@ public partial class Downloader
                     var fileName = controlFileItem.InstallPath?.ToString() ?? "unknown file";
 
                     tasks.Add(Task.Run(async () => {
+                        await semaphore.WaitAsync();
                         try
                         {
                             Logger.Debug($"Compressing file: {fileName}");
@@ -405,10 +408,15 @@ public partial class Downloader
                             Logger.Error(ex, $"Error compressing file {fileName}");
                             // Don't rethrow - we want to continue with other files
                         }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
                     }));
                 }
 
                 await Task.WhenAll(tasks);
+                semaphore.Dispose();
                 Logger.Info("Compression phase completed");
             }
 
@@ -473,18 +481,29 @@ public partial class Downloader
 
         using (new Processing(Progress))
         {
+            var maxConcurrency = Math.Max(1, Environment.ProcessorCount - 1);
+            var semaphore = new SemaphoreSlim(maxConcurrency);
             var tasks = new List<Task>(_data.ToProcess.Count);
             Progress.ResetCounter(_data.ToProcess.Count, true);
 
             foreach (var controlFileItem in _data.ToProcess)
             {
                 tasks.Add(Task.Run(async () => {
-                    await CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder));
-                    Progress.Count();
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        await CompressOriginalFile(controlFileItem.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder));
+                        Progress.Count();
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 }));
             }
 
             await Task.WhenAll(tasks);
+            semaphore.Dispose();
         }
     }
 
