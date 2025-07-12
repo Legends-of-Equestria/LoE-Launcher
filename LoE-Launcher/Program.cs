@@ -31,7 +31,7 @@ internal class Program
         var logFile = new FileTarget("logfile")
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher.log"),
-            Layout = "${longdate}|${level:uppercase=true}|${logger}|${message} ${exception:format=tostring}",
+            Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${logger:shortName=true} - ${message} ${exception:format=tostring}",
             ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher.{#}.log"),
             ArchiveNumbering = ArchiveNumberingMode.Date,
             ArchiveEvery = FileArchivePeriod.Day,
@@ -42,7 +42,7 @@ internal class Program
         var detailedLogFile = new FileTarget("detailedlogfile")
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Debug.log"),
-            Layout = "${longdate}|${level:uppercase=true}|${logger}|${callsite:className=true:methodName=true:fileName=true:includeSourcePath=true}|${message} ${exception:format=tostring}",
+            Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${logger:shortName=true} - ${message}${newline}  Call: ${callsite:className=true:methodName=true:fileName=false} ${exception:format=tostring}",
             ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Debug.{#}.log"),
             ArchiveNumbering = ArchiveNumberingMode.Date,
             ArchiveEvery = FileArchivePeriod.Day,
@@ -54,16 +54,25 @@ internal class Program
         var networkLogFile = new FileTarget("networklogfile")
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Network.log"),
-            Layout = "${longdate}|${level:uppercase=true}|${logger}|${message} ${exception:format=tostring}",
+            Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${message} ${exception:format=tostring}",
             ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Network.{#}.log"),
             ArchiveNumbering = ArchiveNumberingMode.Date,
             ArchiveEvery = FileArchivePeriod.Day,
             MaxArchiveFiles = 3
         };
 
-        var logConsole = new ConsoleTarget("console")
+        var logConsole = new ColoredConsoleTarget("console")
         {
-            Layout = "${longdate}|${level:uppercase=true}|${logger}|${message} ${exception:format=tostring}"
+            Layout = "${time} ${level:uppercase=true} ${logger:shortName=true} ${message} ${exception:format=tostring}",
+            UseDefaultRowHighlightingRules = false,
+            RowHighlightingRules = {
+                new ConsoleRowHighlightingRule("level == LogLevel.Trace", ConsoleOutputColor.DarkGray, ConsoleOutputColor.NoChange),
+                new ConsoleRowHighlightingRule("level == LogLevel.Debug", ConsoleOutputColor.Gray, ConsoleOutputColor.NoChange),
+                new ConsoleRowHighlightingRule("level == LogLevel.Info", ConsoleOutputColor.White, ConsoleOutputColor.NoChange),
+                new ConsoleRowHighlightingRule("level == LogLevel.Warn", ConsoleOutputColor.Yellow, ConsoleOutputColor.NoChange),
+                new ConsoleRowHighlightingRule("level == LogLevel.Error", ConsoleOutputColor.Red, ConsoleOutputColor.NoChange),
+                new ConsoleRowHighlightingRule("level == LogLevel.Fatal", ConsoleOutputColor.White, ConsoleOutputColor.DarkRed)
+            }
         };
 
         config.AddTarget(logFile);
@@ -79,11 +88,14 @@ internal class Program
         LogManager.Configuration = config;
         
         var logger = LogManager.GetCurrentClassLogger();
-        logger.Info("----------------- NEW SESSION STARTED -----------------");
-        logger.Info($"Log files are located at: {GetLogDirectory()}");
-        logger.Info($"Main log: LoE-Launcher.log");
-        logger.Info($"Debug log: LoE-Launcher-Debug.log");
-        logger.Info($"Network log: LoE-Launcher-Network.log");
+        logger.Info("===============================================");
+        logger.Info("LoE Launcher - NEW SESSION STARTED");
+        logger.Info("===============================================");
+        logger.Info($"Log Directory: {GetLogDirectory()}");
+        logger.Info("Log Files:");
+        logger.Info("  - LoE-Launcher.log (Main)");
+        logger.Info("  - LoE-Launcher-Debug.log (Detailed)");
+        logger.Info("  - LoE-Launcher-Network.log (Network)");
     }
 
     private static string GetLogDirectory()
