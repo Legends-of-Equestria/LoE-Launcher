@@ -860,8 +860,8 @@ public partial class MainWindow : Window
         };
 
         var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
-        var gameLogsButton = CreateSettingsButton("Open Game Logs", "View Legends of Equestria game logs and debug information");
-        var logFolderButton = CreateSettingsButton("Open Launcher Logs", "View launcher logs and debug information");
+        var gameLogsButton = CreateSettingsButton("Open Game Logs", "For game crashes and gameplay issues");
+        var logFolderButton = CreateSettingsButton("Open Launcher Logs", "For launcher and download issues");
 
         repairButton.Click += OnRepairGameClicked;
         logFolderButton.Click += OnOpenLogFolderClicked;

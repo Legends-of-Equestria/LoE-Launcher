@@ -54,6 +54,7 @@ public partial class Downloader
     public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
+    public string CacheDirectory => Path.Combine(_launcherPath.Path, "Cache");
     public GameState State => _state;
 
     private string ZsyncLocation
@@ -1173,7 +1174,7 @@ public partial class Downloader
                 // Reset state from previous sessions
                 _bytesDownloaded = 0;
     
-                var cacheFile = Path.Combine(_launcherPath.Path, "hash_cache.json");
+                var cacheFile = Path.Combine(CacheDirectory, "hash_cache.json");
                 if (File.Exists(cacheFile))
                 {
                     File.Delete(cacheFile);
@@ -1473,7 +1474,12 @@ public partial class Downloader
     {
         try
         {
-            var cacheFile = Path.Combine(_launcherPath.Path, "hash_cache.json");
+            if (!Directory.Exists(CacheDirectory))
+            {
+                Directory.CreateDirectory(CacheDirectory);
+            }
+            
+            var cacheFile = Path.Combine(CacheDirectory, "hash_cache.json");
             if (File.Exists(cacheFile))
             {
                 var json = File.ReadAllText(cacheFile);
@@ -1493,7 +1499,12 @@ public partial class Downloader
     {
         try
         {
-            var cacheFile = Path.Combine(_launcherPath.Path, "hash_cache.json");
+            if (!Directory.Exists(CacheDirectory))
+            {
+                Directory.CreateDirectory(CacheDirectory);
+            }
+            
+            var cacheFile = Path.Combine(CacheDirectory, "hash_cache.json");
             var json = JsonConvert.SerializeObject(cache);
             File.WriteAllText(cacheFile, json);
         }

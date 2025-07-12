@@ -144,7 +144,7 @@
                    HorizontalAlignment="Stretch"
                    Fill="Transparent" />
 
-        <Grid VerticalAlignment="Top">
+        <Grid VerticalAlignment="Top" ZIndex="10">
 
             <!-- Social Media Panel - Top Left -->
             <StackPanel HorizontalAlignment="Left"
@@ -228,8 +228,7 @@
                    VerticalAlignment="Top"
                    Width="203"
                    Height="108"
-                   Margin="0,40,20,0"
-                   ZIndex="100" />
+                   Margin="0,40,20,0" />
         </Grid>
 
         <!-- Changelog section -->
@@ -239,7 +238,8 @@
                 Height="200"
                 Margin="20,0,0,20"
                 Classes="InfoPanel"
-                Padding="12">
+                Padding="12"
+                ZIndex="1">
             <Grid RowDefinitions="Auto,*">
                 <TextBlock Grid.Row="0"
                            Text="Changelog"
