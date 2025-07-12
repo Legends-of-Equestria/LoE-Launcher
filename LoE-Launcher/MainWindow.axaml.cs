@@ -655,19 +655,29 @@ public partial class MainWindow : Window
                 enabledState = false;
             }
 
-            // Show progress bar during processing, show action button when not processing
-            _pbState.IsVisible = _downloader.Progress.Processing;
-            _btnAction.IsVisible = !_downloader.Progress.Processing;
+            // Show progress bar during processing OR during startup states, show action button when ready
+            var showProgressLayout = _downloader.Progress.Processing || _downloader.State == GameState.Unknown;
+            _pbState.IsVisible = showProgressLayout;
+            _btnAction.IsVisible = !showProgressLayout;
             _btnAction.IsEnabled = enabledState;
 
-            if (_downloader.Progress.Processing)
+            if (showProgressLayout)
             {
                 _progressOverlay.IsVisible = true;
                 
                 var progressPercentage = _downloader.Progress.Max > 0
                     ? (double)_downloader.Progress.Current / _downloader.Progress.Max
                     : 0;
-                _progressPercentage.Text = $"{Math.Round(progressPercentage * 100)}%";
+                
+                // Show 0% during startup states
+                if (_downloader.State == GameState.Unknown)
+                {
+                    _progressPercentage.Text = "0%";
+                }
+                else
+                {
+                    _progressPercentage.Text = $"{Math.Round(progressPercentage * 100)}%";
+                }
                 
                 if (_downloader.DownloadStats.HasValidSpeed)
                 {
@@ -678,7 +688,15 @@ public partial class MainWindow : Window
                     _downloadSpeed.Text = "";
                 }
                 
-                _downloadStatus.Text = statusText;
+                // Set appropriate status text based on state
+                if (_downloader.State == GameState.Unknown)
+                {
+                    _downloadStatus.Text = "Checking for Updates...";
+                }
+                else
+                {
+                    _downloadStatus.Text = statusText;
+                }
             }
             else
             {
