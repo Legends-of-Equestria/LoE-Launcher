@@ -1272,19 +1272,19 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnTwitterButtonClicked(object? sender, RoutedEventArgs e)
+    private void OnXButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://twitter.com/LegendsofEq",
+                FileName = "https://x.com/LegendsofEq",
                 UseShellExecute = true
             });
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed to open Twitter link");
+            Logger.Error(ex, "Failed to open X link");
         }
     }
 

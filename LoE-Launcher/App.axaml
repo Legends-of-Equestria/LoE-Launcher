@@ -55,6 +55,12 @@
     </Application.Styles>
 
     <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://LoE-Launcher/Resources/IconPaths.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+        
         <ControlTheme x:Key="ActionButton" TargetType="Button">
             <Setter Property="Template">
                 <ControlTemplate>
