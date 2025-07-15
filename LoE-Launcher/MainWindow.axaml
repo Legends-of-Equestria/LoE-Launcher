@@ -166,6 +166,7 @@
                               Stretch="Uniform"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center"
+                              Margin="0,5,0,0"
                               />
                     </Panel>
                 </Button>
@@ -184,6 +185,7 @@
                               Stretch="Uniform"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center"
+                              Margin="0,5,0,0"
                               />
                     </Panel>
                 </Button>
