@@ -284,7 +284,7 @@
                              Theme="{StaticResource TexturedProgressBar}"
                              HorizontalAlignment="Stretch"
                              VerticalAlignment="Stretch"
-                             Value="100" />
+                             Value="0" />
 
                 <!-- Progress overlay text -->
                 <Grid x:Name="progressOverlay"
@@ -295,7 +295,7 @@
                     <!-- Left side - Progress percentage -->
                     <TextBlock x:Name="progressPercentage"
                                Grid.Column="0"
-                               Text="75%"
+                               Text="0%"
                                FontSize="32"
                                FontWeight="Bold"
                                Foreground="White"
@@ -311,7 +311,6 @@
                                 Margin="-20,0,15,0"
                                 Spacing="2">
                         <TextBlock x:Name="downloadSpeed"
-                                   Text="0.0 MB/s"
                                    FontSize="16"
                                    FontWeight="SemiBold"
                                    Foreground="White"
@@ -338,7 +337,8 @@
                         FontSize="28"
                         FontWeight="Bold"
                         HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch" />
+                        VerticalAlignment="Stretch"
+                        Cursor="Hand" />
             </Grid>
         </StackPanel>
     </Grid>

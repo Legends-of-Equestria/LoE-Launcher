@@ -101,8 +101,9 @@ public partial class MainWindow : Window
         _timer.Tick += OnTimerTick;
         _timer.Start();
 
-        _btnAction.Content = "Checking...";
-        _btnAction.IsEnabled = false;
+        _pbState.IsVisible = true;
+        _btnAction.IsVisible = false;
+        _progressOverlay.IsVisible = true;
 
         _downloadStopwatch.Start();
         InitializeDownloader();
@@ -387,6 +388,7 @@ public partial class MainWindow : Window
         try
         {
             Logger.Info("Initializing downloader");
+            
             await Task.Run(async () => {
                 try
                 {
@@ -406,7 +408,7 @@ public partial class MainWindow : Window
             {
                 Logger.Warn("Cannot connect to update servers. App is in offline mode.");
                 await ShowErrorMessage("Connection Error",
-                    "Cannot connect to the game servers. Check your internet connection and try again.\n\nDetailed logs have been saved to your AppData folder.");
+                    "Cannot connect to the game servers. Check your internet connection and try again.");
 
                 _shownOfflineMessage = true;
             }
@@ -619,7 +621,7 @@ public partial class MainWindow : Window
             switch (_downloader.State)
             {
                 case GameState.Unknown:
-                    _btnAction.Content = "Checking...";
+                    _btnAction.Content = "Validating...";
                     _btnAction.Background = _downloadColor;
                     enabledState = false;
                     break;
@@ -655,7 +657,7 @@ public partial class MainWindow : Window
                 enabledState = false;
             }
 
-            // Show progress bar during processing OR during startup states, show action button when ready
+            // Show progress bar during processing OR during startup states, show action button only when ready
             var showProgressLayout = _downloader.Progress.Processing || _downloader.State == GameState.Unknown;
             _pbState.IsVisible = showProgressLayout;
             _btnAction.IsVisible = !showProgressLayout;
@@ -669,8 +671,8 @@ public partial class MainWindow : Window
                     ? (double)_downloader.Progress.Current / _downloader.Progress.Max
                     : 0;
                 
-                // Show 0% during startup states
-                if (_downloader.State == GameState.Unknown)
+                // Show 0% only during initial checking, actual progress during processing
+                if (_downloader.State == GameState.Unknown && !_downloader.Progress.Processing)
                 {
                     _progressPercentage.Text = "0%";
                 }
@@ -688,10 +690,10 @@ public partial class MainWindow : Window
                     _downloadSpeed.Text = "";
                 }
                 
-                // Set appropriate status text based on state
+                // Set appropriate status text based on state and processing
                 if (_downloader.State == GameState.Unknown)
                 {
-                    _downloadStatus.Text = "Checking for Updates...";
+                    _downloadStatus.Text = "Validating";
                 }
                 else
                 {
