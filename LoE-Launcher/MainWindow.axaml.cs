@@ -71,6 +71,7 @@ public partial class MainWindow : Window
     private DispatcherTimer _physicsTimer;
     private DateTime _lastMoveTime;
     private bool _hasShownTooltip;
+    private bool _actionButtonClicked = false;
 
     public MainWindow()
     {
@@ -661,7 +662,7 @@ public partial class MainWindow : Window
             var showProgressLayout = _downloader.Progress.Processing || _downloader.State == GameState.Unknown;
             _pbState.IsVisible = showProgressLayout;
             _btnAction.IsVisible = !showProgressLayout;
-            _btnAction.IsEnabled = enabledState;
+            _btnAction.IsEnabled = enabledState && !_actionButtonClicked;
 
             if (showProgressLayout)
             {
@@ -709,7 +710,12 @@ public partial class MainWindow : Window
 
     private async void OnActionButtonClicked(object sender, RoutedEventArgs e)
     {
-        // Disable button to prevent multiple clicks
+        if (!_btnAction.IsEnabled)
+        {
+            return;
+        }
+            
+        _actionButtonClicked = true;
         _btnAction.IsEnabled = false;
 
         // Button press animation
