@@ -126,6 +126,77 @@
                 </Transitions>
             </Setter>
         </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll">
+            <Setter Property="Padding" Value="0,0,6,0" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar">
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Margin" Value="0,2,2,2" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Border#PART_Border">
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ RepeatButton">
+            <Setter Property="Background" Value="#30FFFFFF" />
+        </Style>
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Grid">
+            <Setter Property="Background" Value="#30FFFFFF" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar Border">
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar:vertical">
+            <Setter Property="Width" Value="14" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb">
+            <Setter Property="Background" Value="#CCf0be4a" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#FFFFFF" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="MinHeight" Value="20" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb /template/ Border">
+            <Setter Property="Background" Value="#CCf0be4a" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#FFFFFF" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="#f0be4a" />
+            <Setter Property="BorderBrush" Value="#FFFFFF" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pressed">
+            <Setter Property="Background" Value="#f0be4a" />
+            <Setter Property="BorderBrush" Value="#FFFFFF" />
+        </Style>
+        
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ RepeatButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
     </Window.Styles>
 
     <Grid>
@@ -239,8 +310,8 @@
         <!-- Changelog section -->
         <Border HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
-                Width="380"
-                Height="200"
+                Width="420"
+                Height="220"
                 Margin="20,0,0,20"
                 Classes="InfoPanel"
                 Padding="12"
@@ -255,8 +326,10 @@
                            Margin="0,0,0,15" />
 
                 <ScrollViewer Grid.Row="1"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
+                              Classes="ChangelogScroll"
+                              VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollBarVisibility="Disabled"
+                              AllowAutoHide="False">
                     <StackPanel x:Name="changelogPanel"
                                Spacing="2" />
                 </ScrollViewer>
