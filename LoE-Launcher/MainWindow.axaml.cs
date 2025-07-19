@@ -413,6 +413,14 @@ public partial class MainWindow : Window
 
                 _shownOfflineMessage = true;
             }
+            else if (_downloader.State == GameState.ServerMaintenance)
+            {
+                Logger.Warn("Game servers are under maintenance or temporarily unavailable.");
+                await ShowErrorMessage("Server Maintenance",
+                    "The game servers are currently under maintenance or temporarily unavailable. Please try again in a few hours.");
+
+                _shownOfflineMessage = true;
+            }
 
             _downloadStopwatch.Stop();
             Logger.Info($"Initialization took {_downloadStopwatch.Elapsed.TotalSeconds:F1} seconds");
@@ -644,6 +652,11 @@ public partial class MainWindow : Window
                 case GameState.Offline:
                     _btnAction.Content = "Offline";
                     _btnAction.Background = _errorColor;
+                    enabledState = false;
+                    break;
+                case GameState.ServerMaintenance:
+                    _btnAction.Content = "Maintenance";
+                    _btnAction.Background = _updateColor;
                     enabledState = false;
                     break;
                 case GameState.LauncherOutOfDate:

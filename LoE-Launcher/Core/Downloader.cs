@@ -225,7 +225,11 @@ public partial class Downloader
                     if (data == null)
                     {
                         Logger.Warn("Control file data is null, likely offline or server issue");
-                        _state = GameState.Offline;
+                        // Don't override state if it's already set to ServerMaintenance
+                        if (_state != GameState.ServerMaintenance)
+                        {
+                            _state = GameState.Offline;
+                        }
                         return;
                     }
 
@@ -1525,7 +1529,22 @@ public partial class Downloader
             client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            result = await client.GetStringAsync(url, cts.Token);
+            using var response = await client.GetAsync(url, cts.Token);
+            
+            if (response.StatusCode 
+                is System.Net.HttpStatusCode.NotFound 
+                or System.Net.HttpStatusCode.InternalServerError 
+                or System.Net.HttpStatusCode.BadGateway 
+                or System.Net.HttpStatusCode.ServiceUnavailable 
+                or System.Net.HttpStatusCode.GatewayTimeout)
+            {
+                Logger.Error($"Server error {(int)response.StatusCode} {response.StatusCode} @ {url}");
+                _state = GameState.ServerMaintenance;
+                return null;
+            }
+            
+            response.EnsureSuccessStatusCode();
+            result = await response.Content.ReadAsStringAsync(cts.Token);
 
             Logger.Info("JSON download successful");
         }
@@ -1599,6 +1618,7 @@ public enum GameState
     UpdateAvailable,
     UpToDate,
     Offline,
+    ServerMaintenance,
     LauncherOutOfDate
 }
 
