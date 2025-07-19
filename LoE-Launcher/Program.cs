@@ -32,8 +32,8 @@ internal class Program
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher.log"),
             Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${logger:shortName=true} - ${message} ${exception:format=tostring}",
-            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher.{#}.log"),
-            ArchiveNumbering = ArchiveNumberingMode.Date,
+            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher.log"),
+            ArchiveSuffixFormat = "_{1:yyyyMMdd}",
             ArchiveEvery = FileArchivePeriod.Day,
             MaxArchiveFiles = 7
         };
@@ -43,8 +43,8 @@ internal class Program
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Debug.log"),
             Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${logger:shortName=true} - ${message}${newline}  Call: ${callsite:className=true:methodName=true:fileName=false} ${exception:format=tostring}",
-            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Debug.{#}.log"),
-            ArchiveNumbering = ArchiveNumberingMode.Date,
+            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Debug.log"),
+            ArchiveSuffixFormat = "_{1:yyyyMMdd}",
             ArchiveEvery = FileArchivePeriod.Day,
             MaxArchiveFiles = 3,
             EnableFileDelete = true
@@ -55,8 +55,8 @@ internal class Program
         {
             FileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Network.log"),
             Layout = "${date:format=yyyy-MM-dd HH:mm:ss.fff} [${level:uppercase=true}] ${message} ${exception:format=tostring}",
-            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Network.{#}.log"),
-            ArchiveNumbering = ArchiveNumberingMode.Date,
+            ArchiveFileName = Path.Combine(GetLogDirectory(), "LoE-Launcher-Network.log"),
+            ArchiveSuffixFormat = "_{1:yyyyMMdd}",
             ArchiveEvery = FileArchivePeriod.Day,
             MaxArchiveFiles = 3
         };
