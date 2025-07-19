@@ -769,6 +769,7 @@ public partial class MainWindow : Window
         {
             _downloadStopwatch.Stop();
             Logger.Debug($"Installation/update process took {_downloadStopwatch.Elapsed.TotalSeconds:F1} seconds");
+            _actionButtonClicked = false;
         }
     }
 
