@@ -351,8 +351,10 @@ public partial class Downloader
                 _versionDownload = data.Win64;
                 break;
             case OS.MacArm:
+                _versionDownload = data.Mac_Arm;
+                break;
             case OS.MacIntel:
-                _versionDownload = data.Mac;
+                _versionDownload = data.Mac_Intel;
                 break;
             case OS.X11:
                 _versionDownload = data.Linux;

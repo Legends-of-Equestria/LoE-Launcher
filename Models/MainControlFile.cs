@@ -10,7 +10,8 @@ public class VersionsControlFile
     public string Win32 { get; set; }
     public string Win64 { get; set; }
     public string Linux { get; set; }
-    public string Mac { get; set; }
+    public string Mac_Intel { get; set; }
+    public string Mac_Arm { get; set; }
 }
     
 public class MainControlFile
