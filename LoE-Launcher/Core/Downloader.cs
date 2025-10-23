@@ -28,6 +28,8 @@ public partial class Downloader
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int MaxFileCheckRetries = 10;
     private static readonly int InitialFileCheckDelayMs = 100;
+    private static readonly int MaxNetworkRetries = 5;
+    private static readonly int OfflineRetryIntervalSeconds = 30;
     private static readonly VersionInfo CurrentLauncherVersion = new() { Major = 1, Minor = 0, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
@@ -38,6 +40,7 @@ public partial class Downloader
 
     private string _versionDownload = "";
     private GameState _state = GameState.Unknown;
+    private Timer? _offlineRetryTimer;
 
     public DownloadData _data = null;
     public ProgressData Progress { get; private set; }
@@ -291,6 +294,15 @@ public partial class Downloader
         {
             Logger.Info($"State refresh completed. Final state: {_state}");
             Progress.Complete();
+            
+            if (_state == GameState.Offline)
+            {
+                StartOfflineRetryTimer();
+            }
+            else
+            {
+                StopOfflineRetryTimer();
+            }
         }
     }
 
@@ -613,21 +625,33 @@ public partial class Downloader
             return true;
         }
 
-        try
+        var testItem = queue.Peek();
+        var testUri = testItem.GetContentUri(_data.ControlFile);
+        
+        for (int attempt = 0; attempt < MaxNetworkRetries; attempt++)
         {
-            var testItem = queue.Peek();
-            var testUri = testItem.GetContentUri(_data.ControlFile);
-            Logger.Info($"Testing connection to: {testUri}");
-            var response = await httpClient.GetAsync(testUri, HttpCompletionOption.ResponseHeadersRead);
-            Logger.Info($"Test connection successful: {response.StatusCode}");
-            return true;
+            try
+            {
+                Logger.Info($"Testing connection to: {testUri} (attempt {attempt + 1}/{MaxNetworkRetries})");
+                var response = await httpClient.GetAsync(testUri, HttpCompletionOption.ResponseHeadersRead);
+                Logger.Info($"Test connection successful: {response.StatusCode}");
+                return true;
+            }
+            catch (Exception ex) when (attempt < MaxNetworkRetries - 1)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                Logger.Warn($"Connection test failed, retrying in {delay.TotalSeconds}s: {ex.Message}");
+                await Task.Delay(delay);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "All connection test attempts failed");
+                _state = GameState.Offline;
+                return false;
+            }
         }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Initial connection test failed");
-            _state = GameState.Offline;
-            return false;
-        }
+        
+        return false;
     }
 
     private async Task<long> ProcessQueueItem(
@@ -1523,53 +1547,58 @@ public partial class Downloader
     private async Task<TType?> DownloadJson<TType>(Uri url)
         where TType : class
     {
-        string result;
-        try
+        for (int attempt = 0; attempt < MaxNetworkRetries; attempt++)
         {
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
-
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            using var response = await client.GetAsync(url, cts.Token);
-            
-            if (response.StatusCode 
-                is System.Net.HttpStatusCode.NotFound 
-                or System.Net.HttpStatusCode.InternalServerError 
-                or System.Net.HttpStatusCode.BadGateway 
-                or System.Net.HttpStatusCode.ServiceUnavailable 
-                or System.Net.HttpStatusCode.GatewayTimeout)
+            try
             {
-                Logger.Error($"Server error {(int)response.StatusCode} {response.StatusCode} @ {url}");
-                _state = GameState.ServerMaintenance;
-                return null;
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(Math.Min(10 + attempt * 5, 30));
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(10 + attempt * 5, 30)));
+                using var response = await client.GetAsync(url, cts.Token);
+                
+                if (response.StatusCode 
+                    is System.Net.HttpStatusCode.NotFound 
+                    or System.Net.HttpStatusCode.InternalServerError 
+                    or System.Net.HttpStatusCode.BadGateway 
+                    or System.Net.HttpStatusCode.ServiceUnavailable 
+                    or System.Net.HttpStatusCode.GatewayTimeout)
+                {
+                    Logger.Error($"Server error {(int)response.StatusCode} {response.StatusCode} @ {url}");
+                    _state = GameState.ServerMaintenance;
+                    return null;
+                }
+                
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync(cts.Token);
+
+                Logger.Info($"JSON download successful (attempt {attempt + 1})");
+                return JsonConvert.DeserializeObject<TType>(result, Settings);
             }
-            
-            response.EnsureSuccessStatusCode();
-            result = await response.Content.ReadAsStringAsync(cts.Token);
-
-            Logger.Info("JSON download successful");
-        }
-        catch (OperationCanceledException ce)
-        {
-            Logger.Error(ce, $"Request timed out @ {url}");
-            _state = GameState.Offline;
-            return null;
-        }
-        catch (HttpRequestException he)
-        {
-            Logger.Error(he, $"HTTP request failed @ {url}");
-            _state = GameState.Offline;
-            return null;
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, $"Could not download json @ {url}");
-            _state = GameState.Offline;
-            return null;
+            catch (OperationCanceledException) when (attempt < MaxNetworkRetries - 1)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                Logger.Warn($"Request timed out @ {url}, retrying in {delay.TotalSeconds}s");
+                await Task.Delay(delay);
+            }
+            catch (HttpRequestException) when (attempt < MaxNetworkRetries - 1)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                Logger.Warn($"HTTP request failed @ {url}, retrying in {delay.TotalSeconds}s");
+                await Task.Delay(delay);
+            }
+            catch (Exception) when (attempt < MaxNetworkRetries - 1)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                Logger.Warn($"Could not download json @ {url}, retrying in {delay.TotalSeconds}s");
+                await Task.Delay(delay);
+            }
         }
 
-        return JsonConvert.DeserializeObject<TType>(result, Settings);
+        Logger.Error($"All download attempts failed for {url}");
+        _state = GameState.Offline;
+        return null;
     }
 
     private static async Task CompressOriginalFile(IAbsoluteFilePath realFile)
@@ -1600,10 +1629,76 @@ public partial class Downloader
         _downloadStats.Update(_bytesDownloaded, progressPercentage);
     }
 
+    public void SaveSettings()
+    {
+        try
+        {
+            var settingsJson = JsonConvert.SerializeObject(_settings, Formatting.Indented);
+            File.WriteAllText(SettingsFile.Path, settingsJson);
+            Logger.Info("Settings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to save settings");
+        }
+    }
+
     private static string GetLauncherDirectory()
     {
-        var location = Assembly.GetExecutingAssembly().Location;
-        return Path.GetDirectoryName(location) ?? AppDomain.CurrentDomain.BaseDirectory;
+        return Directory.GetCurrentDirectory();
+    }
+
+    private void StartOfflineRetryTimer()
+    {
+        StopOfflineRetryTimer();
+        
+        Logger.Info($"Starting offline retry timer (checks every {OfflineRetryIntervalSeconds} seconds)");
+        _offlineRetryTimer = new Timer(async _ =>
+        {
+            try
+            {
+                Logger.Info("Offline retry timer triggered, checking connectivity");
+                await CheckConnectivityAndRefresh();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error during offline retry check");
+            }
+        }, null, TimeSpan.FromSeconds(OfflineRetryIntervalSeconds), TimeSpan.FromSeconds(OfflineRetryIntervalSeconds));
+    }
+
+    private void StopOfflineRetryTimer()
+    {
+        _offlineRetryTimer?.Dispose();
+        _offlineRetryTimer = null;
+    }
+
+    private async Task CheckConnectivityAndRefresh()
+    {
+        if (_state != GameState.Offline)
+        {
+            return;
+        }
+
+        try
+        {
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+            
+            var testUrl = new Uri(_settings.Stream);
+            using var response = await client.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.Info("Connectivity restored, refreshing state");
+                await RefreshState();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Debug($"Connectivity check failed: {ex.Message}");
+        }
     }
 
     public class DownloadData(MainControlFile controlFile)
