@@ -12,6 +12,7 @@ internal class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        SetWorkingDirectory();
         ConfigureLogging();
 
         BuildAvaloniaApp()
@@ -23,6 +24,17 @@ internal class Program
             .UsePlatformDetect()
             .LogToTrace();
 
+    private static void SetWorkingDirectory()
+    {
+        var appSupportDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "LoE Launcher"
+        );
+    
+        Directory.CreateDirectory(appSupportDir);
+        Directory.SetCurrentDirectory(appSupportDir);
+    }
+    
     private static void ConfigureLogging()
     {
         var config = new LoggingConfiguration();
