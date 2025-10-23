@@ -816,12 +816,12 @@ public partial class Downloader
                     Zsync.Sync(controlFile, downloader, outputDir, (ss) => {
                         var flavor = ss switch
                         {
-                            SyncState.CalcDiff => $"{fileName} diff",
-                            SyncState.CopyExisting => $"{fileName} copying parts",
-                            SyncState.DownloadPatch => $"{fileName} downloading patch",
-                            SyncState.DownloadNew => $"{fileName} downloading",
-                            SyncState.PatchFile => $"{fileName} patching",
-                            _ => ""
+                            SyncState.CalcDiff => "syncing",
+                            SyncState.CopyExisting => "copying", 
+                            SyncState.DownloadPatch => "patching",
+                            SyncState.DownloadNew => "fetching",
+                            SyncState.PatchFile => "applying",
+                            _ => "updating"
                         };
                         installProgress.FlavorText = flavor;
                         Logger.Debug($"ZSync state: {ss} - {flavor}");

@@ -61,12 +61,12 @@ partial class Downloader
                     
                 }
 
-                // if (!string.IsNullOrWhiteSpace(FlavorText))
-                // {
-                //     return $"Installing ({Current}/{Max})... {FlavorText}";
-                // }
+                if (!string.IsNullOrWhiteSpace(FlavorText))
+                {
+                    return $"{Current}/{Max} {FlavorText}";
+                }
 
-                return $"Installing ({Current}/{Max})...";
+                return $"{Current}/{Max} files";
             }
         }
     }
@@ -91,12 +91,12 @@ partial class Downloader
                     return $"{CurrentOperation}...";
                 }
 
-                // if (!string.IsNullOrWhiteSpace(FlavorText))
-                // {
-                //     return $"{CurrentOperation} ({Current}/{Max})... {FlavorText}";
-                // }
+                if (!string.IsNullOrWhiteSpace(FlavorText))
+                {
+                    return $"{Current}/{Max} {FlavorText}";
+                }
                 
-                return $"{CurrentOperation} ({Current}/{Max})...";
+                return $"{Current}/{Max} files";
             }
         }
     }
