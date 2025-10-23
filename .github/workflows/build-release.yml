@@ -1,0 +1,193 @@
+name: Build Cross-Platform Release
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+  build-mac:
+    needs: test
+    runs-on: macos-latest
+  
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+      
+    - name: Make build script executable
+      run: chmod +x .github/scripts/build-mac.sh
+      
+    - name: Build macOS App Bundle
+      run: .github/scripts/build-mac.sh
+      env:
+        MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+        MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        NOTARIZATION_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+        NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+        NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+        
+    - name: Upload macOS Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: LoE-Launcher-macOS
+        path: Publish/Mac/*.dmg
+        
+  build-linux:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Install AppImage dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fuse libfuse2 desktop-file-utils
+        
+    - name: Make build script executable
+      run: chmod +x .github/scripts/build-linux.sh
+        
+    - name: Build Linux AppImage
+      run: .github/scripts/build-linux.sh
+        
+    - name: Upload Linux Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: LoE-Launcher-Linux
+        path: Publish/Linux/LoE-Launcher.AppImage
+        
+  build-flatpak:
+    needs: test
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
+      options: --privileged
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Make build script executable
+      run: chmod +x .github/scripts/build-flatpak.sh
+        
+    - name: Build Flatpak preparation
+      run: .github/scripts/build-flatpak.sh
+        
+    - name: Build Flatpak
+      uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v6
+      with:
+        bundle: loe-launcher.flatpak
+        manifest-path: com.loe.Launcher.json
+        cache-key: flatpak-builder-${{ github.sha }}
+        upload-artifact: false
+        
+    - name: Upload Flatpak Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: LoE-Launcher-Flatpak
+        path: loe-launcher.flatpak
+        
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Build Windows Executable
+      run: .github/scripts/build-windows.sh
+      shell: bash
+        
+    - name: Upload Windows Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: LoE-Launcher-Windows
+        path: Publish/Windows/LoE-Launcher.exe
+        
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-mac, build-linux, build-flatpak, build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download macOS build
+      uses: actions/download-artifact@v4
+      with:
+        name: LoE-Launcher-macOS
+        path: ./artifacts/
+        
+    - name: Download Linux build
+      uses: actions/download-artifact@v4
+      with:
+        name: LoE-Launcher-Linux
+        path: ./artifacts/
+        
+    - name: Download Flatpak build
+      uses: actions/download-artifact@v4
+      with:
+        name: LoE-Launcher-Flatpak
+        path: ./artifacts/
+        
+    - name: Download Windows build
+      uses: actions/download-artifact@v4
+      with:
+        name: LoE-Launcher-Windows
+        path: ./artifacts/
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./artifacts/LoE-Launcher-Mac.zip
+          ./artifacts/LoE-Launcher.AppImage
+          ./artifacts/loe-launcher.flatpak
+          ./artifacts/LoE-Launcher.exe
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
