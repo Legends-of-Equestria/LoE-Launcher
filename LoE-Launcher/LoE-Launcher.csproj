@@ -10,6 +10,14 @@
         <ApplicationIcon>Assets\Icon.ico</ApplicationIcon>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyTitle>Legends of Equestria Launcher</AssemblyTitle>
+        <AssemblyCompany>LoE</AssemblyCompany>
+        <AssemblyDescription>Official launcher for Legends of Equestria</AssemblyDescription>
+    </PropertyGroup>
+    
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>LoE-Launcher.Tests</_Parameter1>
@@ -49,6 +57,10 @@
         <AvaloniaResource Include="Assets\progress-fill.png" />
         <AvaloniaResource Include="Assets\Icon.ico" />
         <AvaloniaResource Include="Resources\IconPaths.axaml" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
     </ItemGroup>
     
 </Project>
