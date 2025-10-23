@@ -56,6 +56,7 @@ public partial class Downloader
     public static OS OperatingSystem => PlatformUtils.OperatingSystem;
     public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
+    public Settings LauncherSettings => _settings;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
     public string CacheDirectory => Path.Combine(_launcherPath.Path, "Cache");
     public GameState State => _state;

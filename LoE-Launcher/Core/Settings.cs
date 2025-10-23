@@ -10,6 +10,8 @@ public class Settings
 
     public string LauncherVersionUrl { get; set; } = "http://patches.legendsofequestria.com/launcher-version.json";
 
+    public bool CloseAfterLaunch { get; set; } = true;
+
     internal string FormatZsyncLocation(string version)
     {
         var formatted = ZsyncLocation.Replace("{version}", version);

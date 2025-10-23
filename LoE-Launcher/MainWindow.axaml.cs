@@ -849,12 +849,19 @@ public partial class MainWindow : Window
                     throw new PlatformNotSupportedException("This platform is not supported.");
             }
 
-            // Wait briefly for game to launch, then close launcher
+            // Wait briefly for game to launch, then optionally close launcher
             Logger.Info("Game launched successfully");
             await Task.Delay(1500);
             
-            Logger.Info("Closing launcher after game launch");
-            this.Close();
+            if (_downloader.LauncherSettings.CloseAfterLaunch)
+            {
+                Logger.Info("Closing launcher after game launch");
+                this.Close();
+            }
+            else
+            {
+                Logger.Info("Keeping launcher open after game launch");
+            }
         }
         catch (Exception ex)
         {
@@ -902,15 +909,51 @@ public partial class MainWindow : Window
         var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
         var gameLogsButton = CreateSettingsButton("Open Game Logs", "For game crashes and gameplay issues");
         var logFolderButton = CreateSettingsButton("Open Launcher Logs", "For launcher and download issues");
+        var deleteGameButton = CreateSettingsButton("Delete Game Files", "Remove all downloaded game files");
 
         repairButton.Click += OnRepairGameClicked;
         logFolderButton.Click += OnOpenLogFolderClicked;
         gameLogsButton.Click += OnOpenGameLogsClicked;
+        deleteGameButton.Click += OnDeleteGameClicked;
+
+        // Close After Launch setting
+        var closeAfterLaunchPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 10,
+            Margin = new Thickness(0, 5, 0, 0)
+        };
+
+        var closeAfterLaunchCheckBox = new CheckBox
+        {
+            IsChecked = _downloader.LauncherSettings.CloseAfterLaunch,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var closeAfterLaunchLabel = new TextBlock
+        {
+            Text = "Close launcher after game launch",
+            FontSize = 14,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        closeAfterLaunchCheckBox.IsCheckedChanged += (s, e) =>
+        {
+            _downloader.LauncherSettings.CloseAfterLaunch = closeAfterLaunchCheckBox.IsChecked ?? true;
+            _downloader.SaveSettings();
+        };
+
+        closeAfterLaunchPanel.Children.Add(closeAfterLaunchCheckBox);
+        closeAfterLaunchPanel.Children.Add(closeAfterLaunchLabel);
 
         contentPanel.Children.Add(titleText);
         contentPanel.Children.Add(repairButton);
         contentPanel.Children.Add(gameLogsButton);
         contentPanel.Children.Add(logFolderButton);
+        contentPanel.Children.Add(deleteGameButton);
+        contentPanel.Children.Add(closeAfterLaunchPanel);
 
         settingsMenu.Content = contentPanel;
         await settingsMenu.ShowDialog(this);
@@ -1034,11 +1077,54 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnDeleteGameClicked(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
+
+            var confirmResult = await ShowConfirmDialog(
+                "Delete Game Files",
+                "This will permanently delete all downloaded game files. You will need to download the game again to play. Continue?");
+
+            if (!confirmResult)
+            {
+                return;
+            }
+
+            Logger.Info("Starting game files deletion");
+
+            if (_downloader.GameInstallFolder.Exists)
+            {
+                try
+                {
+                    Directory.Delete(_downloader.GameInstallFolder.Path, true);
+                    Logger.Info($"Deleted game directory: {_downloader.GameInstallFolder.Path}");
+                }
+                catch (Exception deleteEx)
+                {
+                    Logger.Error(deleteEx, "Failed to delete game directory");
+                    throw new Exception($"Failed to delete game files: {deleteEx.Message}");
+                }
+            }
+
+            await Task.Run(() => _downloader.RefreshState());
+            Logger.Info("Game files deleted and state refreshed");
+
+            await ShowInfoMessage("Delete Complete", "Game files have been successfully deleted.");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Game files deletion failed");
+            await ShowErrorMessage("Delete Error", ex.Message);
+        }
+    }
+
     private static void OnOpenLogFolderClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
-            var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Launcher Logs");
+            var logDir = Path.Combine(Directory.GetCurrentDirectory(), "Launcher Logs");
 
             Process.Start(new ProcessStartInfo
             {
