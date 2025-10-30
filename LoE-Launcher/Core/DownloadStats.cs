@@ -21,6 +21,18 @@ public class DownloadStats
     public bool HasValidSpeed => _currentSpeedBps > 0;
     public bool HasValidTimeEstimate => _hasValidTimeEstimate;
 
+    internal double CurrentSpeedBps
+    {
+        get => _currentSpeedBps;
+        set => _currentSpeedBps = value;
+    }
+
+    internal void SetTimeEstimate(TimeSpan timeRemaining, bool hasValidEstimate)
+    {
+        _timeRemaining = timeRemaining;
+        _hasValidTimeEstimate = hasValidEstimate;
+    }
+
     public DownloadStats(int maxSamples = 5, TimeSpan? sampleInterval = null)
     {
         _maxSamples = maxSamples;

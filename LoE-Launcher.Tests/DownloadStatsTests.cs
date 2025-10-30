@@ -18,10 +18,7 @@ public class DownloadStatsTests
     {
         // Arrange
         var stats = new DownloadStats();
-        
-        var field = typeof(DownloadStats).GetField("_currentSpeedBps", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        field?.SetValue(stats, speedBps);
+        stats.CurrentSpeedBps = speedBps;
 
         // Act
         var result = stats.GetFormattedSpeed();
@@ -42,14 +39,7 @@ public class DownloadStatsTests
     {
         // Arrange
         var stats = new DownloadStats();
-        
-        var timeRemainingField = typeof(DownloadStats).GetField("_timeRemaining", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var hasValidEstimateField = typeof(DownloadStats).GetField("_hasValidTimeEstimate", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-        timeRemainingField?.SetValue(stats, TimeSpan.FromSeconds(seconds));
-        hasValidEstimateField?.SetValue(stats, true);
+        stats.SetTimeEstimate(TimeSpan.FromSeconds(seconds), true);
 
         // Act
         var result = stats.GetFormattedTimeRemaining();
@@ -63,14 +53,7 @@ public class DownloadStatsTests
     {
         // Arrange
         var stats = new DownloadStats();
-        
-        var timeRemainingField = typeof(DownloadStats).GetField("_timeRemaining", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var hasValidEstimateField = typeof(DownloadStats).GetField("_hasValidTimeEstimate", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-        timeRemainingField?.SetValue(stats, TimeSpan.FromHours(25));
-        hasValidEstimateField?.SetValue(stats, true);
+        stats.SetTimeEstimate(TimeSpan.FromHours(25), true);
 
         // Act
         var result = stats.GetFormattedTimeRemaining();

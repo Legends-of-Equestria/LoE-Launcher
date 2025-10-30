@@ -20,7 +20,7 @@ public class UnityPlayerLogHelperTests
         var companyName = "TestCompany";
         var productName = "TestProduct";
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var expectedPath = System.IO.Path.Combine(userProfile, "AppData", "LocalLow", companyName, productName, "Player.log");
+        var expectedPath = Path.Combine(userProfile, "AppData", "LocalLow", companyName, productName, "Player.log");
 
         // Act
         var result = UnityPlayerLogHelper.GetPlayerLogPath(companyName, productName);
@@ -44,7 +44,7 @@ public class UnityPlayerLogHelperTests
         var companyName = "TestCompany";
         var productName = "TestProduct";
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var expectedPath = System.IO.Path.Combine(userProfile, "Library", "Logs", companyName, productName, "Player.log");
+        var expectedPath = Path.Combine(userProfile, "Library", "Logs", companyName, productName, "Player.log");
 
         // Act
         var result = UnityPlayerLogHelper.GetPlayerLogPath(companyName, productName);
@@ -68,7 +68,7 @@ public class UnityPlayerLogHelperTests
         var companyName = "TestCompany";
         var productName = "TestProduct";
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var expectedPath = System.IO.Path.Combine(userProfile, ".config", "unity3d", companyName, productName, "Player.log");
+        var expectedPath = Path.Combine(userProfile, ".config", "unity3d", companyName, productName, "Player.log");
 
         // Act
         var result = UnityPlayerLogHelper.GetPlayerLogPath(companyName, productName);
