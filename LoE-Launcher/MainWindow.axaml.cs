@@ -37,14 +37,11 @@ public partial class MainWindow : Window
     private const string CacheDirectoryName = "Cache";
 
     private readonly Downloader _downloader;
-    private readonly HttpClient _httpClient = new();
     private readonly DialogService _dialogService;
     private readonly CacheManager _cacheManager;
 
     private DispatcherTimer _timer;
-    private Stopwatch _downloadStopwatch = new Stopwatch();
-    private bool _shownInfoMessage = false;
-    private bool _shownOfflineMessage = false;
+    private Stopwatch _downloadStopwatch = new();
 
     private Image _backgroundImage;
     private Image _logoImage;
@@ -75,8 +72,7 @@ public partial class MainWindow : Window
     private double _logoAngularVelocity;
     private DispatcherTimer _physicsTimer;
     private DateTime _lastMoveTime;
-    private bool _hasShownTooltip;
-    private bool _actionButtonClicked = false;
+    private bool _actionButtonClicked;
 
     public MainWindow()
     {
@@ -190,8 +186,6 @@ public partial class MainWindow : Window
         if (e.GetCurrentPoint(_logoImage).Properties.IsLeftButtonPressed)
         {
             _isDraggingLogo = true;
-
-            // Clear tooltip while dragging
             ToolTip.SetTip(_logoImage, null);
 
             _pointerStartPosition = e.GetPosition(this);
@@ -295,8 +289,7 @@ public partial class MainWindow : Window
         
         var unconstrainedPosition = new Point(newX, newY);
         var constrainedPosition = ApplyBoundaryConstraints(unconstrainedPosition);
-        
-        // Check for boundary collisions and apply bounce
+
         var hitBoundaryX = Math.Abs(constrainedPosition.X - newX) > 0.1;
         var hitBoundaryY = Math.Abs(constrainedPosition.Y - newY) > 0.1;
         
@@ -318,10 +311,8 @@ public partial class MainWindow : Window
         _logoTranslateTransform.X = constrainedPosition.X;
         _logoTranslateTransform.Y = constrainedPosition.Y;
 
-        // Apply angular velocity to rotation
         _logoRotateTransform.Angle += _logoAngularVelocity * deltaTime;
 
-        // Gradually return scale to normal
         var currentScale = _logoScaleTransform.ScaleX;
         var targetScale = 1.0;
         _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 
@@ -360,7 +351,6 @@ public partial class MainWindow : Window
 
     private void OnLogoPointerEntered(object? sender, PointerEventArgs e)
     {
-        // Only show tooltip if logo is not moving and not being dragged
         if (!_isDraggingLogo && !_physicsTimer.IsEnabled)
         {
             ToolTip.SetTip(_logoImage, "You discovered me! Drag me around!");
@@ -417,16 +407,12 @@ public partial class MainWindow : Window
                 Logger.Warn("Cannot connect to update servers. App is in offline mode.");
                 await _dialogService.ShowErrorMessage("Connection Error",
                     "Cannot connect to the game servers. Check your internet connection and try again.");
-
-                _shownOfflineMessage = true;
             }
             else if (_downloader.State == GameState.ServerMaintenance)
             {
                 Logger.Warn("Game servers are under maintenance or temporarily unavailable.");
                 await _dialogService.ShowErrorMessage("Server Maintenance",
                     "The game servers are currently under maintenance or temporarily unavailable. Please try again in a few hours.");
-
-                _shownOfflineMessage = true;
             }
 
             _downloadStopwatch.Stop();
@@ -478,33 +464,9 @@ public partial class MainWindow : Window
         }
     }
 
-
-
-
-    private async Task<Bitmap?> LoadImageFromUrl(string url)
-    {
-        try
-        {
-            using var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            return new Bitmap(memoryStream);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     private void OnTimerTick(object? sender, EventArgs e)
     {
         Dispatcher.UIThread.Post(() => {
-            // Update progress bar
             if (_downloader.Progress.Marquee)
             {
                 _pbState.IsIndeterminate = true;
@@ -566,7 +528,6 @@ public partial class MainWindow : Window
                 enabledState = false;
             }
 
-            // Show progress bar during processing OR during startup states, show action button only when ready
             var showProgressLayout = _downloader.Progress.Processing || _downloader.State == GameState.Unknown;
             _pbState.IsVisible = showProgressLayout;
             _btnAction.IsVisible = !showProgressLayout;
@@ -579,8 +540,7 @@ public partial class MainWindow : Window
                 var progressPercentage = _downloader.Progress.Max > 0
                     ? (double)_downloader.Progress.Current / _downloader.Progress.Max
                     : 0;
-                
-                // Show 0% only during initial checking, actual progress during processing
+
                 if (_downloader.State == GameState.Unknown && !_downloader.Progress.Processing)
                 {
                     _progressPercentage.Text = "0%";
@@ -598,8 +558,7 @@ public partial class MainWindow : Window
                 {
                     _downloadSpeed.Text = "";
                 }
-                
-                // Set appropriate status text based on state and processing
+
                 if (_downloader.State == GameState.Unknown)
                 {
                     _downloadStatus.Text = "Validating";
@@ -626,7 +585,6 @@ public partial class MainWindow : Window
         _actionButtonClicked = true;
         _btnAction.IsEnabled = false;
 
-        // Button press animation
         _btnAction.Classes.Add("pressed");
         await Task.Delay(200);
         _btnAction.Classes.Remove("pressed");
@@ -727,7 +685,6 @@ public partial class MainWindow : Window
             Spacing = 15
         };
 
-        // Title
         var titleText = new TextBlock
         {
             Text = "Options",
@@ -748,7 +705,6 @@ public partial class MainWindow : Window
         gameLogsButton.Click += OnOpenGameLogsClicked;
         deleteGameButton.Click += OnDeleteGameClicked;
 
-        // Close After Launch setting
         var closeAfterLaunchPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -848,7 +804,6 @@ public partial class MainWindow : Window
 
         button.Content = contentPanel;
 
-        // Simple hover effects with same scaling as main buttons
         button.PointerEntered += (s, e) => {
             button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
         };
@@ -1053,8 +1008,7 @@ public partial class MainWindow : Window
             Logger.Error(ex, "Failed to open game logs directory");
         }
     }
-
-
+    
     private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
@@ -1119,20 +1073,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private static string BytesToString(long byteCount)
-    {
-        string[] suf = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
-        if (byteCount == 0)
-        {
-            return $"0{suf[0]}";
-        }
-
-        var bytes = Math.Abs(byteCount);
-        var place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
-        var num = Math.Round(bytes / Math.Pow(1024, place), 1);
-        return (Math.Sign(byteCount) * num).ToString(CultureInfo.InvariantCulture) + suf[place];
-    }
-
     private async Task LoadChangelog()
     {
         ChangelogFormatter.SetChangelogContent(_changelogPanel, "Loading...");
@@ -1167,6 +1107,4 @@ public partial class MainWindow : Window
             Logger.Warn(ex, "Unable to load cached changelog");
         }
     }
-
-
 }
