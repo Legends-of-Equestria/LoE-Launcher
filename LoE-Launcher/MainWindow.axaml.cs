@@ -1,12 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
@@ -14,14 +7,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Styling;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using LoE_Launcher.Core;
 using LoE_Launcher.Services;
 using LoE_Launcher.Utils;
@@ -34,20 +24,6 @@ namespace LoE_Launcher;
 public partial class MainWindow : Window
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
-    private const string CacheDirectoryName = "Cache";
-    private const string BackgroundImageFileName = "Background.png";
-    private const string ChangelogFileName = "Changelog.txt";
-    private const string BackgroundImageUrl = "https://loedata.legendsofequestria.com/data/Background.png";
-    private const string ChangelogUrl = "https://loedata.legendsofequestria.com/data/Changelog.txt";
-
-    private const string GameName = "LoE";
-    private const string GameFullName = "Legends of Equestria";
-
-    private const string YouTubeUrl = "https://www.youtube.com/@legendsofequestria";
-    private const string DiscordUrl = "https://discord.com/invite/legendsofeq";
-    private const string XUrl = "https://x.com/LegendsofEq";
-    private const string FacebookUrl = "https://www.facebook.com/LegendsOfEquestria";
 
     private readonly Downloader _downloader;
     private readonly DialogService _dialogService;
@@ -102,7 +78,7 @@ public partial class MainWindow : Window
 #endif
         _downloader = new Downloader();
         _dialogService = new DialogService(this);
-        _cacheManager = new CacheManager(Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName));
+        _cacheManager = new CacheManager(Path.Combine(_downloader.LauncherFolder.Path, Constants.CacheDirectoryName));
 
         _ = LoadBackgroundImages();
         _ = LoadChangelog();
@@ -448,7 +424,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedImage = await _cacheManager.LoadCachedImageImmediately(BackgroundImageFileName);
+            var cachedImage = await _cacheManager.LoadCachedImageImmediately(Constants.BackgroundImageFileName);
             if (cachedImage != null)
             {
                 _backgroundImage.Source = cachedImage;
@@ -457,7 +433,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedImage = await _cacheManager.UpdateCachedImage(BackgroundImageUrl, BackgroundImageFileName);
+                    var updatedImage = await _cacheManager.UpdateCachedImage(Constants.BackgroundImageUrl, Constants.BackgroundImageFileName);
                     if (updatedImage != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
@@ -679,286 +655,15 @@ public partial class MainWindow : Window
 
     private async void OnSettingsButtonClicked(object sender, RoutedEventArgs e)
     {
-        var settingsMenu = new Window
-        {
-            Title = "Options",
-            Width = 340,
-            SizeToContent = SizeToContent.Height,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            CanResize = false
-        };
-
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(25, 50, 25, 25),
-            Spacing = 15
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = "Options",
-            FontSize = 22,
-            FontWeight = FontWeight.Bold,
-            Foreground = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-
-        var repairButton = CreateSettingsButton("Repair Game Files", "Verify and fix corrupted game files");
-        var gameLogsButton = CreateSettingsButton("Open Game Logs", "For game crashes and gameplay issues");
-        var logFolderButton = CreateSettingsButton("Open Launcher Logs", "For launcher and download issues");
-        var deleteGameButton = CreateSettingsButton("Delete Game Files", "Remove all downloaded game files");
-
-        repairButton.Click += OnRepairGameClicked;
-        logFolderButton.Click += OnOpenLogFolderClicked;
-        gameLogsButton.Click += OnOpenGameLogsClicked;
-        deleteGameButton.Click += OnDeleteGameClicked;
-
-        var closeAfterLaunchPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 10,
-            Margin = new Thickness(0, 5, 0, 0)
-        };
-
-        var closeAfterLaunchCheckBox = new CheckBox
-        {
-            IsChecked = _downloader.LauncherSettings.CloseAfterLaunch,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var closeAfterLaunchLabel = new TextBlock
-        {
-            Text = "Close launcher after game launch",
-            FontSize = 14,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        closeAfterLaunchCheckBox.IsCheckedChanged += (_, _) =>
-        {
-            _downloader.LauncherSettings.CloseAfterLaunch = closeAfterLaunchCheckBox.IsChecked ?? true;
-            _downloader.SaveSettings();
-        };
-
-        closeAfterLaunchPanel.Children.Add(closeAfterLaunchCheckBox);
-        closeAfterLaunchPanel.Children.Add(closeAfterLaunchLabel);
-
-        contentPanel.Children.Add(titleText);
-        contentPanel.Children.Add(repairButton);
-        contentPanel.Children.Add(gameLogsButton);
-        contentPanel.Children.Add(logFolderButton);
-        contentPanel.Children.Add(deleteGameButton);
-        contentPanel.Children.Add(closeAfterLaunchPanel);
-
-        settingsMenu.Content = contentPanel;
-        await settingsMenu.ShowDialog(this);
-    }
-
-    private Button CreateSettingsButton(string text, string description)
-    {
-        var button = new Button
-        {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Height = 55,
-            CornerRadius = new CornerRadius(10),
-            Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#30FFFFFF")),
-            Padding = new Thickness(20, 12),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
-            Cursor = new Cursor(StandardCursorType.Hand),
-            Transitions = new Transitions
-            {
-                new TransformOperationsTransition
-                {
-                    Property = Visual.RenderTransformProperty,
-                    Duration = TimeSpan.FromMilliseconds(200)
-                }
-            }
-        };
-
-        var contentPanel = new StackPanel
-        {
-            Orientation = Orientation.Vertical,
-            Spacing = 0
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = text,
-            FontSize = 15,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            TextAlignment = TextAlignment.Center
-        };
-
-        var descText = new TextBlock
-        {
-            Text = description,
-            FontSize = 12,
-            Foreground = new SolidColorBrush(Color.Parse("#D0FFFFFF")),
-            TextWrapping = TextWrapping.Wrap,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            TextAlignment = TextAlignment.Center,
-            Margin = new Thickness(0, -2, 0, 0)
-        };
-
-        contentPanel.Children.Add(titleText);
-        contentPanel.Children.Add(descText);
-
-        button.Content = contentPanel;
-
-        button.PointerEntered += (_, _) => {
-            button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
-        };
-
-        button.PointerExited += (_, _) => {
-            button.RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
-        };
-
-        button.PointerPressed += (_, _) => {
-            button.RenderTransform = new ScaleTransform { ScaleX = 0.97, ScaleY = 0.97 };
-        };
-
-        button.PointerReleased += (_, _) => {
-            button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
-        };
-
-        return button;
-    }
-
-    private async void OnRepairGameClicked(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
-            var confirmResult = await _dialogService.ShowConfirmDialog(
-                "Repair Game",
-                "This will verify all game files and re-download any corrupted or missing files. Continue?");
-
-            if (!confirmResult)
-            {
-                return;
-            }
-
-            _btnAction.IsEnabled = false;
-
-            _downloadStopwatch.Restart();
-            Logger.Info("Starting game repair process");
-
-            await Task.Run(() => _downloader.RepairGame());
-
-            Logger.Info("Game repair completed successfully");
-
-            var originalBrush = _pbState.Foreground;
-            _pbState.Foreground = _launchColor;
-            await Task.Delay(1000);
-            _pbState.Foreground = originalBrush;
-
-            await _dialogService.ShowInfoMessage("Repair Complete", "Game files have been verified and repaired.");
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Game repair failed");
-            await _dialogService.ShowErrorMessage("Repair Error", ex.Message);
-        }
-        finally
-        {
-            _downloadStopwatch.Stop();
-        }
-    }
-
-    private async void OnDeleteGameClicked(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
-
-            var confirmResult = await _dialogService.ShowConfirmDialog(
-                "Delete Game Files",
-                "This will permanently delete all downloaded game files. You will need to download the game again to play. Continue?");
-
-            if (!confirmResult)
-            {
-                return;
-            }
-
-            Logger.Info("Starting game files deletion");
-
-            if (_downloader.GameInstallFolder.Exists)
-            {
-                try
-                {
-                    Directory.Delete(_downloader.GameInstallFolder.Path, true);
-                    Logger.Info($"Deleted game directory: {_downloader.GameInstallFolder.Path}");
-                }
-                catch (Exception deleteEx)
-                {
-                    Logger.Error(deleteEx, "Failed to delete game directory");
-                    throw new Exception($"Failed to delete game files: {deleteEx.Message}");
-                }
-            }
-
-            await Task.Run(() => _downloader.RefreshState());
-            Logger.Info("Game files deleted and state refreshed");
-
-            await _dialogService.ShowInfoMessage("Delete Complete", "Game files have been successfully deleted.");
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Game files deletion failed");
-            await _dialogService.ShowErrorMessage("Delete Error", ex.Message);
-        }
-    }
-
-    private static void OnOpenLogFolderClicked(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var logDir = Path.Combine(Directory.GetCurrentDirectory(), "Launcher Logs");
-            ProcessLauncher.OpenFolder(logDir);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to open log directory");
-        }
-    }
-
-    private async void OnOpenGameLogsClicked(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var logPath = UnityPlayerLogHelper.GetPlayerLogPath(GameName, GameFullName);
-
-            if (UnityPlayerLogHelper.PlayerLogExists(GameName, GameFullName))
-            {
-                ProcessLauncher.OpenFileLocation(logPath);
-            }
-            else
-            {
-                await _dialogService.ShowGameLogsNotFoundDialog();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to open game logs directory");
-        }
+        var settingsWindow = new SettingsWindow(_downloader, _dialogService, _pbState, _launchColor, _downloadStopwatch);
+        await settingsWindow.ShowDialog(this);
     }
     
     private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
-            ProcessLauncher.LaunchUrl(YouTubeUrl);
+            ProcessLauncher.LaunchUrl(Constants.YouTubeUrl);
         }
         catch (Exception ex)
         {
@@ -970,7 +675,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            ProcessLauncher.LaunchUrl(DiscordUrl);
+            ProcessLauncher.LaunchUrl(Constants.DiscordUrl);
         }
         catch (Exception ex)
         {
@@ -982,7 +687,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            ProcessLauncher.LaunchUrl(XUrl);
+            ProcessLauncher.LaunchUrl(Constants.XUrl);
         }
         catch (Exception ex)
         {
@@ -994,7 +699,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            ProcessLauncher.LaunchUrl(FacebookUrl);
+            ProcessLauncher.LaunchUrl(Constants.FacebookUrl);
         }
         catch (Exception ex)
         {
@@ -1008,7 +713,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedChangelog = await _cacheManager.LoadCachedTextImmediately(ChangelogFileName);
+            var cachedChangelog = await _cacheManager.LoadCachedTextImmediately(Constants.ChangelogFileName);
             if (cachedChangelog != null)
             {
                 ChangelogFormatter.FormatAndDisplayChangelog(_changelogPanel, cachedChangelog);
@@ -1017,7 +722,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedChangelog = await _cacheManager.UpdateCachedText(ChangelogUrl, ChangelogFileName);
+                    var updatedChangelog = await _cacheManager.UpdateCachedText(Constants.ChangelogUrl, Constants.ChangelogFileName);
                     if (updatedChangelog != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {

@@ -1,0 +1,148 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LoE_Launcher.SettingsWindow"
+        Title="Options"
+        Width="340"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        Background="#9C69B5"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="30"
+        CanResize="False"
+        FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
+
+    <Window.Styles>
+        <Style Selector="Button.SettingsOptionButton">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Height" Value="55" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="Padding" Value="20,12" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.SettingsOptionButton:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+
+        <Style Selector="Button.SettingsOptionButton:not(:pointerover)">
+            <Setter Property="RenderTransform" Value="scale(1.0)" />
+        </Style>
+
+        <Style Selector="Button.SettingsOptionButton:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="25,50,25,25" Spacing="15">
+        <TextBlock Text="Options"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,10" />
+
+        <Button x:Name="RepairButton"
+                Classes="SettingsOptionButton"
+                Click="OnRepairGameClicked">
+            <StackPanel Orientation="Vertical" Spacing="0">
+                <TextBlock Text="Repair Game Files"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center" />
+                <TextBlock Text="Verify and fix corrupted game files"
+                           FontSize="12"
+                           Foreground="#D0FFFFFF"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,-2,0,0" />
+            </StackPanel>
+        </Button>
+
+        <Button x:Name="GameLogsButton"
+                Classes="SettingsOptionButton"
+                Click="OnOpenGameLogsClicked">
+            <StackPanel Orientation="Vertical" Spacing="0">
+                <TextBlock Text="Open Game Logs"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center" />
+                <TextBlock Text="For game crashes and gameplay issues"
+                           FontSize="12"
+                           Foreground="#D0FFFFFF"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,-2,0,0" />
+            </StackPanel>
+        </Button>
+
+        <Button x:Name="LogFolderButton"
+                Classes="SettingsOptionButton"
+                Click="OnOpenLogFolderClicked">
+            <StackPanel Orientation="Vertical" Spacing="0">
+                <TextBlock Text="Open Launcher Logs"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center" />
+                <TextBlock Text="For launcher and download issues"
+                           FontSize="12"
+                           Foreground="#D0FFFFFF"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,-2,0,0" />
+            </StackPanel>
+        </Button>
+
+        <Button x:Name="DeleteGameButton"
+                Classes="SettingsOptionButton"
+                Click="OnDeleteGameClicked">
+            <StackPanel Orientation="Vertical" Spacing="0">
+                <TextBlock Text="Delete Game Files"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center" />
+                <TextBlock Text="Remove all downloaded game files"
+                           FontSize="12"
+                           Foreground="#D0FFFFFF"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,-2,0,0" />
+            </StackPanel>
+        </Button>
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="10"
+                    Margin="0,5,0,0">
+            <CheckBox x:Name="CloseAfterLaunchCheckBox"
+                      VerticalAlignment="Center" />
+            <TextBlock Text="Close launcher after game launch"
+                       FontSize="14"
+                       Foreground="White"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>
