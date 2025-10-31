@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -265,11 +264,7 @@ public class DialogService(Window owner)
         {
             try
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "https://legendsofequestria.com/downloads",
-                    UseShellExecute = true
-                });
+                ProcessLauncher.LaunchUrl("https://legendsofequestria.com/downloads");
             }
             catch (Exception ex)
             {

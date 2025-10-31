@@ -6,11 +6,20 @@ using NLog;
 
 namespace LoE_Launcher.Utils;
 
-public static class GameLauncher
+public static class ProcessLauncher
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static void Launch(string gameInstallPath)
+    public static void LaunchUrl(string url)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true
+        });
+    }
+
+    public static void LaunchGame(string gameInstallPath)
     {
         var currentOS = PlatformUtils.OperatingSystem;
         Logger.Info($"Launching game on {currentOS}");

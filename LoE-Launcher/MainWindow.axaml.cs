@@ -656,7 +656,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            GameLauncher.Launch(_downloader.GameInstallFolder.Path);
+            ProcessLauncher.LaunchGame(_downloader.GameInstallFolder.Path);
 
             await Task.Delay(1500);
 
@@ -1026,11 +1026,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = YouTubeUrl,
-                UseShellExecute = true
-            });
+            ProcessLauncher.LaunchUrl(YouTubeUrl);
         }
         catch (Exception ex)
         {
@@ -1042,11 +1038,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = DiscordUrl,
-                UseShellExecute = true
-            });
+            ProcessLauncher.LaunchUrl(DiscordUrl);
         }
         catch (Exception ex)
         {
@@ -1058,11 +1050,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = XUrl,
-                UseShellExecute = true
-            });
+            ProcessLauncher.LaunchUrl(XUrl);
         }
         catch (Exception ex)
         {
@@ -1074,11 +1062,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = FacebookUrl,
-                UseShellExecute = true
-            });
+            ProcessLauncher.LaunchUrl(FacebookUrl);
         }
         catch (Exception ex)
         {
