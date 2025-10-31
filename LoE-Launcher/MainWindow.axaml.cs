@@ -933,7 +933,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnOpenGameLogsClicked(object? sender, RoutedEventArgs e)
+    private async void OnOpenGameLogsClicked(object? sender, RoutedEventArgs e)
     {
         try
         {
@@ -945,53 +945,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                var messageBox = new Window
-                {
-                    Title = "Game Logs Not Found",
-                    Width = 300,
-                    Height = 150,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-                    CanResize = false
-                };
-
-                var messagePanel = new StackPanel
-                {
-                    Margin = new Thickness(20),
-                    Spacing = 15,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                var messageText = new TextBlock
-                {
-                    Text = "Game logs not found. Launch the game at least once to generate logs.",
-                    FontSize = 14,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-
-                var okButton = new Button
-                {
-                    Content = "OK",
-                    Width = 80,
-                    Height = 30,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Background = new SolidColorBrush(Color.Parse("#B37DC7")),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0),
-                    CornerRadius = new CornerRadius(5)
-                };
-
-                okButton.Click += (_, _) => messageBox.Close();
-
-                messagePanel.Children.Add(messageText);
-                messagePanel.Children.Add(okButton);
-                messageBox.Content = messagePanel;
-
-                messageBox.ShowDialog(this);
+                await _dialogService.ShowGameLogsNotFoundDialog();
             }
         }
         catch (Exception ex)
