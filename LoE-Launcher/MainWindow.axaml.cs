@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private readonly Downloader _downloader;
     private readonly HttpClient _httpClient = new();
     private readonly DialogService _dialogService;
+    private readonly CacheManager _cacheManager;
 
     private DispatcherTimer _timer;
     private Stopwatch _downloadStopwatch = new Stopwatch();
@@ -92,6 +93,7 @@ public partial class MainWindow : Window
 #endif
         _downloader = new Downloader();
         _dialogService = new DialogService(this);
+        _cacheManager = new CacheManager(Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName));
 
         _ = LoadBackgroundImages();
         _ = LoadChangelog();
@@ -447,7 +449,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedImage = await LoadCachedImageImmediately("Background.png");
+            var cachedImage = await _cacheManager.LoadCachedImageImmediately("Background.png");
             if (cachedImage != null)
             {
                 _backgroundImage.Source = cachedImage;
@@ -456,7 +458,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedImage = await UpdateCachedImage("https://loedata.legendsofequestria.com/data/Background.png", "Background.png");
+                    var updatedImage = await _cacheManager.UpdateCachedImage("https://loedata.legendsofequestria.com/data/Background.png", "Background.png");
                     if (updatedImage != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
@@ -476,91 +478,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task<Bitmap?> LoadCachedImageImmediately(string cacheFileName)
-    {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
-        var cachePath = Path.Combine(cacheDir, cacheFileName);
-
-        if (File.Exists(cachePath))
-        {
-            try
-            {
-                await using var fileReader = File.OpenRead(cachePath);
-                return new Bitmap(fileReader);
-            }
-            catch
-            {
-                // ignore 
-            }
-        }
-
-        return null;
-    }
-
-    private async Task<Bitmap?> UpdateCachedImage(string url, string cacheFileName)
-    {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
-        Directory.CreateDirectory(cacheDir);
-        var cachePath = Path.Combine(cacheDir, cacheFileName);
-        var tempPath = Path.Combine(cacheDir, $"temp_{cacheFileName}");
-
-        try
-        {
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(10);
-
-            if (File.Exists(cachePath))
-            {
-                var lastModified = File.GetLastWriteTimeUtc(cachePath);
-                client.DefaultRequestHeaders.IfModifiedSince = lastModified;
-            }
-
-            using var response = await client.GetAsync(url);
-
-            if (response.StatusCode == HttpStatusCode.NotModified)
-            {
-                return null;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var memoryStream = new MemoryStream();
-
-            await stream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            await using (var fileStream = File.Create(tempPath))
-            {
-                memoryStream.Position = 0;
-                await memoryStream.CopyToAsync(fileStream);
-            }
-
-            File.Move(tempPath, cachePath, true);
-
-            memoryStream.Position = 0;
-            return new Bitmap(memoryStream);
-        }
-        catch
-        {
-            if (File.Exists(tempPath))
-            {
-                try
-                {
-                    File.Delete(tempPath);
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            return null;
-        }
-    }
 
 
 
@@ -1285,7 +1202,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedChangelog = await LoadCachedChangelogImmediately("Changelog.txt");
+            var cachedChangelog = await _cacheManager.LoadCachedTextImmediately("Changelog.txt");
             if (cachedChangelog != null)
             {
                 FormatAndDisplayChangelog(cachedChangelog);
@@ -1294,7 +1211,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedChangelog = await UpdateCachedChangelog("https://loedata.legendsofequestria.com/data/Changelog.txt", "Changelog.txt");
+                    var updatedChangelog = await _cacheManager.UpdateCachedText("https://loedata.legendsofequestria.com/data/Changelog.txt", "Changelog.txt");
                     if (updatedChangelog != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
@@ -1314,80 +1231,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task<string?> LoadCachedChangelogImmediately(string cacheFileName)
-    {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
-        var cachePath = Path.Combine(cacheDir, cacheFileName);
-
-        if (File.Exists(cachePath))
-        {
-            try
-            {
-                return await File.ReadAllTextAsync(cachePath);
-            }
-            catch
-            {
-                // ignore 
-            }
-        }
-
-        return null;
-    }
-
-    private async Task<string?> UpdateCachedChangelog(string url, string cacheFileName)
-    {
-        var cacheDir = Path.Combine(_downloader.LauncherFolder.Path, CacheDirectoryName);
-        Directory.CreateDirectory(cacheDir);
-        var cachePath = Path.Combine(cacheDir, cacheFileName);
-        var tempPath = Path.Combine(cacheDir, $"temp_{cacheFileName}");
-
-        try
-        {
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(10);
-
-            if (File.Exists(cachePath))
-            {
-                var lastModified = File.GetLastWriteTimeUtc(cachePath);
-                client.DefaultRequestHeaders.IfModifiedSince = lastModified;
-            }
-
-            using var response = await client.GetAsync(url);
-
-            if (response.StatusCode == HttpStatusCode.NotModified)
-            {
-                return null;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            
-            await File.WriteAllTextAsync(tempPath, content);
-            File.Move(tempPath, cachePath, true);
-
-            return content;
-        }
-        catch
-        {
-            if (File.Exists(tempPath))
-            {
-                try
-                {
-                    File.Delete(tempPath);
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            return null;
-        }
-    }
 
     private void SetChangelogContent(string text)
     {
