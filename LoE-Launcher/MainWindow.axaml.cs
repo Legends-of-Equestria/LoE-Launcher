@@ -925,12 +925,7 @@ public partial class MainWindow : Window
         try
         {
             var logDir = Path.Combine(Directory.GetCurrentDirectory(), "Launcher Logs");
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = logDir,
-                UseShellExecute = true
-            });
+            ProcessLauncher.OpenFolder(logDir);
         }
         catch (Exception ex)
         {
@@ -946,24 +941,7 @@ public partial class MainWindow : Window
 
             if (UnityPlayerLogHelper.PlayerLogExists(GameName, GameFullName))
             {
-                if (PlatformUtils.OperatingSystem == OS.WindowsX86 || PlatformUtils.OperatingSystem == OS.WindowsX64)
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "explorer.exe",
-                        Arguments = $"/select,\"{logPath}\"",
-                        UseShellExecute = false
-                    });
-                }
-                else
-                {
-                    var logDir = Path.GetDirectoryName(logPath);
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = logDir,
-                        UseShellExecute = true
-                    });
-                }
+                ProcessLauncher.OpenFileLocation(logPath);
             }
             else
             {

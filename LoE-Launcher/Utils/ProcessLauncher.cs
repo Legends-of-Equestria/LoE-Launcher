@@ -19,6 +19,38 @@ public static class ProcessLauncher
         });
     }
 
+    public static void OpenFolder(string folderPath)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = folderPath,
+            UseShellExecute = true
+        });
+    }
+
+    public static void OpenFileLocation(string filePath)
+    {
+        var currentOS = PlatformUtils.OperatingSystem;
+
+        if (currentOS == OS.WindowsX86 || currentOS == OS.WindowsX64)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{filePath}\"",
+                UseShellExecute = false
+            });
+        }
+        else
+        {
+            var folderPath = Path.GetDirectoryName(filePath);
+            if (folderPath != null)
+            {
+                OpenFolder(folderPath);
+            }
+        }
+    }
+
     public static void LaunchGame(string gameInstallPath)
     {
         var currentOS = PlatformUtils.OperatingSystem;
