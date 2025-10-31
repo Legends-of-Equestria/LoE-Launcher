@@ -685,69 +685,10 @@ public partial class MainWindow : Window
     {
         try
         {
-            var currentOS = PlatformUtils.OperatingSystem;
-            Logger.Info($"Launching game on {currentOS}");
+            GameLauncher.Launch(_downloader.GameInstallFolder.Path);
 
-            switch (currentOS)
-            {
-                case OS.WindowsX64:
-                case OS.WindowsX86:
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = Path.Combine(_downloader.GameInstallFolder.Path, "loe.exe"),
-                        UseShellExecute = PlatformUtils.UseShellExecute
-                    });
-                    break;
-
-                case OS.MacIntel:
-                case OS.MacArm:
-                    var macAppPath = Path.Combine(_downloader.GameInstallFolder.Path, "LoE.app");
-
-                    var permissionProcess = new Process();
-                    permissionProcess.RunInlineAndWait(new ProcessStartInfo
-                    {
-                        FileName = "chmod",
-                        Arguments = $"-R 777 \"{macAppPath}\"",
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Minimized
-                    });
-
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = macAppPath,
-                        UseShellExecute = PlatformUtils.UseShellExecute
-                    });
-                    break;
-
-                case OS.X11:
-                    var is64Bit = Environment.Is64BitProcess;
-                    var linuxExePath = Path.Combine(_downloader.GameInstallFolder.Path, $"LoE.x86{(is64Bit ? "_64" : "")}");
-
-                    var linuxPermProcess = new Process();
-                    linuxPermProcess.RunInlineAndWait(new ProcessStartInfo
-                    {
-                        FileName = "chmod",
-                        Arguments = $"-R 777 \"{linuxExePath}\"",
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Minimized
-                    });
-
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = linuxExePath,
-                        UseShellExecute = PlatformUtils.UseShellExecute
-                    });
-                    break;
-
-                case OS.Other:
-                default:
-                    throw new PlatformNotSupportedException("This platform is not supported.");
-            }
-
-            // Wait briefly for game to launch, then optionally close launcher
-            Logger.Info("Game launched successfully");
             await Task.Delay(1500);
-            
+
             if (_downloader.LauncherSettings.CloseAfterLaunch)
             {
                 Logger.Info("Closing launcher after game launch");
@@ -762,10 +703,6 @@ public partial class MainWindow : Window
         {
             Logger.Error(ex, "Failed to launch game");
             await _dialogService.ShowErrorMessage("Launch Error", ex.Message);
-        }
-        finally
-        {
-            // Cleanup handled by window closing
         }
     }
 
@@ -1198,14 +1135,14 @@ public partial class MainWindow : Window
 
     private async Task LoadChangelog()
     {
-        SetChangelogContent("Loading...");
+        ChangelogFormatter.SetChangelogContent(_changelogPanel, "Loading...");
 
         try
         {
             var cachedChangelog = await _cacheManager.LoadCachedTextImmediately("Changelog.txt");
             if (cachedChangelog != null)
             {
-                FormatAndDisplayChangelog(cachedChangelog);
+                ChangelogFormatter.FormatAndDisplayChangelog(_changelogPanel, cachedChangelog);
             }
 
             _ = Task.Run(async () => {
@@ -1215,7 +1152,7 @@ public partial class MainWindow : Window
                     if (updatedChangelog != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
-                            FormatAndDisplayChangelog(updatedChangelog);
+                            ChangelogFormatter.FormatAndDisplayChangelog(_changelogPanel, updatedChangelog);
                         });
                     }
                 }
@@ -1232,76 +1169,4 @@ public partial class MainWindow : Window
     }
 
 
-    private void SetChangelogContent(string text)
-    {
-        _changelogPanel.Children.Clear();
-        var textBlock = new TextBlock
-        {
-            Text = text,
-            FontSize = 14,
-            Foreground = new SolidColorBrush(Color.Parse("#F0FFFFFF")),
-            TextWrapping = TextWrapping.Wrap
-        };
-        _changelogPanel.Children.Add(textBlock);
-    }
-
-    private void FormatAndDisplayChangelog(string rawText)
-    {
-        _changelogPanel.Children.Clear();
-        
-        var lines = rawText.Split('\n');
-        
-        foreach (var line in lines)
-        {
-            var trimmed = line.Trim();
-            
-            // Handle empty lines for spacing
-            if (string.IsNullOrEmpty(trimmed))
-            {
-                _changelogPanel.Children.Add(new Panel { Height = 8 });
-                continue;
-            }
-            
-            // Handle headers, which are # with at least one space
-            if (trimmed.StartsWith("# "))
-            {
-                var headerText = trimmed[2..].Trim();
-                var headerBlock = new TextBlock
-                {
-                    Text = headerText,
-                    FontSize = 16,
-                    FontWeight = FontWeight.Bold,
-                    Foreground = new SolidColorBrush(Color.Parse("#FFFFFF")),
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 8, 0, 4)
-                };
-                _changelogPanel.Children.Add(headerBlock);
-                continue;
-            }
-            
-            // Handle regular content lines
-            var contentText = trimmed;
-            
-            // Add bullet point if not already present
-            if (!contentText.StartsWith('•') && !contentText.StartsWith('-') && !contentText.StartsWith('*'))
-            {
-                contentText = $"• {contentText}";
-            }
-            else
-            {
-                // Replace existing bullet types with •
-                contentText = contentText.Replace("- ", "• ").Replace("* ", "• ");
-            }
-            
-            var contentBlock = new TextBlock
-            {
-                Text = contentText,
-                FontSize = 14,
-                Foreground = new SolidColorBrush(Color.Parse("#F0FFFFFF")),
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 1, 0, 1)
-            };
-            _changelogPanel.Children.Add(contentBlock);
-        }
-    }
 }
