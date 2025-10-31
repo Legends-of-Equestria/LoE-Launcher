@@ -23,6 +23,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using LoE_Launcher.Core;
+using LoE_Launcher.Utils;
 using Models.Utils;
 using NLog;
 using Path = System.IO.Path;
@@ -78,10 +79,10 @@ public partial class MainWindow : Window
     {
         Logger.Info("Starting LoE Launcher");
 
-        _downloadColor = CreateHorizontalGradientBrush("#9C69B5", "#D686D2");
-        _updateColor = CreateHorizontalGradientBrush("#D69D45", "#E8B75C");
-        _launchColor = CreateHorizontalGradientBrush("#9C69B5", "#D686D2");
-        _errorColor = CreateHorizontalGradientBrush("#D32F2F", "#F44336");
+        _downloadColor = BrushFactory.CreateHorizontalGradient("#9C69B5", "#D686D2");
+        _updateColor = BrushFactory.CreateHorizontalGradient("#D69D45", "#E8B75C");
+        _launchColor = BrushFactory.CreateHorizontalGradient("#9C69B5", "#D686D2");
+        _errorColor = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336");
 
         InitializeComponent();
 #if DEBUG
@@ -558,33 +559,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private static LinearGradientBrush CreateGradientBrush(string topColor, string bottomColor)
-    {
-        return new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-            GradientStops =
-            [
-                new GradientStop(Color.Parse(topColor), 0),
-                new GradientStop(Color.Parse(bottomColor), 1)
-            ]
-        };
-    }
-
-    private static LinearGradientBrush CreateHorizontalGradientBrush(string leftColor, string rightColor)
-    {
-        return new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
-            GradientStops =
-            [
-                new GradientStop(Color.Parse(leftColor), 0),
-                new GradientStop(Color.Parse(rightColor), 1)
-            ]
-        };
-    }
 
 
     private async Task<Bitmap?> LoadImageFromUrl(string url)
@@ -1536,7 +1510,7 @@ public partial class MainWindow : Window
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
-            Background = CreateGradientBrush("#D686D2", "#9C69B5"),
+            Background = BrushFactory.CreateVerticalGradient("#D686D2", "#9C69B5"),
             HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = FontWeight.Medium
         };
@@ -1589,7 +1563,7 @@ public partial class MainWindow : Window
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             Foreground = Brushes.White,
-            Background = CreateHorizontalGradientBrush("#D32F2F", "#F44336"),
+            Background = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336"),
             HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = FontWeight.Medium
         };
