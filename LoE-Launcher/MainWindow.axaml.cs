@@ -34,7 +34,20 @@ namespace LoE_Launcher;
 public partial class MainWindow : Window
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     private const string CacheDirectoryName = "Cache";
+    private const string BackgroundImageFileName = "Background.png";
+    private const string ChangelogFileName = "Changelog.txt";
+    private const string BackgroundImageUrl = "https://loedata.legendsofequestria.com/data/Background.png";
+    private const string ChangelogUrl = "https://loedata.legendsofequestria.com/data/Changelog.txt";
+
+    private const string GameName = "LoE";
+    private const string GameFullName = "Legends of Equestria";
+
+    private const string YouTubeUrl = "https://www.youtube.com/@legendsofequestria";
+    private const string DiscordUrl = "https://discord.com/invite/legendsofeq";
+    private const string XUrl = "https://x.com/LegendsofEq";
+    private const string FacebookUrl = "https://www.facebook.com/LegendsOfEquestria";
 
     private readonly Downloader _downloader;
     private readonly DialogService _dialogService;
@@ -329,16 +342,16 @@ public partial class MainWindow : Window
             var animationTime = 0.0;
             const double animationDuration = 0.5;
             
-            finalTimer.Tick += (s, args) =>
+            finalTimer.Tick += (_, _) =>
             {
                 animationTime += 0.016;
                 var progress = Math.Min(animationTime / animationDuration, 1.0);
                 var easeProgress = 1 - Math.Pow(1 - progress, 3); // Ease-out cubic
-                
+
                 _logoRotateTransform.Angle = startAngle * (1 - easeProgress);
-                _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = 
+                _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY =
                     startScale + (1.0 - startScale) * easeProgress;
-                
+
                 if (progress >= 1.0)
                 {
                     finalTimer.Stop();
@@ -435,7 +448,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedImage = await _cacheManager.LoadCachedImageImmediately("Background.png");
+            var cachedImage = await _cacheManager.LoadCachedImageImmediately(BackgroundImageFileName);
             if (cachedImage != null)
             {
                 _backgroundImage.Source = cachedImage;
@@ -444,7 +457,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedImage = await _cacheManager.UpdateCachedImage("https://loedata.legendsofequestria.com/data/Background.png", "Background.png");
+                    var updatedImage = await _cacheManager.UpdateCachedImage(BackgroundImageUrl, BackgroundImageFileName);
                     if (updatedImage != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
@@ -727,7 +740,7 @@ public partial class MainWindow : Window
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        closeAfterLaunchCheckBox.IsCheckedChanged += (s, e) =>
+        closeAfterLaunchCheckBox.IsCheckedChanged += (_, _) =>
         {
             _downloader.LauncherSettings.CloseAfterLaunch = closeAfterLaunchCheckBox.IsChecked ?? true;
             _downloader.SaveSettings();
@@ -804,19 +817,19 @@ public partial class MainWindow : Window
 
         button.Content = contentPanel;
 
-        button.PointerEntered += (s, e) => {
+        button.PointerEntered += (_, _) => {
             button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
         };
 
-        button.PointerExited += (s, e) => {
+        button.PointerExited += (_, _) => {
             button.RenderTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
         };
 
-        button.PointerPressed += (s, e) => {
+        button.PointerPressed += (_, _) => {
             button.RenderTransform = new ScaleTransform { ScaleX = 0.97, ScaleY = 0.97 };
         };
 
-        button.PointerReleased += (s, e) => {
+        button.PointerReleased += (_, _) => {
             button.RenderTransform = new ScaleTransform { ScaleX = 1.03, ScaleY = 1.03 };
         };
 
@@ -929,9 +942,9 @@ public partial class MainWindow : Window
     {
         try
         {
-            var logPath = UnityPlayerLogHelper.GetPlayerLogPath("LoE", "Legends of Equestria");
-            
-            if (UnityPlayerLogHelper.PlayerLogExists("LoE", "Legends of Equestria"))
+            var logPath = UnityPlayerLogHelper.GetPlayerLogPath(GameName, GameFullName);
+
+            if (UnityPlayerLogHelper.PlayerLogExists(GameName, GameFullName))
             {
                 if (PlatformUtils.OperatingSystem == OS.WindowsX86 || PlatformUtils.OperatingSystem == OS.WindowsX64)
                 {
@@ -994,7 +1007,7 @@ public partial class MainWindow : Window
                     CornerRadius = new CornerRadius(5)
                 };
 
-                okButton.Click += (s, args) => messageBox.Close();
+                okButton.Click += (_, _) => messageBox.Close();
 
                 messagePanel.Children.Add(messageText);
                 messagePanel.Children.Add(okButton);
@@ -1015,7 +1028,7 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://www.youtube.com/@legendsofequestria",
+                FileName = YouTubeUrl,
                 UseShellExecute = true
             });
         }
@@ -1031,7 +1044,7 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://discord.com/invite/legendsofeq",
+                FileName = DiscordUrl,
                 UseShellExecute = true
             });
         }
@@ -1047,7 +1060,7 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://x.com/LegendsofEq",
+                FileName = XUrl,
                 UseShellExecute = true
             });
         }
@@ -1063,7 +1076,7 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://www.facebook.com/LegendsOfEquestria",
+                FileName = FacebookUrl,
                 UseShellExecute = true
             });
         }
@@ -1079,7 +1092,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var cachedChangelog = await _cacheManager.LoadCachedTextImmediately("Changelog.txt");
+            var cachedChangelog = await _cacheManager.LoadCachedTextImmediately(ChangelogFileName);
             if (cachedChangelog != null)
             {
                 ChangelogFormatter.FormatAndDisplayChangelog(_changelogPanel, cachedChangelog);
@@ -1088,7 +1101,7 @@ public partial class MainWindow : Window
             _ = Task.Run(async () => {
                 try
                 {
-                    var updatedChangelog = await _cacheManager.UpdateCachedText("https://loedata.legendsofequestria.com/data/Changelog.txt", "Changelog.txt");
+                    var updatedChangelog = await _cacheManager.UpdateCachedText(ChangelogUrl, ChangelogFileName);
                     if (updatedChangelog != null)
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => {
