@@ -23,6 +23,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using LoE_Launcher.Core;
+using LoE_Launcher.Services;
 using LoE_Launcher.Utils;
 using Models.Utils;
 using NLog;
@@ -36,7 +37,8 @@ public partial class MainWindow : Window
     private const string CacheDirectoryName = "Cache";
 
     private readonly Downloader _downloader;
-    private readonly HttpClient _httpClient = new HttpClient();
+    private readonly HttpClient _httpClient = new();
+    private readonly DialogService _dialogService;
 
     private DispatcherTimer _timer;
     private Stopwatch _downloadStopwatch = new Stopwatch();
@@ -89,6 +91,7 @@ public partial class MainWindow : Window
             this.AttachDevTools();
 #endif
         _downloader = new Downloader();
+        _dialogService = new DialogService(this);
 
         _ = LoadBackgroundImages();
         _ = LoadChangelog();
@@ -410,7 +413,7 @@ public partial class MainWindow : Window
             if (_downloader.State == GameState.Offline)
             {
                 Logger.Warn("Cannot connect to update servers. App is in offline mode.");
-                await ShowErrorMessage("Connection Error",
+                await _dialogService.ShowErrorMessage("Connection Error",
                     "Cannot connect to the game servers. Check your internet connection and try again.");
 
                 _shownOfflineMessage = true;
@@ -418,7 +421,7 @@ public partial class MainWindow : Window
             else if (_downloader.State == GameState.ServerMaintenance)
             {
                 Logger.Warn("Game servers are under maintenance or temporarily unavailable.");
-                await ShowErrorMessage("Server Maintenance",
+                await _dialogService.ShowErrorMessage("Server Maintenance",
                     "The game servers are currently under maintenance or temporarily unavailable. Please try again in a few hours.");
 
                 _shownOfflineMessage = true;
@@ -430,7 +433,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to initialize downloader");
-            await ShowErrorMessage("Initialization Error", ex.Message);
+            await _dialogService.ShowErrorMessage("Initialization Error", ex.Message);
         }
     }
 
@@ -723,13 +726,13 @@ public partial class MainWindow : Window
                     LaunchGame();
                     break;
                 case GameState.LauncherOutOfDate:
-                    await ShowLauncherUpdateDialog();
+                    await _dialogService.ShowLauncherUpdateDialog();
                     break;
             }
         }
         catch (Exception ex)
         {
-            await ShowErrorMessage("Error", ex.Message);
+            await _dialogService.ShowErrorMessage("Error", ex.Message);
         }
     }
 
@@ -841,7 +844,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to launch game");
-            await ShowErrorMessage("Launch Error", ex.Message);
+            await _dialogService.ShowErrorMessage("Launch Error", ex.Message);
         }
         finally
         {
@@ -1016,7 +1019,7 @@ public partial class MainWindow : Window
         try
         {
             ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
-            var confirmResult = await ShowConfirmDialog(
+            var confirmResult = await _dialogService.ShowConfirmDialog(
                 "Repair Game",
                 "This will verify all game files and re-download any corrupted or missing files. Continue?");
 
@@ -1039,12 +1042,12 @@ public partial class MainWindow : Window
             await Task.Delay(1000);
             _pbState.Foreground = originalBrush;
 
-            await ShowInfoMessage("Repair Complete", "Game files have been verified and repaired.");
+            await _dialogService.ShowInfoMessage("Repair Complete", "Game files have been verified and repaired.");
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Game repair failed");
-            await ShowErrorMessage("Repair Error", ex.Message);
+            await _dialogService.ShowErrorMessage("Repair Error", ex.Message);
         }
         finally
         {
@@ -1058,7 +1061,7 @@ public partial class MainWindow : Window
         {
             ((Window)((Button)sender).FindAncestorOfType<Window>()).Close();
 
-            var confirmResult = await ShowConfirmDialog(
+            var confirmResult = await _dialogService.ShowConfirmDialog(
                 "Delete Game Files",
                 "This will permanently delete all downloaded game files. You will need to download the game again to play. Continue?");
 
@@ -1086,12 +1089,12 @@ public partial class MainWindow : Window
             await Task.Run(() => _downloader.RefreshState());
             Logger.Info("Game files deleted and state refreshed");
 
-            await ShowInfoMessage("Delete Complete", "Game files have been successfully deleted.");
+            await _dialogService.ShowInfoMessage("Delete Complete", "Game files have been successfully deleted.");
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Game files deletion failed");
-            await ShowErrorMessage("Delete Error", ex.Message);
+            await _dialogService.ShowErrorMessage("Delete Error", ex.Message);
         }
     }
 
@@ -1197,131 +1200,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task ShowLauncherUpdateDialog()
-    {
-        var updateDialog = new Window
-        {
-            Title = "Launcher Update Required",
-            Width = 450,
-            SizeToContent = SizeToContent.Height,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            CanResize = false
-        };
-
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(30, 50, 30, 30),
-            Spacing = 20,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = "Launcher Update Required",
-            FontSize = 18,
-            FontWeight = FontWeight.Bold,
-            Foreground = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = "Your launcher is out of date. Please download the latest version to continue.",
-            FontSize = 14,
-            Foreground = Brushes.White,
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 15
-        };
-
-        var downloadButton = CreateCustomButton("Download Latest", "#D686D2", "#E8A6E2", 140);
-        var cancelButton = CreateCustomButton("Cancel", "#8A7AB8", "#A691C7", 100);
-
-        downloadButton.Click += (s, args) =>
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "https://legendsofequestria.com/downloads",
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to open download URL");
-            }
-            updateDialog.Close();
-        };
-
-        cancelButton.Click += (s, args) => updateDialog.Close();
-
-        buttonPanel.Children.Add(downloadButton);
-        buttonPanel.Children.Add(cancelButton);
-
-        contentPanel.Children.Add(titleText);
-        contentPanel.Children.Add(messageText);
-        contentPanel.Children.Add(buttonPanel);
-
-        updateDialog.Content = contentPanel;
-        await updateDialog.ShowDialog(this);
-    }
-
-    private Button CreateCustomButton(string text, string normalColor, string hoverColor, int width)
-    {
-        var normalBrush = new SolidColorBrush(Color.Parse(normalColor));
-        var hoverBrush = new SolidColorBrush(Color.Parse(hoverColor));
-        
-        var border = new Border
-        {
-            Background = normalBrush,
-            CornerRadius = new CornerRadius(8),
-            BorderThickness = new Thickness(0),
-            Width = width,
-            Height = 40,
-            Child = new TextBlock
-            {
-                Text = text,
-                Foreground = Brushes.White,
-                FontWeight = FontWeight.SemiBold,
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        var button = new Button
-        {
-            Content = border,
-            Width = width,
-            Height = 40,
-            Cursor = new Cursor(StandardCursorType.Hand),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(0)
-        };
-
-        // Add hover effects directly on the border
-        button.PointerEntered += (s, args) => border.Background = hoverBrush;
-        button.PointerExited += (s, args) => border.Background = normalBrush;
-        button.PointerPressed += (s, args) => border.Background = new SolidColorBrush(Color.Parse(normalColor)) { Opacity = 0.8 };
-        button.PointerReleased += (s, args) => border.Background = hoverBrush;
-
-        return button;
-    }
 
     private void OnYoutubeButtonClicked(object? sender, RoutedEventArgs e)
     {
@@ -1385,197 +1263,6 @@ public partial class MainWindow : Window
         {
             Logger.Error(ex, "Failed to open Facebook link");
         }
-    }
-
-    private async Task<bool> ShowConfirmDialog(string title, string message)
-    {
-        var result = false;
-        var confirmBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
-
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 15
-        };
-
-        var yesButton = new Button
-        {
-            Content = "Yes",
-            Width = 100,
-            Height = 38,
-            CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#D686D2")),
-            FontWeight = FontWeight.Medium
-        };
-
-        var noButton = new Button
-        {
-            Content = "No",
-            Width = 100,
-            Height = 38,
-            CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#7A68B5")),
-            FontWeight = FontWeight.Medium
-        };
-
-        yesButton.Click += (s, e) => {
-            result = true;
-            confirmBox.Close();
-        };
-
-        noButton.Click += (s, e) => {
-            result = false;
-            confirmBox.Close();
-        };
-
-        buttonPanel.Children.Add(yesButton);
-        buttonPanel.Children.Add(noButton);
-
-        panel.Children.Add(messageText);
-        panel.Children.Add(buttonPanel);
-
-        confirmBox.Content = panel;
-
-        await confirmBox.ShowDialog(this);
-        return result;
-    }
-
-    private async Task ShowInfoMessage(string title, string message)
-    {
-        var messageBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
-
-        var okButton = new Button
-        {
-            Content = "OK",
-            Width = 120,
-            Height = 38,
-            CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = BrushFactory.CreateVerticalGradient("#D686D2", "#9C69B5"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeight.Medium
-        };
-
-        okButton.Click += (s, e) => messageBox.Close();
-
-        panel.Children.Add(messageText);
-        panel.Children.Add(okButton);
-
-        messageBox.Content = panel;
-
-        await messageBox.ShowDialog(this);
-    }
-
-    private async Task ShowErrorMessage(string title, string message)
-    {
-        var messageBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
-
-        var okButton = new Button
-        {
-            Content = "OK",
-            Width = 120,
-            Height = 38,
-            CornerRadius = new CornerRadius(19),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeight.Medium
-        };
-
-        okButton.Click += (s, e) => messageBox.Close();
-
-        panel.Children.Add(messageText);
-        panel.Children.Add(okButton);
-
-        messageBox.Content = panel;
-
-        await messageBox.ShowDialog(this);
     }
 
     private static string BytesToString(long byteCount)
