@@ -315,7 +315,7 @@ public class DialogService(Window owner)
         {
             try
             {
-                ProcessLauncher.LaunchUrl("https://legendsofequestria.com/downloads");
+                ProcessLauncher.LaunchUrl(Constants.LauncherDownloadUrl);
             }
             catch (Exception ex)
             {
