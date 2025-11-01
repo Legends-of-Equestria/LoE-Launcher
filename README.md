@@ -18,7 +18,7 @@ Platform-specific packaging scripts live under `.github/scripts` and are invoked
 
 ## Flatpak Build
 
-- Install Flatpak tooling (`flatpak install flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08`).
+- Install Flatpak tooling (`flatpak install flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08`).
 - Build with `flatpak-builder --force-clean build-dir com.loe.Launcher.json`.
 - The resulting bundle matches the Flathub manifest used in CI.
 
