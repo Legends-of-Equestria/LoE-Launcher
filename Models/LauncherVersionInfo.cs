@@ -16,6 +16,6 @@ public class LauncherVersionInfo
         var current = currentVersion.ToSystemVersion();
         var required = RequiredVersion.ToSystemVersion();
 
-        return current.CompareTo(required) == 0;
+        return current.CompareTo(required) >= 0;
     }
 }
