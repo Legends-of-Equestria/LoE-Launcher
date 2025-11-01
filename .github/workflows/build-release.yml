@@ -182,7 +182,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./artifacts/LoE-Launcher-Mac.zip
+          ./artifacts/LoE-Launcher.dmg
           ./artifacts/LoE-Launcher.AppImage
           ./artifacts/loe-launcher.flatpak
           ./artifacts/LoE-Launcher.exe

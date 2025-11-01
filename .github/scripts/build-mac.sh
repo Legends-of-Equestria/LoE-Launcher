@@ -233,7 +233,7 @@ if command -v create-dmg >/dev/null 2>&1; then
         --app-drop-link 600 190 \
         --background "../../Assets/dmg-background.png" \
         --format UDBZ \
-        "LoE-Launcher-Mac.dmg" \
+        "LoE-Launcher.dmg" \
         "$APP_NAME.app"
     
     cd ../..
@@ -241,8 +241,8 @@ if command -v create-dmg >/dev/null 2>&1; then
     
 elif [ -f "Assets/dmg-background.png" ]; then
     echo "  Creating DMG..."
-    
-    DMG_NAME="LoE-Launcher-Mac.dmg"
+
+    DMG_NAME="LoE-Launcher.dmg"
     TEMP_DMG="temp-${DMG_NAME}"
     
     # Create temporary DMG
@@ -322,8 +322,8 @@ EOD
 else
     # Fallback to your original method
     echo "  Using basic DMG creation (consider adding a background image)..."
-    
-    DMG_NAME="LoE-Launcher-Mac.dmg"
+
+    DMG_NAME="LoE-Launcher.dmg"
     DMG_DIR="Publish/Mac/dmg-contents"
     mkdir -p "$DMG_DIR"
     
@@ -344,27 +344,27 @@ else
 fi
 
 # Sign the DMG
-if [ -n "$SIGNING_IDENTITY" ] && [ -f "Publish/Mac/LoE-Launcher-Mac.dmg" ]; then
+if [ -n "$SIGNING_IDENTITY" ] && [ -f "Publish/Mac/LoE-Launcher.dmg" ]; then
     echo "🔐 Signing DMG..."
     codesign --force --sign "$SIGNING_IDENTITY" \
         --timestamp \
-        "Publish/Mac/LoE-Launcher-Mac.dmg"
+        "Publish/Mac/LoE-Launcher.dmg"
     echo "✅ DMG signed successfully!"
-    
+
     # Notarize if credentials are available
     if [ -n "$NOTARIZATION_APPLE_ID" ] && [ -n "$NOTARIZATION_PASSWORD" ] && [ -n "$NOTARIZATION_TEAM_ID" ]; then
         echo "📋 Starting notarization process..."
         echo "⏳ This typically takes 5-30 minutes..."
-        
+
         # Submit for notarization
-        if xcrun notarytool submit "Publish/Mac/LoE-Launcher-Mac.dmg" \
+        if xcrun notarytool submit "Publish/Mac/LoE-Launcher.dmg" \
             --keychain-profile "notarytool-profile" \
             --wait; then
-            
+
             echo "✅ Notarization successful!"
-            
+
             # Staple the notarization ticket
-            xcrun stapler staple "Publish/Mac/LoE-Launcher-Mac.dmg"
+            xcrun stapler staple "Publish/Mac/LoE-Launcher.dmg"
             echo "✅ Notarization ticket stapled to DMG!"
         else
             echo "⚠️  Notarization failed, but DMG is still signed"
@@ -382,7 +382,7 @@ cd ../..
 rm -f entitlements.plist
 
 echo "✅ macOS build complete!"
-echo "📦 Created: Publish/Mac/LoE-Launcher-Mac.dmg"
+echo "📦 Created: Publish/Mac/LoE-Launcher.dmg"
 echo "📦 Created: Publish/Mac/LoE-Launcher-Mac.zip (backup)"
 
 if [ -n "$SIGNING_IDENTITY" ]; then
