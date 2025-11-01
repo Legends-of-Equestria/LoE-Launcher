@@ -2,6 +2,12 @@
 
 Official launcher for the Legends of Equestria game, built with Avalonia and .NET 8. The launcher keeps game clients up to date via zsync incremental patching and provides quick access to official news, changelogs, and community links.
 
+## Download
+
+Download the latest launcher from:
+- **Official website**: https://www.legendsofequestria.com/downloads
+- **GitHub Releases**: https://github.com/Legends-of-Equestria/LoE-Launcher/releases
+
 ## Building
 
 - Install the .NET 8 SDK.
