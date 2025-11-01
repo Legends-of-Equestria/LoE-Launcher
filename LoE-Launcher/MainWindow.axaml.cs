@@ -29,19 +29,19 @@ public partial class MainWindow : Window
     private readonly DialogService _dialogService;
     private readonly CacheManager _cacheManager;
 
-    private DispatcherTimer _timer;
+    private DispatcherTimer _timer = null!;
     private Stopwatch _downloadStopwatch = new();
 
-    private Image _backgroundImage;
-    private Image _logoImage;
-    private ProgressBar _pbState;
-    private Button _btnAction;
-    private StackPanel _changelogPanel;
-    private Grid _progressOverlay;
-    private TextBlock _progressPercentage;
-    private TextBlock _downloadSpeed;
-    private TextBlock _downloadStatus;
-    private Rectangle _titleBarArea;
+    private Image _backgroundImage = null!;
+    private Image _logoImage = null!;
+    private ProgressBar _pbState = null!;
+    private Button _btnAction = null!;
+    private StackPanel _changelogPanel = null!;
+    private Grid _progressOverlay = null!;
+    private TextBlock _progressPercentage = null!;
+    private TextBlock _downloadSpeed = null!;
+    private TextBlock _downloadStatus = null!;
+    private Rectangle _titleBarArea = null!;
 
     private readonly IBrush _downloadColor;
     private readonly IBrush _updateColor;
@@ -53,13 +53,13 @@ public partial class MainWindow : Window
     private Point _pointerStartPosition;
     private Point _lastPointerPosition;
     private readonly TransformGroup _logoTransform = new TransformGroup();
-    private ScaleTransform _logoScaleTransform;
-    private RotateTransform _logoRotateTransform;
-    private TranslateTransform _logoTranslateTransform;
-    
+    private ScaleTransform _logoScaleTransform = null!;
+    private RotateTransform _logoRotateTransform = null!;
+    private TranslateTransform _logoTranslateTransform = null!;
+
     private Point _logoVelocity;
     private double _logoAngularVelocity;
-    private DispatcherTimer _physicsTimer;
+    private DispatcherTimer _physicsTimer = null!;
     private DateTime _lastMoveTime;
     private bool _actionButtonClicked;
 
@@ -195,9 +195,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnLogoPointerMoved(object sender, PointerEventArgs e)
+    private void OnLogoPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isDraggingLogo) return;
+        if (!_isDraggingLogo)
+        {
+            return;
+        }
 
         var currentPosition = e.GetPosition(this);
         var currentTime = DateTime.UtcNow;
@@ -236,9 +239,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void OnLogoPointerReleased(object sender, PointerReleasedEventArgs e)
+    private void OnLogoPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (!_isDraggingLogo) return;
+        if (!_isDraggingLogo)
+        {
+            return;
+        }
 
         _logoAngularVelocity = _logoRotateTransform.Angle * 0.2;
 
@@ -246,7 +252,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void OnLogoPointerCaptureLost(object sender, PointerCaptureLostEventArgs e)
+    private void OnLogoPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
         if (_isDraggingLogo)
         {
@@ -259,7 +265,6 @@ public partial class MainWindow : Window
         _isDraggingLogo = false;
 
         _physicsTimer.Start();
-
     }
 
     private void OnPhysicsTick(object? sender, EventArgs e)

@@ -43,7 +43,7 @@ public static class UnityPlayerLogHelper
         return File.Exists(logPath);
     }
     
-    public static string ReadPlayerLog(string companyName, string productName)
+    public static string? ReadPlayerLog(string companyName, string productName)
     {
         string logPath = GetPlayerLogPath(companyName, productName);
         

@@ -9,7 +9,7 @@ public class RelativeFilePathConverter : JsonConverter
         return typeof(IRelativeFilePath).IsAssignableFrom(objectType);
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
@@ -20,7 +20,7 @@ public class RelativeFilePathConverter : JsonConverter
         return path.ToRelativeFilePathAuto();
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         if (value == null)
         {

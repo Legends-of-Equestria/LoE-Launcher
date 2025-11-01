@@ -6,7 +6,8 @@ using zsyncnet.Sync;
 
 namespace LoE_Launcher;
 
-public class ProgressReportingRangeDownloader(Uri uri, HttpClient client, Downloader.DownloadProgressCallback? progressCallback = null) : RangeDownloader(uri, client)
+public class ProgressReportingRangeDownloader(Uri uri, HttpClient client, Downloader.DownloadProgressCallback? progressCallback = null)
+    : RangeDownloader(uri, client)
 {
     public new Stream DownloadRange(long from, long to)
     {

@@ -24,7 +24,7 @@ public partial class SettingsWindow : Window
     private readonly IBrush _launchColor;
     private readonly Stopwatch _downloadStopwatch;
 
-    private CheckBox _closeAfterLaunchCheckBox;
+    private CheckBox _closeAfterLaunchCheckBox = null!;
 
     public SettingsWindow(Downloader downloader, DialogService dialogService, ProgressBar progressBar, IBrush launchColor, Stopwatch downloadStopwatch)
     {

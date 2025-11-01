@@ -737,7 +737,7 @@ public partial class Downloader
     }
 
     private static async Task<long> DownloadFile(Uri zsyncUri, string objFilePath, Uri objUri, string fileName,
-        InstallingProgress installProgress, DownloadProgressCallback progressCallback = null)
+        InstallingProgress installProgress, DownloadProgressCallback? progressCallback = null)
     {
         long bytesRead;
         try
@@ -784,7 +784,7 @@ public partial class Downloader
     }
 
     private static async Task<long> SyncFileWithZsync(Uri zsyncUri, string objFilePath, Uri objUri,
-        string fileName, InstallingProgress installProgress, DownloadProgressCallback progressCallback = null)
+        string fileName, InstallingProgress installProgress, DownloadProgressCallback? progressCallback = null)
     {
         Logger.Info($"Attempting zsync for: {fileName}");
 
@@ -938,7 +938,7 @@ public partial class Downloader
         return guidPath;
     }
 
-    private static async Task<long> DirectDownloadFile(Uri fileUri, string filePath, DownloadProgressCallback progressCallback = null)
+    private static async Task<long> DirectDownloadFile(Uri fileUri, string filePath, DownloadProgressCallback? progressCallback = null)
     {
         Logger.Info($"Attempting direct download: {fileUri} -> {filePath}");
 
