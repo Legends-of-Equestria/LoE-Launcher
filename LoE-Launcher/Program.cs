@@ -4,6 +4,7 @@ using NLog.Config;
 using NLog.Targets;
 using System;
 using System.IO;
+using Velopack;
 
 namespace LoE_Launcher;
 
@@ -12,6 +13,8 @@ internal class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        VelopackApp.Build().Run();
+        
         SetWorkingDirectory();
         ConfigureLogging();
 
