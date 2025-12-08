@@ -40,6 +40,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+
+    - name: Install vpk
+      run: dotnet tool install --global vpk
       
     - name: Make build script executable
       run: chmod +x .github/scripts/build-mac.sh
@@ -47,6 +50,7 @@ jobs:
     - name: Build macOS App Bundle
       run: .github/scripts/build-mac.sh
       env:
+        VERSION: ${{ github.ref_name }}
         MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
         MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         NOTARIZATION_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
@@ -57,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: LoE-Launcher-macOS
-        path: Publish/Mac/*.dmg
+        path: Publish/Mac/**
         
   build-linux:
     needs: test
@@ -71,23 +75,23 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-        
-    - name: Install AppImage dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y fuse libfuse2 desktop-file-utils
+
+    - name: Install vpk
+      run: dotnet tool install --global vpk
         
     - name: Make build script executable
       run: chmod +x .github/scripts/build-linux.sh
         
     - name: Build Linux AppImage
       run: .github/scripts/build-linux.sh
+      env:
+        VERSION: ${{ github.ref_name }}
         
     - name: Upload Linux Build
       uses: actions/upload-artifact@v4
       with:
         name: LoE-Launcher-Linux
-        path: Publish/Linux/LoE-Launcher.AppImage
+        path: Publish/Linux/**
         
   build-flatpak:
     needs: test
@@ -137,16 +141,22 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+
+    - name: Install vpk
+      run: dotnet tool install --global vpk
+      shell: pwsh
         
     - name: Build Windows Executable
       run: .github/scripts/build-windows.sh
       shell: bash
+      env:
+        VERSION: ${{ github.ref_name }}
         
     - name: Upload Windows Build
       uses: actions/upload-artifact@v4
       with:
         name: LoE-Launcher-Windows
-        path: Publish/Windows/LoE-Launcher.exe
+        path: Publish/Windows/**
         
   create-release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -158,13 +168,13 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-macOS
-        path: ./artifacts/
+        path: ./artifacts/Publish/Mac/
         
     - name: Download Linux build
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-Linux
-        path: ./artifacts/
+        path: ./artifacts/Publish/Linux/
         
     - name: Download Flatpak build
       uses: actions/download-artifact@v4
@@ -176,16 +186,16 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-Windows
-        path: ./artifacts/
+        path: ./artifacts/Publish/Windows/
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./artifacts/LoE-Launcher.dmg
-          ./artifacts/LoE-Launcher.AppImage
+          ./artifacts/Publish/Mac/*
+          ./artifacts/Publish/Linux/*
           ./artifacts/loe-launcher.flatpak
-          ./artifacts/LoE-Launcher.exe
+          ./artifacts/Publish/Windows/*
         draft: false
         prerelease: false
         generate_release_notes: true

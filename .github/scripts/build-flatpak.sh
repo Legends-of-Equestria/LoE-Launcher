@@ -49,6 +49,7 @@ dotnet publish "$PROJECT_FILE" \
     -p:CopyOutputSymbolsToPublishDirectory=false \
     -p:UseSharedCompilation=true \
     -p:BuildInParallel=true \
+    -p:DefineConstants=FLATPAK \
     --verbosity minimal
 
 # Make sure it worked

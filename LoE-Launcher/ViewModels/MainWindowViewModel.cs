@@ -77,10 +77,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _ = LoadChangelogAsync();
 
         await InitializeDownloader();
-
-#if !FLATPAK
-        _ = CheckForUpdatesAsync();
-#endif
     }
 
     private async Task LoadInitialImagesAsync()
@@ -357,14 +353,4 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private static void OpenFacebook() => ProcessLauncher.LaunchUrl(Constants.FacebookUrl);
-
-#if !FLATPAK
-    [RelayCommand]
-    private async Task CheckForUpdatesAsync()
-    {
-        Logger.Info("Checking for launcher updates...");
-        await Task.Delay(100);
-        Logger.Info("Update check complete.");
-    }
-#endif
 }

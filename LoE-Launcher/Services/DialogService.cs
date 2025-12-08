@@ -10,6 +10,8 @@ using LoE_Launcher.Utils;
 using LoE_Launcher.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Velopack;
+using Velopack.Sources;
 
 namespace LoE_Launcher.Services;
 
@@ -18,11 +20,13 @@ public class DialogService : IDialogService
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private readonly IWindowProvider _windowProvider;
     private readonly IServiceProvider _serviceProvider;
+    private readonly UpdateManager _updateManager;
 
     public DialogService(IWindowProvider windowProvider, IServiceProvider serviceProvider)
     {
         _windowProvider = windowProvider;
         _serviceProvider = serviceProvider;
+        _updateManager = new UpdateManager(new GithubSource("https://github.com/Legends-of-Equestria/LoE-Launcher", null, false));
     }
 
     private Window? GetOwner() => _windowProvider.GetMainWindow();
@@ -275,7 +279,7 @@ public class DialogService : IDialogService
     {
         var updateDialog = new Window
         {
-            Title = "Launcher Update Required",
+            Title = "Launcher Update",
             Width = 450,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -295,7 +299,7 @@ public class DialogService : IDialogService
 
         var titleText = new TextBlock
         {
-            Text = "Launcher Update Required",
+            Text = "Updating Launcher...",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,
@@ -305,7 +309,7 @@ public class DialogService : IDialogService
 
         var messageText = new TextBlock
         {
-            Text = "Your launcher is out of date. Please download the latest version to continue.",
+            Text = "Downloading update...",
             FontSize = 14,
             Foreground = Brushes.White,
             TextWrapping = TextWrapping.Wrap,
@@ -314,40 +318,54 @@ public class DialogService : IDialogService
             Margin = new Thickness(0, 0, 0, 10)
         };
 
-        var buttonPanel = new StackPanel
+        var progressBar = new ProgressBar
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 15
+            Width = 300,
+            Height = 20,
+            Minimum = 0,
+            Maximum = 100,
+            Value = 0,
+            IsIndeterminate = false,
+            Margin = new Thickness(0, 10, 0, 10)
         };
-
-        var downloadButton = CreateCustomButton("Download Latest", "#D686D2", "#E8A6E2", 140);
-        var cancelButton = CreateCustomButton("Cancel", "#8A7AB8", "#A691C7", 100);
-
-        downloadButton.Click += (s, args) =>
-        {
-            try
-            {
-                ProcessLauncher.LaunchUrl(Constants.LauncherDownloadUrl);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to open download URL");
-            }
-            updateDialog.Close();
-        };
-
-        cancelButton.Click += (s, args) => updateDialog.Close();
-
-        buttonPanel.Children.Add(downloadButton);
-        buttonPanel.Children.Add(cancelButton);
-
+        
         contentPanel.Children.Add(titleText);
         contentPanel.Children.Add(messageText);
-        contentPanel.Children.Add(buttonPanel);
+        contentPanel.Children.Add(progressBar);
 
         updateDialog.Content = contentPanel;
-        await updateDialog.ShowDialog(GetOwner()!);
+
+        _ = updateDialog.ShowDialog(GetOwner()!);
+
+        try
+        {
+            var updateInfo = await _updateManager.CheckForUpdatesAsync();
+            if (updateInfo == null)
+            {
+                messageText.Text = "No updates found, closing dialog.";
+                await Task.Delay(1500); // Give user time to read
+                updateDialog.Close();
+                return;
+            }
+
+            messageText.Text = $"Downloading update {updateInfo.TargetFullRelease.Version}...";
+            await _updateManager.DownloadUpdatesAsync(updateInfo, progress =>
+            {
+                progressBar.Value = progress;
+            });
+
+            messageText.Text = "Applying update and restarting...";
+            _updateManager.ApplyUpdatesAndRestart(updateInfo);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to update launcher.");
+            messageText.Text = $"Update failed: {ex.Message}";
+            progressBar.IsIndeterminate = true;
+            await Task.Delay(3000); // Give user time to read error
+            updateDialog.Close();
+            await ShowErrorMessage("Update Failed", "Failed to update the launcher. Please try again later.");
+        }
     }
     
     public async Task ShowSettingsWindowAsync()

@@ -39,6 +39,7 @@
 
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="NLog" Version="6.0.1" />
+        <PackageReference Include="Velopack" Version="0.0.1298" />
     </ItemGroup>
 
     <ItemGroup>

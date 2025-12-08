@@ -5,15 +5,23 @@
 
 set -e
 
+if [ -z "$VERSION" ]; then
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+fi
+VERSION="${VERSION#v}" # Strip leading 'v'
+echo "🔹 Building Version: $VERSION"
+# ------------------------
+
 PROJECT_DIR="LoE-Launcher"
 PROJECT_FILE="$PROJECT_DIR/LoE-Launcher.csproj"
 OUTPUT_DIR="$PROJECT_DIR/bin/Release/net8.0/win-x86/publish"
+VELOPACK_OUTPUT_DIR="Publish/Windows"
 
 echo "🚀 Starting build for Windows..."
 
 # Clean previous output
 rm -rf "$PROJECT_DIR/bin/Release"
-rm -rf "Publish/Windows"
+rm -rf "$VELOPACK_OUTPUT_DIR"
 
 # Build + publish as single file
 echo "🔨 Publishing project as single-file executable..."
@@ -32,9 +40,9 @@ dotnet publish "$PROJECT_FILE" \
     -p:PublishReadyToRun=false \
     -p:CopyOutputSymbolsToPublishDirectory=false \
     -p:PublishTrimmed=false \
-    -p:AssemblyVersion=1.0.0.0 \
-    -p:FileVersion=1.0.0.0 \
-    -p:InformationalVersion=1.0.0 \
+    -p:AssemblyVersion="$VERSION" \
+    -p:FileVersion="$VERSION" \
+    -p:InformationalVersion="$VERSION" \
     --verbosity minimal
 
 # Make sure it worked
@@ -43,15 +51,15 @@ if [ ! -f "$OUTPUT_DIR/LoE-Launcher.exe" ]; then
     exit 1
 fi
 
-# Set up output directory
-echo "📦 Creating Windows output directory..."
-mkdir -p "Publish/Windows"
-
-# Copy the single executable
-echo "📁 Copying executable..."
-cp "$OUTPUT_DIR/LoE-Launcher.exe" "Publish/Windows/"
-
-echo "📁 Windows executable size: $(ls -lh "Publish/Windows/LoE-Launcher.exe" | awk '{print $5}')"
+# Velopack packaging
+echo "📦 Packaging with Velopack..."
+vpk pack \
+    --packId "LoE-Launcher" \
+    --packVersion "$VERSION" \
+    --packDir "$OUTPUT_DIR" \
+    --outputDir "$VELOPACK_OUTPUT_DIR" \
+    --channel Stable \
+    --mainExe "LoE-Launcher.exe"
 
 echo "✅ Windows build complete!"
-echo "📦 Created: Publish/Windows/LoE-Launcher.exe"
+echo "📦 Created: $VELOPACK_OUTPUT_DIR"
