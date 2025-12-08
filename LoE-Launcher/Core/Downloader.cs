@@ -22,7 +22,7 @@ public partial class Downloader
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int OfflineRetryIntervalSeconds = 30;
-    private static readonly VersionInfo CurrentLauncherVersion = new() { Major = 1, Minor = 1, Build = 0, Revision = 0 };
+    private static readonly VersionInfo CurrentLauncherVersion = new() { Major = 1, Minor = 2, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();

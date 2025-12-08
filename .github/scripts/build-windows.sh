@@ -8,9 +8,17 @@ set -e
 if [ -z "$VERSION" ]; then
     VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
 fi
-VERSION="${VERSION#v}" # Strip leading 'v'
+
+# Strip leading 'v' (v1.0.0 -> 1.0.0)
+VERSION="${VERSION#v}"
+
+# Check if VERSION is a valid number (e.g. 1.0.0). If not (e.g. 'main'), default to 0.0.0
+if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    echo "⚠️  Version '$VERSION' is not numeric. Defaulting to 0.0.0 for build safety."
+    VERSION="0.0.0"
+fi
+
 echo "🔹 Building Version: $VERSION"
-# ------------------------
 
 PROJECT_DIR="LoE-Launcher"
 PROJECT_FILE="$PROJECT_DIR/LoE-Launcher.csproj"
