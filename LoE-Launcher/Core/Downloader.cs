@@ -34,7 +34,7 @@ public partial class Downloader
     private readonly NetworkDownloadService _network;
     private readonly HashCacheService _hashCache;
     private readonly FileUpdateService _fileUpdate;
-    private readonly UpdateManager _updateManager;
+    private readonly UpdateManager? _updateManager;
 
     private string _versionDownload = "";
     private GameState _state = GameState.Unknown;
@@ -102,7 +102,15 @@ public partial class Downloader
         _hashCache = new HashCacheService(CacheDirectory);
         _network = new NetworkDownloadService(_fileOps);
         _fileUpdate = new FileUpdateService(_fileOps, _network, _hashCache);
-        _updateManager = new UpdateManager(new GithubSource("https://github.com/Legends-of-Equestria/LoE-Launcher", null, false));
+
+        try
+        {
+            _updateManager = new UpdateManager(new GithubSource("https://github.com/Legends-of-Equestria/LoE-Launcher", null, false));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Failed to initialize UpdateManager, possibly not in a Velopack context (e.g. running in tests).");
+        }
 
         var settingsFile = SettingsFile;
         _settings = settingsFile.Exists
@@ -245,24 +253,27 @@ public partial class Downloader
     private async Task CheckLauncherVersion()
     {
 #if !FLATPAK
-        Logger.Info("Checking for Velopack launcher updates...");
-        try
+        if (_updateManager != null)
         {
-            var updateInfo = await _updateManager.CheckForUpdatesAsync();
-            if (updateInfo != null)
+            Logger.Info("Checking for Velopack launcher updates...");
+            try
             {
-                Logger.Info($"Velopack update available: {updateInfo.TargetFullRelease.Version}");
-                _state = GameState.LauncherOutOfDate;
-                return;
+                var updateInfo = await _updateManager.CheckForUpdatesAsync();
+                if (updateInfo != null)
+                {
+                    Logger.Info($"Velopack update available: {updateInfo.TargetFullRelease.Version}");
+                    _state = GameState.LauncherOutOfDate;
+                    return;
+                }
+                else
+                {
+                    Logger.Info("No Velopack launcher updates available.");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Logger.Info("No Velopack launcher updates available.");
+                Logger.Error(ex, "Failed to check for Velopack launcher updates.");
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to check for Velopack launcher updates.");
         }
 #endif
 
