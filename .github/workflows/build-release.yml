@@ -162,40 +162,43 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-mac, build-linux, build-flatpak, build-windows]
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Download macOS build
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-macOS
-        path: ./artifacts/Publish/Mac/
-        
+        path: ./artifacts/mac/
+
     - name: Download Linux build
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-Linux
-        path: ./artifacts/Publish/Linux/
-        
+        path: ./artifacts/linux/
+
     - name: Download Flatpak build
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-Flatpak
-        path: ./artifacts/
-        
+        path: ./artifacts/flatpak/
+
     - name: Download Windows build
       uses: actions/download-artifact@v4
       with:
         name: LoE-Launcher-Windows
-        path: ./artifacts/Publish/Windows/
-        
+        path: ./artifacts/windows/
+
+    - name: List all artifacts
+      run: find ./artifacts -type f -exec ls -lh {} \;
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./artifacts/Publish/Mac/*
-          ./artifacts/Publish/Linux/*
-          ./artifacts/loe-launcher.flatpak
-          ./artifacts/Publish/Windows/*
+          ./artifacts/mac/**/*
+          ./artifacts/linux/**/*
+          ./artifacts/flatpak/**/*
+          ./artifacts/windows/**/*
         draft: false
         prerelease: false
         generate_release_notes: true
