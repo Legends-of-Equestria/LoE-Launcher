@@ -5,14 +5,27 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using LoE_Launcher.Core;
 using LoE_Launcher.Utils;
+using LoE_Launcher.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 namespace LoE_Launcher.Services;
 
-public class DialogService(Window owner)
+public class DialogService : IDialogService
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private readonly IWindowProvider _windowProvider;
+    private readonly IServiceProvider _serviceProvider;
+
+    public DialogService(IWindowProvider windowProvider, IServiceProvider serviceProvider)
+    {
+        _windowProvider = windowProvider;
+        _serviceProvider = serviceProvider;
+    }
+
+    private Window? GetOwner() => _windowProvider.GetMainWindow();
 
     public async Task<bool> ShowConfirmDialog(string title, string message)
     {
@@ -97,7 +110,7 @@ public class DialogService(Window owner)
 
         confirmBox.Content = panel;
 
-        await confirmBox.ShowDialog(owner);
+        await confirmBox.ShowDialog(GetOwner()!);
         return result;
     }
 
@@ -151,7 +164,7 @@ public class DialogService(Window owner)
 
         messageBox.Content = panel;
 
-        await messageBox.ShowDialog(owner);
+        await messageBox.ShowDialog(GetOwner()!);
     }
 
     public async Task ShowErrorMessage(string title, string message)
@@ -204,7 +217,7 @@ public class DialogService(Window owner)
 
         messageBox.Content = panel;
 
-        await messageBox.ShowDialog(owner);
+        await messageBox.ShowDialog(GetOwner()!);
     }
 
     public async Task ShowGameLogsNotFoundDialog()
@@ -255,7 +268,7 @@ public class DialogService(Window owner)
         messagePanel.Children.Add(okButton);
         messageBox.Content = messagePanel;
 
-        await messageBox.ShowDialog(owner);
+        await messageBox.ShowDialog(GetOwner()!);
     }
 
     public async Task ShowLauncherUpdateDialog()
@@ -334,9 +347,31 @@ public class DialogService(Window owner)
         contentPanel.Children.Add(buttonPanel);
 
         updateDialog.Content = contentPanel;
-        await updateDialog.ShowDialog(owner);
+        await updateDialog.ShowDialog(GetOwner()!);
     }
+    
+    public async Task ShowSettingsWindowAsync()
+    {
+        var viewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+        var settingsWindow = new Window
+        {
+            Title = "Options",
+            Width = 340,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
+            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
+            ExtendClientAreaToDecorationsHint = true,
+            ExtendClientAreaTitleBarHeightHint = 30,
+            CanResize = false,
+            Content = viewModel
+        };
 
+        viewModel.CloseAction = settingsWindow.Close;
+        
+        await settingsWindow.ShowDialog(GetOwner()!);
+    }
+    
     private static Button CreateCustomButton(string text, string normalColor, string hoverColor, int width)
     {
         var normalBrush = new SolidColorBrush(Color.Parse(normalColor));

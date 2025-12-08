@@ -2,10 +2,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:LoE_Launcher.ViewModels"
+        xmlns:models="using:LoE_Launcher.Models"
         mc:Ignorable="d"
+        x:DataType="vm:MainWindowViewModel"
+        x:CompileBindings="True"
         Width="1024" Height="576"
         MinWidth="900" MinHeight="506"
-        x:Class="LoE_Launcher.MainWindow"
+        x:Class="LoE_Launcher.Views.MainWindow"
         Title="LoE Launcher"
         Icon="avares://LoE-Launcher/Assets/Icon.ico"
         TransparencyLevelHint="AcrylicBlur"
@@ -201,14 +205,13 @@
 
     <Grid>
         <Panel>
-            <Image x:Name="backgroundImage"
+            <Image Source="{Binding BackgroundImageSource}"
                    Stretch="UniformToFill"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch" />
             <Rectangle Fill="#25000000" />
         </Panel>
 
-        <!-- Draggable title bar area -->
         <Rectangle x:Name="titleBarArea"
                    Height="32"
                    VerticalAlignment="Top"
@@ -217,101 +220,74 @@
 
         <Grid VerticalAlignment="Top" ZIndex="10">
 
-            <!-- Social Media Panel - Top Left -->
             <StackPanel HorizontalAlignment="Left"
                         VerticalAlignment="Top"
                         Margin="20,40,0,0"
                         Spacing="10">
 
-                <Button x:Name="btnYoutube"
-                        Classes="SocialButton"
-                        Click="OnYoutubeButtonClicked"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                <Button Classes="SocialButton"
+                        Command="{Binding OpenYoutubeCommand}"
                         ToolTip.Tip="YouTube">
                     <Panel>
                         <Path Data="{StaticResource YouTubeIconPath}"
                               Fill="White"
-                              Width="22"
-                              Height="22"
+                              Width="22" Height="22"
                               Stretch="Uniform"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Margin="0,5,0,0"
-                              />
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="0,5,0,0" />
                     </Panel>
                 </Button>
 
-                <Button x:Name="btnDiscord"
-                        Classes="SocialButton"
-                        Click="OnDiscordButtonClicked"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                <Button Classes="SocialButton"
+                        Command="{Binding OpenDiscordCommand}"
                         ToolTip.Tip="Discord">
                     <Panel>
                         <Path Data="{StaticResource DiscordIconPath}"
                               Fill="White"
-                              Width="22"
-                              Height="22"
+                              Width="22" Height="22"
                               Stretch="Uniform"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Margin="0,5,0,0"
-                              />
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="0,5,0,0" />
                     </Panel>
                 </Button>
 
-                <Button x:Name="btnX"
-                        Classes="SocialButton"
-                        Click="OnXButtonClicked"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                <Button Classes="SocialButton"
+                        Command="{Binding OpenXCommand}"
                         ToolTip.Tip="X">
                     <Panel>
                         <Path Data="{StaticResource XIconPath}"
                               Fill="White"
-                              Width="22"
-                              Height="22"
+                              Width="22" Height="22"
                               Stretch="Uniform"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              />
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Panel>
                 </Button>
 
-                <Button x:Name="btnFacebook"
-                        Classes="SocialButton"
-                        Click="OnFacebookButtonClicked"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                <Button Classes="SocialButton"
+                        Command="{Binding OpenFacebookCommand}"
                         ToolTip.Tip="Facebook">
                     <Panel>
                         <Path Data="{StaticResource FacebookIconPath}"
                               Fill="White"
-                              Width="22"
-                              Height="22"
+                              Width="22" Height="22"
                               Stretch="Uniform"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              />
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Panel>
                 </Button>
 
             </StackPanel>
 
             <Image x:Name="logoImage"
+                   Source="{Binding LogoImageSource}"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Top"
-                   Width="203"
-                   Height="108"
+                   Width="203" Height="108"
                    Margin="0,40,20,0" />
         </Grid>
 
-        <!-- Changelog section -->
         <Border HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
-                Width="420"
-                Height="220"
+                Width="420" Height="220"
                 Margin="20,0,0,20"
                 Classes="InfoPanel"
                 Padding="12"
@@ -319,8 +295,7 @@
             <Grid RowDefinitions="Auto,*">
                 <TextBlock Grid.Row="0"
                            Text="Changelog"
-                           FontSize="24"
-                           FontWeight="Bold"
+                           FontSize="24" FontWeight="Bold"
                            Foreground="White"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,15" />
@@ -330,87 +305,90 @@
                               VerticalScrollBarVisibility="Visible"
                               HorizontalScrollBarVisibility="Disabled"
                               AllowAutoHide="False">
-                    <StackPanel x:Name="changelogPanel"
-                               Spacing="2" />
+                    <ItemsControl ItemsSource="{Binding ChangelogLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:ChangelogLine">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Text}"
+                                               IsVisible="{Binding IsHeader}"
+                                               FontSize="16"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,4" />
+                                    <TextBlock Text="{Binding Text}"
+                                               IsVisible="{Binding IsBullet}"
+                                               FontSize="14"
+                                               Foreground="#F0FFFFFF"
+                                               TextWrapping="Wrap"
+                                               Margin="0,1,0,1" />
+                                    <Panel Height="8"
+                                           IsVisible="{Binding IsEmpty}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </ScrollViewer>
             </Grid>
         </Border>
 
-        <!-- Bottom right controls: settings button and action button/progress bar -->
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
                     Margin="0,0,20,20"
                     Spacing="10">
 
-            <Button x:Name="btnSettings"
-                    Classes="SettingsButton"
-                    Click="OnSettingsButtonClicked"
+            <Button Classes="SettingsButton"
+                    Command="{Binding SettingsButtonClickedCommand}"
                     ToolTip.Tip="Options"
                     VerticalAlignment="Center" />
 
-            <!-- Progress bar and action button in the same position -->
             <Grid Width="280" Height="90">
-                <ProgressBar x:Name="pbState"
-                             Height="90"
-                             Width="280"
+                <ProgressBar IsVisible="{Binding IsProgressOverlayVisible}"
+                             Value="{Binding ProgressBarValue}"
+                             IsIndeterminate="{Binding IsProgressBarIndeterminate}"
+                             Height="90" Width="280"
                              Theme="{StaticResource TexturedProgressBar}"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Stretch"
-                             Value="0" />
+                             HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
-                <!-- Progress overlay text -->
-                <Grid x:Name="progressOverlay"
-                      IsVisible="False"
-                      Width="280"
-                      Height="90" ColumnDefinitions="*,*">
+                <Grid IsVisible="{Binding IsProgressOverlayVisible}"
+                      Width="280" Height="90"
+                      ColumnDefinitions="*,*">
 
-                    <!-- Left side - Progress percentage -->
-                    <TextBlock x:Name="progressPercentage"
-                               Grid.Column="0"
-                               Text="0%"
-                               FontSize="32"
-                               FontWeight="Bold"
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding ProgressPercentageText}"
+                               FontSize="32" FontWeight="Bold"
                                Foreground="White"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               TextAlignment="Center"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
                                TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
                     
-                    <!-- Right side - Speed and status -->
                     <StackPanel Grid.Column="1"
                                 VerticalAlignment="Center"
                                 HorizontalAlignment="Left"
                                 Margin="-20,0,15,0"
                                 Spacing="2">
-                        <TextBlock x:Name="downloadSpeed"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
+                        <TextBlock Text="{Binding DownloadSpeedText}"
+                                   FontSize="16" FontWeight="SemiBold"
                                    Foreground="White"
-                                   HorizontalAlignment="Left"
-                                   TextAlignment="Left"
+                                   HorizontalAlignment="Left" TextAlignment="Left"
                                    TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
-                        <TextBlock x:Name="downloadStatus"
-                                   Text="Checking..."
-                                   FontSize="14"
-                                   FontWeight="Medium"
+                        <TextBlock Text="{Binding DownloadStatusText}"
+                                   FontSize="14" FontWeight="Medium"
                                    Foreground="#E0FFFFFF"
-                                   HorizontalAlignment="Left"
-                                   TextAlignment="Left"
+                                   HorizontalAlignment="Left" TextAlignment="Left"
                                    TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
                     </StackPanel>
                 </Grid>
 
-                <Button x:Name="btnAction"
-                        Content="Launch"
+                <Button Content="{Binding ActionButtonText}"
+                        Background="{Binding ActionButtonBackground}"
+                        Command="{Binding ActionButtonClickedCommand}"
+                        IsEnabled="{Binding IsActionButtonEnabled}"
+                        IsVisible="{Binding !IsProgressOverlayVisible}"
                         Theme="{StaticResource ActionButton}"
-                        Click="OnActionButtonClicked"
-                        Width="280"
-                        Height="90"
-                        FontSize="28"
-                        FontWeight="Bold"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
+                        Width="280" Height="90"
+                        FontSize="28" FontWeight="Bold"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         Cursor="Hand" />
             </Grid>
         </StackPanel>

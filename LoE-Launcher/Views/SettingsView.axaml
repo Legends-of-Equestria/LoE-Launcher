@@ -1,18 +1,12 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="LoE_Launcher.SettingsWindow"
-        Title="Options"
-        Width="340"
-        SizeToContent="Height"
-        WindowStartupLocation="CenterOwner"
-        Background="#9C69B5"
-        TransparencyLevelHint="AcrylicBlur"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="30"
-        CanResize="False"
-        FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LoE_Launcher.ViewModels"
+             x:Class="LoE_Launcher.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             x:CompileBindings="True"
+             FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
 
-    <Window.Styles>
+    <UserControl.Styles>
         <Style Selector="Button.SettingsOptionButton">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -43,7 +37,7 @@
         <Style Selector="Button.SettingsOptionButton:pressed">
             <Setter Property="RenderTransform" Value="scale(0.97)" />
         </Style>
-    </Window.Styles>
+    </UserControl.Styles>
 
     <StackPanel Margin="25,50,25,25" Spacing="15">
         <TextBlock Text="Options"
@@ -53,9 +47,8 @@
                    HorizontalAlignment="Center"
                    Margin="0,0,0,10" />
 
-        <Button x:Name="RepairButton"
-                Classes="SettingsOptionButton"
-                Click="OnRepairGameClicked">
+        <Button Classes="SettingsOptionButton"
+                Command="{Binding RepairGameCommand}">
             <StackPanel Orientation="Vertical" Spacing="0">
                 <TextBlock Text="Repair Game Files"
                            FontSize="15"
@@ -73,9 +66,8 @@
             </StackPanel>
         </Button>
 
-        <Button x:Name="GameLogsButton"
-                Classes="SettingsOptionButton"
-                Click="OnOpenGameLogsClicked">
+        <Button Classes="SettingsOptionButton"
+                Command="{Binding OpenGameLogsCommand}">
             <StackPanel Orientation="Vertical" Spacing="0">
                 <TextBlock Text="Open Game Logs"
                            FontSize="15"
@@ -93,9 +85,8 @@
             </StackPanel>
         </Button>
 
-        <Button x:Name="LogFolderButton"
-                Classes="SettingsOptionButton"
-                Click="OnOpenLogFolderClicked">
+        <Button Classes="SettingsOptionButton"
+                Command="{Binding OpenLauncherLogsCommand}">
             <StackPanel Orientation="Vertical" Spacing="0">
                 <TextBlock Text="Open Launcher Logs"
                            FontSize="15"
@@ -113,9 +104,8 @@
             </StackPanel>
         </Button>
 
-        <Button x:Name="DeleteGameButton"
-                Classes="SettingsOptionButton"
-                Click="OnDeleteGameClicked">
+        <Button Classes="SettingsOptionButton"
+                Command="{Binding DeleteGameCommand}">
             <StackPanel Orientation="Vertical" Spacing="0">
                 <TextBlock Text="Delete Game Files"
                            FontSize="15"
@@ -137,7 +127,7 @@
                     HorizontalAlignment="Center"
                     Spacing="10"
                     Margin="0,5,0,0">
-            <CheckBox x:Name="CloseAfterLaunchCheckBox"
+            <CheckBox IsChecked="{Binding CloseAfterLaunch, Mode=TwoWay}"
                       VerticalAlignment="Center" />
             <TextBlock Text="Close launcher after game launch"
                        FontSize="14"
@@ -145,4 +135,4 @@
                        VerticalAlignment="Center" />
         </StackPanel>
     </StackPanel>
-</Window>
+</UserControl>

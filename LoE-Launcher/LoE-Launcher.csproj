@@ -34,6 +34,8 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">none</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">all</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="NLog" Version="6.0.1" />

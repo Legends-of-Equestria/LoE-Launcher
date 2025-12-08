@@ -1,9 +1,13 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:LoE_Launcher.Utils"
+             xmlns:local="using:LoE_Launcher"
              x:Class="LoE_Launcher.App"
              RequestedThemeVariant="Dark">
 
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+    
     <Application.Styles>
         <FluentTheme />
         
