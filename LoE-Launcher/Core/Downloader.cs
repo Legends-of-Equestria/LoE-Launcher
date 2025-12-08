@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using LoE_Launcher.Services;
@@ -14,7 +13,6 @@ using Models.Utils;
 using Newtonsoft.Json;
 using NLog;
 using Velopack;
-using Velopack.Sources;
 
 namespace LoE_Launcher.Core;
 
@@ -103,14 +101,7 @@ public partial class Downloader
         _network = new NetworkDownloadService(_fileOps);
         _fileUpdate = new FileUpdateService(_fileOps, _network, _hashCache);
 
-        try
-        {
-            _updateManager = new UpdateManager(new GithubSource("https://github.com/Legends-of-Equestria/LoE-Launcher", null, false));
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn(ex, "Failed to initialize UpdateManager, possibly not in a Velopack context (e.g. running in tests).");
-        }
+        _updateManager = VelopackHelper.CreateUpdateManager();
 
         var settingsFile = SettingsFile;
         _settings = settingsFile.Exists

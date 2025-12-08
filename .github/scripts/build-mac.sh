@@ -6,17 +6,19 @@
 set -e
 
 if [ -z "$VERSION" ]; then
-    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
 fi
 
 # Strip leading 'v' (v1.0.0 -> 1.0.0)
 VERSION="${VERSION#v}"
 
-# Check if VERSION is a valid number (e.g. 1.0.0). If not (e.g. 'main'), default to 0.0.0
+# Check if VERSION is a valid number (e.g. 1.0.0). If not (e.g. 'main'), default to 0.0.1
 if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-    echo "⚠️  Version '$VERSION' is not numeric. Defaulting to 0.0.0 for build safety."
-    VERSION="0.0.0"
+    echo "⚠️  Version '$VERSION' is not numeric. Defaulting to 0.0.1 for build safety."
+    VERSION="0.0.1"
 fi
+
+PACK_ID="LoE-Launcher-Mac"
 
 PROJECT_DIR="LoE-Launcher"
 PROJECT_FILE="$PROJECT_DIR/LoE-Launcher.csproj"
@@ -24,6 +26,8 @@ OUTPUT_DIR="$PROJECT_DIR/bin/Release/net8.0/osx-arm64/publish"
 VELOPACK_OUTPUT_DIR="Publish/Mac"
 
 echo "🚀 Starting build for macOS..."
+echo "🔹 Building Version: $VERSION"
+echo "🔹 Pack ID: $PACK_ID"
 
 # Clean previous output
 rm -rf "$PROJECT_DIR/bin/Release"
@@ -61,7 +65,7 @@ fi
 # Velopack packaging
 echo "📦 Packaging with Velopack..."
 vpk pack \
-    --packId "LoE-Launcher" \
+    --packId "$PACK_ID" \
     --packVersion "$VERSION" \
     --packDir "$OUTPUT_DIR" \
     --outputDir "$VELOPACK_OUTPUT_DIR" \

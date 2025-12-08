@@ -11,7 +11,6 @@ using LoE_Launcher.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Velopack;
-using Velopack.Sources;
 
 namespace LoE_Launcher.Services;
 
@@ -20,13 +19,13 @@ public class DialogService : IDialogService
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private readonly IWindowProvider _windowProvider;
     private readonly IServiceProvider _serviceProvider;
-    private readonly UpdateManager _updateManager;
+    private readonly UpdateManager? _updateManager;
 
     public DialogService(IWindowProvider windowProvider, IServiceProvider serviceProvider)
     {
         _windowProvider = windowProvider;
         _serviceProvider = serviceProvider;
-        _updateManager = new UpdateManager(new GithubSource("https://github.com/Legends-of-Equestria/LoE-Launcher", null, false));
+        _updateManager = VelopackHelper.CreateUpdateManager();
     }
 
     private Window? GetOwner() => _windowProvider.GetMainWindow();
@@ -339,6 +338,16 @@ public class DialogService : IDialogService
 
         try
         {
+            if (_updateManager == null)
+            {
+                Logger.Warn("UpdateManager is not available. Cannot perform update.");
+                messageText.Text = "Update system not available.";
+                await Task.Delay(2000);
+                updateDialog.Close();
+                await ShowErrorMessage("Update Unavailable", "The update system is not available in this build.");
+                return;
+            }
+
             var updateInfo = await _updateManager.CheckForUpdatesAsync();
             if (updateInfo == null)
             {
