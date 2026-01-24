@@ -26,12 +26,13 @@ public partial class App : Application
         // Services
         services.AddSingleton<Downloader>();
         services.AddSingleton<CacheManager>(provider => 
-            new CacheManager(
-                Path.Combine(
-                    provider.GetRequiredService<Downloader>().LauncherFolder.Path, 
-                    Constants.CacheDirectoryName)
-                )
-        );
+        {
+            var downloader = provider.GetRequiredService<Downloader>();
+            return new CacheManager(
+                Path.Combine(downloader.LauncherFolder.Path, Constants.CacheDirectoryName),
+                downloader.LauncherSettings
+            );
+        });
         services.AddSingleton<ChangelogParser>();
         services.AddSingleton<IWindowProvider, WindowProvider>();
         services.AddSingleton<IDialogService, DialogService>();

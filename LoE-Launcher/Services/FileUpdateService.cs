@@ -115,8 +115,7 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
         var hashCache = cache.LoadHashCache();
         var hashCacheUpdates = new ConcurrentDictionary<string, FileHashCache>();
 
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+        using var httpClient = network.CreateHttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(5);
 
         if (queue.Count > 0)

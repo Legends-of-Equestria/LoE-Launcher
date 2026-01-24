@@ -97,16 +97,19 @@ public partial class Downloader
         Progress = new ProgressData(this);
 
         _fileOps = new FileOperationsService(_launcherPath.Path);
+        
+        var settingsFile = SettingsFile;
+        _settings = settingsFile.Exists
+            ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path), NetworkDownloadService.JsonSettings) ?? new Settings()
+            : new Settings();
+        
+        _settings.MigrateToHttps();
+
         _hashCache = new HashCacheService(CacheDirectory);
-        _network = new NetworkDownloadService(_fileOps);
+        _network = new NetworkDownloadService(_fileOps, _settings);
         _fileUpdate = new FileUpdateService(_fileOps, _network, _hashCache);
 
         _updateManager = VelopackHelper.CreateUpdateManager();
-
-        var settingsFile = SettingsFile;
-        _settings = settingsFile.Exists
-            ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path), NetworkDownloadService.JsonSettings)
-            : new Settings();
 
         Task.Run(_fileOps.HandlePendingDeletions);
     }

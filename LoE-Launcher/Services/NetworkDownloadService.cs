@@ -15,10 +15,23 @@ using SyncState = zsyncnet.SyncState;
 
 namespace LoE_Launcher.Services;
 
-public class NetworkDownloadService(FileOperationsService fileOps)
+public class NetworkDownloadService(FileOperationsService fileOps, Settings settings)
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int MaxNetworkRetries = 5;
+
+    public HttpClient CreateHttpClient()
+    {
+        HttpClientHandler handler = new HttpClientHandler();
+        if (settings.IgnoreSSLCertificates)
+        {
+            handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+        }
+
+        var client = new HttpClient(handler);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+        return client;
+    }
 
     public static readonly JsonSerializerSettings JsonSettings = new()
     {
@@ -38,9 +51,8 @@ public class NetworkDownloadService(FileOperationsService fileOps)
         {
             try
             {
-                using var client = new HttpClient();
+                using var client = CreateHttpClient();
                 client.Timeout = TimeSpan.FromSeconds(Math.Min(10 + attempt * 5, 30));
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
 
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Min(10 + attempt * 5, 30)));
                 using var response = await client.GetAsync(url, cts.Token);
@@ -119,8 +131,7 @@ public class NetworkDownloadService(FileOperationsService fileOps)
     {
         try
         {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+            using var client = CreateHttpClient();
             client.Timeout = TimeSpan.FromSeconds(30);
 
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -188,8 +199,7 @@ public class NetworkDownloadService(FileOperationsService fileOps)
     {
         Logger.Info($"Attempting zsync for: {fileName}");
 
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+        using var client = CreateHttpClient();
         client.Timeout = TimeSpan.FromMinutes(2);
 
         var downloader = new ProgressReportingRangeDownloader(objUri, client, progressCallback);
@@ -280,9 +290,8 @@ public class NetworkDownloadService(FileOperationsService fileOps)
                 Logger.Info($"Created directory: {directory}");
             }
 
-            using var client = new HttpClient();
+            using var client = CreateHttpClient();
             client.Timeout = TimeSpan.FromMinutes(5);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             using var response = await client.GetAsync(
@@ -404,9 +413,8 @@ public class NetworkDownloadService(FileOperationsService fileOps)
     {
         try
         {
-            using var client = new HttpClient();
+            using var client = CreateHttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
 
             using var response = await client.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead);
 

@@ -7,10 +7,10 @@ namespace LoE_Launcher.Tests;
 public class SettingsTests
 {
     [Theory]
-    [InlineData("1.0.0", "http://patches.legendsofequestria.com/zsync/1.0.0/")]
-    [InlineData("2.5.1", "http://patches.legendsofequestria.com/zsync/2.5.1/")]
-    [InlineData("test-version", "http://patches.legendsofequestria.com/zsync/test-version/")]
-    public void FormatZsyncLocation_ShouldReplaceVersionPlaceholder(string version, string expected)
+    [InlineData("1.0.0", "https://patches.legendsofequestria.com/zsync/1.0.0/")]
+    [InlineData("2.5.1", "https://patches.legendsofequestria.com/zsync/2.5.1/")]
+    [InlineData("test-version", "https://patches.legendsofequestria.com/zsync/test-version/")]
+    public void FormatZsyncLocation_ShouldReturnCorrectUrl(string version, string expected)
     {
         // Arrange
         var settings = new Settings();

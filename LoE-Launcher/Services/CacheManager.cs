@@ -5,10 +5,25 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 
+using LoE_Launcher.Core;
+
 namespace LoE_Launcher.Services;
 
-public class CacheManager(string cacheDirectory)
+public class CacheManager(string cacheDirectory, Settings settings)
 {
+    private HttpClient CreateHttpClient()
+    {
+        HttpClientHandler handler = new HttpClientHandler();
+        if (settings.IgnoreSSLCertificates)
+        {
+            handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+        }
+
+        var client = new HttpClient(handler);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
+        return client;
+    }
+
     public async Task<Bitmap?> LoadCachedImageImmediately(string cacheFileName)
     {
         var cachePath = Path.Combine(cacheDirectory, cacheFileName);
@@ -37,7 +52,7 @@ public class CacheManager(string cacheDirectory)
 
         try
         {
-            using var client = new HttpClient();
+            using var client = CreateHttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
 
             if (File.Exists(cachePath))
@@ -120,7 +135,7 @@ public class CacheManager(string cacheDirectory)
 
         try
         {
-            using var client = new HttpClient();
+            using var client = CreateHttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
 
             if (File.Exists(cachePath))
