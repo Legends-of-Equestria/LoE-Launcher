@@ -360,7 +360,7 @@ public class DialogService : IDialogService
             messageText.Text = $"Downloading update {updateInfo.TargetFullRelease.Version}...";
             await _updateManager.DownloadUpdatesAsync(updateInfo, progress =>
             {
-                progressBar.Value = progress;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => progressBar.Value = progress);
             });
 
             messageText.Text = "Applying update and restarting...";
