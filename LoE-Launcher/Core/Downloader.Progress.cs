@@ -1,4 +1,5 @@
-﻿using Models.Utils;
+using System.Threading;
+using Models.Utils;
 
 namespace LoE_Launcher.Core;
 
@@ -46,7 +47,12 @@ partial class Downloader
 
     public class InstallingProgress(Downloader model) : ProgressData(model)
     {
-        public string FlavorText { get; set; }
+        private string _flavorText = string.Empty;
+        public string FlavorText
+        {
+            get => Volatile.Read(ref _flavorText);
+            set => Volatile.Write(ref _flavorText, value ?? string.Empty);
+        }
 
         protected override string GetText()
         {

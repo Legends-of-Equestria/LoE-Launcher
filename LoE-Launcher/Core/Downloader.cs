@@ -20,12 +20,16 @@ public partial class Downloader
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int OfflineRetryIntervalSeconds = 30;
-    private static readonly VersionInfo CurrentLauncherVersion = new() { Major = 1, Minor = 2, Build = 0, Revision = 0 };
+
+    private static readonly VersionInfo
+        CurrentLauncherVersion = new() { Major = 1, Minor = 2, Build = 2, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();
+
     private readonly IAbsoluteDirectoryPath _launcherPath =
         GetLauncherDirectory().ToAbsoluteDirectoryPathAuto();
+
     private readonly Settings _settings;
 
     private readonly FileOperationsService _fileOps;
@@ -37,6 +41,8 @@ public partial class Downloader
     private string _versionDownload = "";
     private GameState _state = GameState.Unknown;
     private Timer? _offlineRetryTimer;
+    private readonly SemaphoreSlim _refreshStateGate = new(1, 1);
+    private readonly SemaphoreSlim _offlineRetryCheckGate = new(1, 1);
 
     public DownloadData _data = null;
     public ProgressData Progress { get; private set; }
@@ -66,6 +72,7 @@ public partial class Downloader
                 Logger.Warn("Attempting to use ZsyncLocation with invalid version");
                 return string.Empty;
             }
+
             return _settings.FormatZsyncLocation(_versionDownload);
         }
     }
@@ -97,12 +104,13 @@ public partial class Downloader
         Progress = new ProgressData(this);
 
         _fileOps = new FileOperationsService(_launcherPath.Path);
-        
+
         var settingsFile = SettingsFile;
         _settings = settingsFile.Exists
-            ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path), NetworkDownloadService.JsonSettings) ?? new Settings()
+            ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path),
+                NetworkDownloadService.JsonSettings) ?? new Settings()
             : new Settings();
-        
+
         _settings.MigrateToHttps();
 
         _hashCache = new HashCacheService(CacheDirectory);
@@ -116,131 +124,144 @@ public partial class Downloader
 
     public async Task RefreshState()
     {
+        await _refreshStateGate.WaitAsync();
         try
         {
-            Logger.Info("Beginning game state refresh");
-
-            _state = GameState.Unknown;
-            Progress = new RefreshProgress(this) { Marquee = true };
-
-            using (new Processing(Progress))
+            try
             {
-                try
+                Logger.Info("Beginning game state refresh");
+
+                _state = GameState.Unknown;
+                Progress = new RefreshProgress(this) { Marquee = true };
+
+                using (new Processing(Progress))
                 {
-                    await CheckLauncherVersion();
-
-                    if (_state == GameState.LauncherOutOfDate)
+                    try
                     {
-                        Logger.Warn("Launcher is out of date, stopping refresh");
-                        return;
-                    }
+                        await CheckLauncherVersion();
 
-                    await GetVersion();
-
-                    if (_state == GameState.Offline)
-                    {
-                        Logger.Warn("Offline state detected after version check, exiting refresh");
-                        return;
-                    }
-
-                    if (string.IsNullOrEmpty(_versionDownload) || _versionDownload == "default")
-                    {
-                        Logger.Warn("No valid version path available, marking as offline but allowing local gameplay");
-
-                        if (GameInstallFolder.Exists && File.Exists(Path.Combine(GameInstallFolder.Path, "loe.exe")))
+                        if (_state == GameState.LauncherOutOfDate)
                         {
-                            Logger.Info("Found existing game installation, allowing launch in offline mode");
+                            Logger.Warn("Launcher is out of date, stopping refresh");
+                            return;
+                        }
+
+                        await GetVersion();
+
+                        if (_state == GameState.Offline)
+                        {
+                            Logger.Warn("Offline state detected after version check, exiting refresh");
+                            return;
+                        }
+
+                        if (string.IsNullOrEmpty(_versionDownload) || _versionDownload == "default")
+                        {
+                            Logger.Warn(
+                                "No valid version path available, marking as offline but allowing local gameplay");
+
+                            if (GameInstallFolder.Exists &&
+                                File.Exists(Path.Combine(GameInstallFolder.Path, "loe.exe")))
+                            {
+                                Logger.Info("Found existing game installation, allowing launch in offline mode");
+                                _state = GameState.UpToDate;
+                            }
+                            else
+                            {
+                                Logger.Warn("No existing installation found, setting to offline mode");
+                                _state = GameState.Offline;
+                            }
+
+                            return;
+                        }
+
+                        var url = new Uri(ZsyncLocation + ".zsync-control.jar");
+                        Logger.Info($"Downloading control file from: {url}");
+
+                        var data = await _fileUpdate.DownloadMainControlFile(url, Progress, GameInstallFolder,
+                            state => _state = state);
+                        if (data == null)
+                        {
+                            Logger.Warn("Control file data is null, likely offline or server issue");
+                            if (_state != GameState.ServerMaintenance)
+                            {
+                                _state = GameState.Offline;
+                            }
+
+                            return;
+                        }
+
+                        _data = data;
+
+                        if (_data.ControlFile.RootUri == null)
+                        {
+                            _data.ControlFile.RootUri = new Uri(ZsyncLocation);
+                        }
+
+                        if (_data.ToProcess.Count == 0)
+                        {
+                            Logger.Info("No files to process, game is up to date");
                             _state = GameState.UpToDate;
+                            return;
                         }
-                        else
+
+                        Logger.Info($"Need to process {_data.ToProcess.Count} files");
+
+                        if (!GameInstallFolder.Exists)
                         {
-                            Logger.Warn("No existing installation found, setting to offline mode");
-                            _state = GameState.Offline;
+                            Logger.Info($"Game folder doesn't exist: {GameInstallFolder.Path}");
+                            _state = GameState.NotFound;
+                            return;
                         }
-                        return;
+
+                        Logger.Info("Update available");
+                        _state = GameState.UpdateAvailable;
                     }
-
-                    var url = new Uri(ZsyncLocation + ".zsync-control.jar");
-                    Logger.Info($"Downloading control file from: {url}");
-
-                    var data = await _fileUpdate.DownloadMainControlFile(url, Progress, GameInstallFolder, state => _state = state);
-                    if (data == null)
+                    catch (UriFormatException uriEx)
                     {
-                        Logger.Warn("Control file data is null, likely offline or server issue");
-                        if (_state != GameState.ServerMaintenance)
-                        {
-                            _state = GameState.Offline;
-                        }
-                        return;
+                        Logger.Error(uriEx, "Invalid URI format");
+                        _state = GameState.Offline;
                     }
-
-                    _data = data;
-
-                    if (_data.ControlFile.RootUri == null)
+                    catch (HttpRequestException httpEx)
                     {
-                        _data.ControlFile.RootUri = new Uri(ZsyncLocation);
+                        Logger.Error(httpEx, "HTTP request failed");
+                        _state = GameState.Offline;
                     }
-
-                    if (_data.ToProcess.Count == 0)
+                    catch (TaskCanceledException tcEx)
                     {
-                        Logger.Info("No files to process, game is up to date");
-                        _state = GameState.UpToDate;
-                        return;
+                        Logger.Error(tcEx, "Network request timed out");
+                        _state = GameState.Offline;
                     }
-
-                    Logger.Info($"Need to process {_data.ToProcess.Count} files");
-
-                    if (!GameInstallFolder.Exists)
+                    catch (Exception innerEx)
                     {
-                        Logger.Info($"Game folder doesn't exist: {GameInstallFolder.Path}");
-                        _state = GameState.NotFound;
-                        return;
+                        Logger.Error(innerEx, "Error during state refresh");
+                        _state = GameState.Unknown;
+                        throw;
                     }
-
-                    Logger.Info("Update available");
-                    _state = GameState.UpdateAvailable;
-                }
-                catch (UriFormatException uriEx)
-                {
-                    Logger.Error(uriEx, "Invalid URI format");
-                    _state = GameState.Offline;
-                }
-                catch (HttpRequestException httpEx)
-                {
-                    Logger.Error(httpEx, "HTTP request failed");
-                    _state = GameState.Offline;
-                }
-                catch (TaskCanceledException tcEx)
-                {
-                    Logger.Error(tcEx, "Network request timed out");
-                    _state = GameState.Offline;
-                }
-                catch (Exception innerEx)
-                {
-                    Logger.Error(innerEx, "Error during state refresh");
-                    _state = GameState.Unknown;
-                    throw;
                 }
             }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "RefreshState failed with an unhandled exception");
-            _state = GameState.Unknown;
+            catch (Exception e)
+            {
+                Logger.Error(e, "RefreshState failed with an unhandled exception");
+                _state = GameState.Unknown;
+            }
+            finally
+            {
+                Logger.Info($"State refresh completed. Final state: {_state}");
+                Progress.Complete();
+
+                if (_state == GameState.Offline)
+                {
+                    StartOfflineRetryTimer();
+                }
+                else
+                {
+                    StopOfflineRetryTimer();
+                }
+            }
         }
         finally
         {
-            Logger.Info($"State refresh completed. Final state: {_state}");
-            Progress.Complete();
-
-            if (_state == GameState.Offline)
-            {
-                StartOfflineRetryTimer();
-            }
-            else
-            {
-                StopOfflineRetryTimer();
-            }
+            _refreshStateGate.Release();
         }
     }
 
@@ -275,7 +296,9 @@ public partial class Downloader
 
         try
         {
-            var launcherVersionInfo = await _network.DownloadJson<LauncherVersionInfo>(new Uri(_settings.LauncherVersionUrl), state => _state = state);
+            var launcherVersionInfo =
+                await _network.DownloadJson<LauncherVersionInfo>(new Uri(_settings.LauncherVersionUrl),
+                    state => _state = state);
 
             if (launcherVersionInfo == null)
             {
@@ -338,6 +361,7 @@ public partial class Downloader
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
         Logger.Info($"Using version download path: {_versionDownload}");
     }
 
@@ -368,7 +392,8 @@ public partial class Downloader
             Progress = new InstallingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
-                await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress, state => _state = state, 3);
+                await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress,
+                    state => _state = state, 3);
             }
 
             Logger.Info("Installation completed, running cleanup");
@@ -434,7 +459,8 @@ public partial class Downloader
 
         using (new Processing(Progress))
         {
-            await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress, state => _state = state, 3);
+            await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress,
+                state => _state = state, 3);
         }
     }
 
@@ -457,6 +483,7 @@ public partial class Downloader
                     {
                         throw;
                     }
+
                     Logger.Warn($"Files still in use during cleanup, retry {i + 1}/{maxRetries}");
                     await Task.Delay(1000 * (i + 1));
                 }
@@ -485,13 +512,15 @@ public partial class Downloader
                 if (_state == GameState.Offline)
                 {
                     Logger.Warn("Cannot repair in offline mode");
-                    throw new InvalidOperationException("Cannot repair game files while offline. Please check your internet connection.");
+                    throw new InvalidOperationException(
+                        "Cannot repair game files while offline. Please check your internet connection.");
                 }
 
                 var url = new Uri($"{ZsyncLocation}.zsync-control.jar");
                 Logger.Info($"Downloading control file from: {url}");
 
-                var data = await _fileUpdate.DownloadMainControlFile(url, Progress, GameInstallFolder, state => _state = state);
+                var data = await _fileUpdate.DownloadMainControlFile(url, Progress, GameInstallFolder,
+                    state => _state = state);
                 if (data == null)
                 {
                     throw new InvalidOperationException("Failed to download game verification data.");
@@ -574,6 +603,12 @@ public partial class Downloader
         Logger.Info($"Starting offline retry timer (checks every {OfflineRetryIntervalSeconds} seconds)");
         _offlineRetryTimer = new Timer(async _ =>
         {
+            if (!await _offlineRetryCheckGate.WaitAsync(0))
+            {
+                Logger.Debug("Offline retry check already in progress, skipping this tick");
+                return;
+            }
+
             try
             {
                 Logger.Info("Offline retry timer triggered, checking connectivity");
@@ -582,6 +617,10 @@ public partial class Downloader
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error during offline retry check");
+            }
+            finally
+            {
+                _offlineRetryCheckGate.Release();
             }
         }, null, TimeSpan.FromSeconds(OfflineRetryIntervalSeconds), TimeSpan.FromSeconds(OfflineRetryIntervalSeconds));
     }
@@ -628,6 +667,7 @@ public enum GameState
 public class Processing : IDisposable
 {
     private readonly ProgressData _state;
+
     public Processing(ProgressData state)
     {
         _state = state;
