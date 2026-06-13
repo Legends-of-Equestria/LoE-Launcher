@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:LoE_Launcher.ViewModels"
         xmlns:models="using:LoE_Launcher.Models"
+        xmlns:utils="using:LoE_Launcher.Utils"
         mc:Ignorable="d"
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="True"
@@ -20,109 +21,119 @@
         FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
 
     <Window.Styles>
-        <Style Selector="Button">
-            <Setter Property="Transitions">
-                <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
-                </Transitions>
-            </Setter>
-        </Style>
         <Style Selector="Button.SocialButton">
-            <Setter Property="Background" Value="#80000000" />
             <Setter Property="Width" Value="50" />
             <Setter Property="Height" Value="50" />
             <Setter Property="CornerRadius" Value="25" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="PART_GlassBorder"
+                            Background="#601A1028"
+                            CornerRadius="25"
+                            BorderThickness="1"
+                            BorderBrush="#80f0be4a">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.SocialButton:pointerover /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#801A1028" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
         </Style>
         <Style Selector="Button.SocialButton:pointerover">
-            <Setter Property="Background" Value="#66FFFFFF" />
-            <Setter Property="RenderTransform" Value="scale(1.05)" />
+            <Setter Property="RenderTransform" Value="scale(1.08)" />
+        </Style>
+        <Style Selector="Button.SocialButton:pressed /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#451A1028" />
+            <Setter Property="BorderBrush" Value="#CCf0be4a" />
         </Style>
         <Style Selector="Button.SocialButton:pressed">
-            <Setter Property="Background" Value="#22FFFFFF" />
-            <Setter Property="RenderTransform" Value="scale(0.95)" />
+            <Setter Property="RenderTransform" Value="scale(0.92)" />
         </Style>
+
         <Style Selector="Button.SettingsButton">
             <Setter Property="Width" Value="70" />
             <Setter Property="Height" Value="70" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
                         <Border x:Name="PART_Border"
-                                Background="#9C69B5"
+                                Background="#781A1028"
                                 CornerRadius="35"
-                                BorderThickness="0">
+                                BorderThickness="1"
+                                BorderBrush="#80f0be4a">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                                </Transitions>
+                            </Border.Transitions>
                             <Image x:Name="PART_Icon"
                                    Width="36" Height="36"
                                    Source="avares://LoE-Launcher/Assets/Gear.png"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
-                                   Opacity="1.0">
+                                   Opacity="0.9">
                                 <Image.Transitions>
                                     <Transitions>
-                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
                                     </Transitions>
                                 </Image.Transitions>
                             </Image>
                         </Border>
-                        
-                        <Rectangle x:Name="TintLayer"
-                                   Fill="Transparent"
-                                   RadiusX="35"
-                                   RadiusY="35"
-                                   Opacity="0"
-                                   IsHitTestVisible="False">
-                            <Rectangle.Transitions>
-                                <Transitions>
-                                    <BrushTransition Property="Fill" Duration="0:0:0.2" />
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-                                </Transitions>
-                            </Rectangle.Transitions>
-                        </Rectangle>
                     </Grid>
                 </ControlTemplate>
             </Setter>
         </Style>
-        
-        <Style Selector="Button.SettingsButton:not(:pointerover):not(:pressed) /template/ Rectangle#TintLayer">
-            <Setter Property="Fill" Value="Transparent" />
-            <Setter Property="Opacity" Value="0" />
+        <Style Selector="Button.SettingsButton:pointerover /template/ Border#PART_Border">
+            <Setter Property="Background" Value="#981A1028" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
         </Style>
-        
         <Style Selector="Button.SettingsButton:pointerover /template/ Image#PART_Icon">
-            <Setter Property="Opacity" Value="0.95" />
-        </Style>
-        <Style Selector="Button.SettingsButton:pointerover /template/ Rectangle#TintLayer">
-            <Setter Property="Fill" Value="#FFFFFF" />
-            <Setter Property="Opacity" Value="0.4" />
+            <Setter Property="Opacity" Value="1.0" />
         </Style>
         <Style Selector="Button.SettingsButton:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.03)" />
+            <Setter Property="RenderTransform" Value="scale(1.08)" />
         </Style>
-        
+        <Style Selector="Button.SettingsButton:pressed /template/ Border#PART_Border">
+            <Setter Property="Background" Value="#551A1028" />
+            <Setter Property="BorderBrush" Value="#CCf0be4a" />
+        </Style>
         <Style Selector="Button.SettingsButton:pressed /template/ Image#PART_Icon">
-            <Setter Property="Opacity" Value="0.85" />
-        </Style>
-        <Style Selector="Button.SettingsButton:pressed /template/ Rectangle#TintLayer">
-            <Setter Property="Fill" Value="#000000" />
-            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="Opacity" Value="0.7" />
         </Style>
         <Style Selector="Button.SettingsButton:pressed">
-            <Setter Property="RenderTransform" Value="scale(0.97)" />
+            <Setter Property="RenderTransform" Value="scale(0.92)" />
         </Style>
+
         <Style Selector="Border.InfoPanel">
-            <Setter Property="Background" Value="#80000000" />
+            <Setter Property="Background" Value="#801A1028" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="BoxShadow" Value="0 4 20 0 #50000000" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.2" />
@@ -130,74 +141,35 @@
                 </Transitions>
             </Setter>
         </Style>
-        
+
+        <!-- Scrollbar theme overrides -->
         <Style Selector="ScrollViewer.ChangelogScroll">
-            <Setter Property="Padding" Value="0,0,6,0" />
+            <Style.Resources>
+                <SolidColorBrush x:Key="ScrollBarThumbFill" Color="#99f0be4a" />
+                <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#f0be4a" />
+                <SolidColorBrush x:Key="ScrollBarThumbFillPressed" Color="#DDf0be4a" />
+                <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+                <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
+                <SolidColorBrush x:Key="ScrollBarPanningThumbBackground" Color="#99f0be4a" />
+                <x:Double x:Key="ScrollBarSize">8</x:Double>
+            </Style.Resources>
+            <Setter Property="Padding" Value="0,0,2,0" />
         </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar">
-            <Setter Property="Background" Value="#30FFFFFF" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
-            <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="Margin" Value="0,2,2,2" />
-        </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Border#PART_Border">
-            <Setter Property="Background" Value="#30FFFFFF" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="0" />
-        </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ RepeatButton">
-            <Setter Property="Background" Value="#30FFFFFF" />
-        </Style>
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Grid">
-            <Setter Property="Background" Value="#30FFFFFF" />
-        </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar Border">
-            <Setter Property="Background" Value="#30FFFFFF" />
-            <Setter Property="CornerRadius" Value="0" />
-        </Style>
-        
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar:vertical">
-            <Setter Property="Width" Value="14" />
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Margin" Value="0,4,3,4" />
         </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb">
-            <Setter Property="Background" Value="#CCf0be4a" />
-            <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#FFFFFF" />
-            <Setter Property="Margin" Value="1" />
-            <Setter Property="MinHeight" Value="20" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.2" />
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
-                </Transitions>
-            </Setter>
-        </Style>
-        
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb /template/ Border">
-            <Setter Property="Background" Value="#CCf0be4a" />
-            <Setter Property="CornerRadius" Value="0" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#FFFFFF" />
+            <Setter Property="Background" Value="#99f0be4a" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="0" />
         </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pointerover">
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pointerover /template/ Border">
             <Setter Property="Background" Value="#f0be4a" />
-            <Setter Property="BorderBrush" Value="#FFFFFF" />
         </Style>
-        
-        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pressed">
-            <Setter Property="Background" Value="#f0be4a" />
-            <Setter Property="BorderBrush" Value="#FFFFFF" />
+        <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pressed /template/ Border">
+            <Setter Property="Background" Value="#DDf0be4a" />
         </Style>
-        
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ RepeatButton">
             <Setter Property="IsVisible" Value="False" />
         </Style>
@@ -295,39 +267,21 @@
             <Grid RowDefinitions="Auto,*">
                 <TextBlock Grid.Row="0"
                            Text="Changelog"
-                           FontSize="24" FontWeight="Bold"
-                           Foreground="White"
+                           FontSize="20" FontWeight="Bold"
+                           Foreground="#f0be4a"
                            HorizontalAlignment="Center"
-                           Margin="0,0,0,15" />
+                           Margin="0,0,0,12" />
 
                 <ScrollViewer Grid.Row="1"
                               Classes="ChangelogScroll"
                               VerticalScrollBarVisibility="Visible"
                               HorizontalScrollBarVisibility="Disabled"
                               AllowAutoHide="False">
-                    <ItemsControl ItemsSource="{Binding ChangelogLines}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="models:ChangelogLine">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Text}"
-                                               IsVisible="{Binding IsHeader}"
-                                               FontSize="16"
-                                               FontWeight="Bold"
-                                               Foreground="White"
-                                               TextWrapping="Wrap"
-                                               Margin="0,8,0,4" />
-                                    <TextBlock Text="{Binding Text}"
-                                               IsVisible="{Binding IsBullet}"
-                                               FontSize="14"
-                                               Foreground="#F0FFFFFF"
-                                               TextWrapping="Wrap"
-                                               Margin="0,1,0,1" />
-                                    <Panel Height="8"
-                                           IsVisible="{Binding IsEmpty}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <SelectableTextBlock utils:ChangelogTextHelper.Source="{Binding ChangelogLines}"
+                                         TextWrapping="Wrap"
+                                         Padding="0,0,6,0"
+                                         LineHeight="20"
+                                         SelectionBrush="#50f0be4a" />
                 </ScrollViewer>
             </Grid>
         </Border>
@@ -359,9 +313,8 @@
                                Text="{Binding ProgressPercentageText}"
                                FontSize="32" FontWeight="Bold"
                                Foreground="White"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                               TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
-                    
+                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+
                     <StackPanel Grid.Column="1"
                                 VerticalAlignment="Center"
                                 HorizontalAlignment="Left"
@@ -370,13 +323,11 @@
                         <TextBlock Text="{Binding DownloadSpeedText}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="White"
-                                   HorizontalAlignment="Left" TextAlignment="Left"
-                                   TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
+                                   HorizontalAlignment="Left" TextAlignment="Left" />
                         <TextBlock Text="{Binding DownloadStatusText}"
                                    FontSize="14" FontWeight="Medium"
                                    Foreground="#E0FFFFFF"
-                                   HorizontalAlignment="Left" TextAlignment="Left"
-                                   TextElement.FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif" />
+                                   HorizontalAlignment="Left" TextAlignment="Left" />
                     </StackPanel>
                 </Grid>
 

@@ -12,30 +12,66 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Height" Value="55" />
-            <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Background" Value="#30FFFFFF" />
             <Setter Property="Padding" Value="20,12" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
                 </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="PART_GlassBorder"
+                            Background="#18FFFFFF"
+                            CornerRadius="10"
+                            BorderThickness="1"
+                            BorderBrush="#80f0be4a"
+                            Padding="{TemplateBinding Padding}">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.15" />
+                                <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
             </Setter>
         </Style>
 
+        <Style Selector="Button.SettingsOptionButton:pointerover /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#30FFFFFF" />
+            <Setter Property="BorderBrush" Value="#f0be4a" />
+        </Style>
         <Style Selector="Button.SettingsOptionButton:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.03)" />
         </Style>
-
         <Style Selector="Button.SettingsOptionButton:not(:pointerover)">
             <Setter Property="RenderTransform" Value="scale(1.0)" />
         </Style>
-
+        <Style Selector="Button.SettingsOptionButton:pressed /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#0CFFFFFF" />
+            <Setter Property="BorderBrush" Value="#CCf0be4a" />
+        </Style>
         <Style Selector="Button.SettingsOptionButton:pressed">
             <Setter Property="RenderTransform" Value="scale(0.97)" />
+        </Style>
+
+        <Style Selector="Button.SettingsOptionButton.danger /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#20FF4433" />
+            <Setter Property="BorderBrush" Value="#CC6655" />
+        </Style>
+        <Style Selector="Button.SettingsOptionButton.danger:pointerover /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#35FF4433" />
+            <Setter Property="BorderBrush" Value="#EE6655" />
+        </Style>
+        <Style Selector="Button.SettingsOptionButton.danger:pressed /template/ Border#PART_GlassBorder">
+            <Setter Property="Background" Value="#12FF4433" />
+            <Setter Property="BorderBrush" Value="#AA6655" />
         </Style>
     </UserControl.Styles>
 
@@ -43,7 +79,7 @@
         <TextBlock Text="Options"
                    FontSize="22"
                    FontWeight="Bold"
-                   Foreground="White"
+                   Foreground="#f0be4a"
                    HorizontalAlignment="Center"
                    Margin="0,0,0,10" />
 
@@ -104,7 +140,7 @@
             </StackPanel>
         </Button>
 
-        <Button Classes="SettingsOptionButton"
+        <Button Classes="SettingsOptionButton danger"
                 Command="{Binding DeleteGameCommand}">
             <StackPanel Orientation="Vertical" Spacing="0">
                 <TextBlock Text="Delete Game Files"

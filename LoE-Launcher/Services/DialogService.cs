@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using LoE_Launcher.Core;
 using LoE_Launcher.Utils;
 using LoE_Launcher.ViewModels;
@@ -30,20 +31,24 @@ public class DialogService : IDialogService
 
     private Window? GetOwner() => _windowProvider.GetMainWindow();
 
+    private static ControlTheme GlassDialogButton =>
+        (ControlTheme)Application.Current!.Resources["GlassDialogButton"]!;
+
+    private static Window CreateDialogWindow(string title, double width = 350) => new Window
+    {
+        Title = title,
+        Width = width,
+        SizeToContent = SizeToContent.Height,
+        Background = new SolidColorBrush(Color.Parse("#F21A1028")),
+        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        CanResize = false,
+        FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif")
+    };
+
     public async Task<bool> ShowConfirmDialog(string title, string message)
     {
         var result = false;
-        var confirmBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
+        var confirmBox = CreateDialogWindow(title);
 
         var panel = new StackPanel
         {
@@ -72,12 +77,12 @@ public class DialogService : IDialogService
             Content = "Yes",
             Width = 100,
             Height = 38,
-            CornerRadius = new CornerRadius(19),
+            CornerRadius = new CornerRadius(8),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#D686D2")),
-            FontWeight = FontWeight.Medium
+            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
+            BorderThickness = new Thickness(1),
+            Theme = GlassDialogButton
         };
 
         var noButton = new Button
@@ -85,12 +90,12 @@ public class DialogService : IDialogService
             Content = "No",
             Width = 100,
             Height = 38,
-            CornerRadius = new CornerRadius(19),
+            CornerRadius = new CornerRadius(8),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = new SolidColorBrush(Color.Parse("#7A68B5")),
-            FontWeight = FontWeight.Medium
+            BorderBrush = new SolidColorBrush(Color.Parse("#80f0be4a")),
+            BorderThickness = new Thickness(1),
+            Theme = GlassDialogButton
         };
 
         yesButton.Click += (s, e) =>
@@ -107,10 +112,8 @@ public class DialogService : IDialogService
 
         buttonPanel.Children.Add(yesButton);
         buttonPanel.Children.Add(noButton);
-
         panel.Children.Add(messageText);
         panel.Children.Add(buttonPanel);
-
         confirmBox.Content = panel;
 
         await confirmBox.ShowDialog(GetOwner()!);
@@ -119,17 +122,7 @@ public class DialogService : IDialogService
 
     public async Task ShowInfoMessage(string title, string message)
     {
-        var messageBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
+        var messageBox = CreateDialogWindow(title);
 
         var panel = new StackPanel
         {
@@ -151,20 +144,19 @@ public class DialogService : IDialogService
             Content = "OK",
             Width = 120,
             Height = 38,
-            CornerRadius = new CornerRadius(19),
+            CornerRadius = new CornerRadius(8),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = BrushFactory.CreateVerticalGradient("#D686D2", "#9C69B5"),
             HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeight.Medium
+            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
+            BorderThickness = new Thickness(1),
+            Theme = GlassDialogButton
         };
 
         okButton.Click += (s, e) => messageBox.Close();
 
         panel.Children.Add(messageText);
         panel.Children.Add(okButton);
-
         messageBox.Content = panel;
 
         await messageBox.ShowDialog(GetOwner()!);
@@ -172,17 +164,7 @@ public class DialogService : IDialogService
 
     public async Task ShowErrorMessage(string title, string message)
     {
-        var messageBox = new Window
-        {
-            Title = title,
-            Width = 350,
-            SizeToContent = SizeToContent.Height,
-            Background = new SolidColorBrush(Color.Parse("#9381BD")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
+        var messageBox = CreateDialogWindow(title);
 
         var panel = new StackPanel
         {
@@ -204,20 +186,19 @@ public class DialogService : IDialogService
             Content = "OK",
             Width = 120,
             Height = 38,
-            CornerRadius = new CornerRadius(19),
+            CornerRadius = new CornerRadius(8),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
-            Foreground = Brushes.White,
-            Background = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336"),
             HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeight.Medium
+            BorderBrush = new SolidColorBrush(Color.Parse("#E05555")),
+            BorderThickness = new Thickness(1),
+            Theme = GlassDialogButton
         };
 
         okButton.Click += (s, e) => messageBox.Close();
 
         panel.Children.Add(messageText);
         panel.Children.Add(okButton);
-
         messageBox.Content = panel;
 
         await messageBox.ShowDialog(GetOwner()!);
@@ -225,15 +206,9 @@ public class DialogService : IDialogService
 
     public async Task ShowGameLogsNotFoundDialog()
     {
-        var messageBox = new Window
-        {
-            Title = "Game Logs Not Found",
-            Width = 300,
-            Height = 150,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-            CanResize = false
-        };
+        var messageBox = CreateDialogWindow("Game Logs Not Found", width: 300);
+        messageBox.SizeToContent = SizeToContent.Manual;
+        messageBox.Height = 150;
 
         var messagePanel = new StackPanel
         {
@@ -257,12 +232,14 @@ public class DialogService : IDialogService
         {
             Content = "OK",
             Width = 80,
-            Height = 30,
+            Height = 32,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Background = new SolidColorBrush(Color.Parse("#B37DC7")),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(5)
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Theme = GlassDialogButton
         };
 
         okButton.Click += (s, e) => messageBox.Close();
@@ -276,18 +253,7 @@ public class DialogService : IDialogService
 
     public async Task ShowLauncherUpdateDialog()
     {
-        var updateDialog = new Window
-        {
-            Title = "Launcher Update",
-            Width = 450,
-            SizeToContent = SizeToContent.Height,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
-            CanResize = false
-        };
+        var updateDialog = CreateDialogWindow("Launcher Update", width: 450);
 
         var contentPanel = new StackPanel
         {
@@ -301,7 +267,7 @@ public class DialogService : IDialogService
             Text = "Updating Launcher...",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = Brushes.White,
+            Foreground = new SolidColorBrush(Color.Parse("#f0be4a")),
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 0, 0, 10)
         };
@@ -327,11 +293,10 @@ public class DialogService : IDialogService
             IsIndeterminate = false,
             Margin = new Thickness(0, 10, 0, 10)
         };
-        
+
         contentPanel.Children.Add(titleText);
         contentPanel.Children.Add(messageText);
         contentPanel.Children.Add(progressBar);
-
         updateDialog.Content = contentPanel;
 
         _ = updateDialog.ShowDialog(GetOwner()!);
@@ -352,7 +317,7 @@ public class DialogService : IDialogService
             if (updateInfo == null)
             {
                 messageText.Text = "No updates found, closing dialog.";
-                await Task.Delay(1500); // Give user time to read
+                await Task.Delay(1500);
                 updateDialog.Close();
                 return;
             }
@@ -371,12 +336,12 @@ public class DialogService : IDialogService
             Logger.Error(ex, "Failed to update launcher.");
             messageText.Text = $"Update failed: {ex.Message}";
             progressBar.IsIndeterminate = true;
-            await Task.Delay(3000); // Give user time to read error
+            await Task.Delay(3000);
             updateDialog.Close();
             await ShowErrorMessage("Update Failed", "Failed to update the launcher. Please try again later.");
         }
     }
-    
+
     public async Task ShowSettingsWindowAsync()
     {
         var viewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
@@ -386,58 +351,14 @@ public class DialogService : IDialogService
             Width = 340,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#9C69B5")),
-            TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
-            ExtendClientAreaToDecorationsHint = true,
-            ExtendClientAreaTitleBarHeightHint = 30,
+            Background = new SolidColorBrush(Color.Parse("#F21A1028")),
             CanResize = false,
+            FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif"),
             Content = viewModel
         };
 
         viewModel.CloseAction = settingsWindow.Close;
-        
+
         await settingsWindow.ShowDialog(GetOwner()!);
-    }
-    
-    private static Button CreateCustomButton(string text, string normalColor, string hoverColor, int width)
-    {
-        var normalBrush = new SolidColorBrush(Color.Parse(normalColor));
-        var hoverBrush = new SolidColorBrush(Color.Parse(hoverColor));
-
-        var border = new Border
-        {
-            Background = normalBrush,
-            CornerRadius = new CornerRadius(8),
-            BorderThickness = new Thickness(0),
-            Width = width,
-            Height = 40,
-            Child = new TextBlock
-            {
-                Text = text,
-                Foreground = Brushes.White,
-                FontWeight = FontWeight.SemiBold,
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        var button = new Button
-        {
-            Content = border,
-            Width = width,
-            Height = 40,
-            Cursor = new Cursor(StandardCursorType.Hand),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(0)
-        };
-
-        button.PointerEntered += (s, args) => border.Background = hoverBrush;
-        button.PointerExited += (s, args) => border.Background = normalBrush;
-        button.PointerPressed += (s, args) => border.Background = new SolidColorBrush(Color.Parse(normalColor)) { Opacity = 0.8 };
-        button.PointerReleased += (s, args) => border.Background = hoverBrush;
-
-        return button;
     }
 }
