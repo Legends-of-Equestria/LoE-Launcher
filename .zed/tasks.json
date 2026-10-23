@@ -1,0 +1,9 @@
+[
+  { "label": "Build", "command": "dotnet build LoE-Launcher.sln" },
+  { "label": "Test", "command": "dotnet test LoE-Launcher.Tests" },
+  { "label": "Test current file", "command": "dotnet test LoE-Launcher.Tests --filter FullyQualifiedName~$ZED_STEM" },
+  { "label": "Run launcher (live)", "command": "python tools/dev-server/devtest.py run live" },
+  { "label": "Run launcher (local dev server)", "command": "python tools/dev-server/devtest.py run dev" },
+  { "label": "Dev server: start", "command": "python tools/dev-server/devtest.py serve" },
+  { "label": "Dev server: publish fake build", "command": "python tools/dev-server/devtest.py publish-fake" }
+]

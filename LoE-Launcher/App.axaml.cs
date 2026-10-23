@@ -40,6 +40,7 @@ public partial class App : Application
         // ViewModels
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<TesterAccessViewModel>();
     }
 
     public override void OnFrameworkInitializationCompleted()

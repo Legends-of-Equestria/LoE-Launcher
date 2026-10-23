@@ -10,4 +10,5 @@ public interface IDialogService
     Task ShowGameLogsNotFoundDialog();
     Task ShowLauncherUpdateDialog();
     Task ShowSettingsWindowAsync();
+    Task ShowTesterAccessWindowAsync();
 }

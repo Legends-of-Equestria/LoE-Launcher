@@ -29,6 +29,9 @@ public partial class SettingsViewModel : ViewModelBase
         _closeAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
     }
 
+    [RelayCommand]
+    private Task OpenTesterAccess() => _dialogService.ShowTesterAccessWindowAsync();
+
     partial void OnCloseAfterLaunchChanged(bool value)
     {
         if (_downloader.LauncherSettings.CloseAfterLaunch == value) return;
@@ -48,7 +51,7 @@ public partial class SettingsViewModel : ViewModelBase
         {
             return;
         }
-        
+
         CloseAction?.Invoke();
 
         try
@@ -76,7 +79,7 @@ public partial class SettingsViewModel : ViewModelBase
         {
             return;
         }
-        
+
         CloseAction?.Invoke();
 
         try

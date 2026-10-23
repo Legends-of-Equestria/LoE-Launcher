@@ -73,6 +73,7 @@
             <Setter Property="Background" Value="#12FF4433" />
             <Setter Property="BorderBrush" Value="#AA6655" />
         </Style>
+
     </UserControl.Styles>
 
     <StackPanel Margin="25,50,25,25" Spacing="15">
@@ -170,5 +171,10 @@
                        Foreground="White"
                        VerticalAlignment="Center" />
         </StackPanel>
+
+        <Button Classes="LinkButton"
+                Content="Tester access"
+                HorizontalAlignment="Center"
+                Command="{Binding OpenTesterAccessCommand}" />
     </StackPanel>
 </UserControl>

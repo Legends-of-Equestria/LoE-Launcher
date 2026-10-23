@@ -40,6 +40,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _downloadStatusText = "Validating";
     [ObservableProperty] private Bitmap? _backgroundImageSource;
     [ObservableProperty] private Bitmap? _logoImageSource;
+    [ObservableProperty] private bool _isDevChannel;
+    [ObservableProperty] private string _channelInfoText = "";
 
     public ObservableCollection<ChangelogLine> ChangelogLines { get; } = [];
 
@@ -182,6 +184,11 @@ public partial class MainWindowViewModel : ViewModelBase
                 await _dialogService.ShowErrorMessage("Server Maintenance",
                     "The game servers are currently under maintenance or temporarily unavailable. Please try again in a few hours.");
             }
+            else if (_downloader.State == GameState.DevAccessDenied)
+            {
+                await _dialogService.ShowErrorMessage("Tester Login Expired",
+                    "Your tester login expired or was revoked. Log in again in Options, or switch back to live builds.");
+            }
 
             _downloadStopwatch.Stop();
             Logger.Info($"Initialization took {_downloadStopwatch.Elapsed.TotalSeconds:F1} seconds");
@@ -245,12 +252,26 @@ public partial class MainWindowViewModel : ViewModelBase
                 ActionButtonBackground = _errorColor;
                 enabledState = true;
                 break;
+            case GameState.DevAccessDenied:
+                ActionButtonText = "Access Denied";
+                ActionButtonBackground = _errorColor;
+                enabledState = false;
+                break;
+            case GameState.DevBuildUnavailable:
+                ActionButtonText = "No Dev Build";
+                ActionButtonBackground = _errorColor;
+                enabledState = false;
+                break;
             default:
                 enabledState = false;
                 break;
         }
 
         IsActionButtonEnabled = enabledState && !_downloader.Progress.Processing;
+
+        IsDevChannel = _downloader.IsDevChannel;
+        var build = _downloader.CurrentBuild?.ToString();
+        ChannelInfoText = string.IsNullOrEmpty(build) ? "DEV BUILD" : $"DEV BUILD · {build}";
 
         bool showProgress = _downloader.Progress.Processing || _downloader.State == GameState.Unknown;
         IsProgressOverlayVisible = showProgress;

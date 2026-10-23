@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LoE_Launcher.ViewModels"
+             x:Class="LoE_Launcher.Views.TesterAccessView"
+             x:DataType="vm:TesterAccessViewModel"
+             x:CompileBindings="True"
+             FontFamily="Segoe UI, SF Pro Display, Arial, sans-serif">
+
+    <StackPanel Margin="20,50,20,20" Spacing="10">
+        <TextBlock Text="Tester access"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="#f0be4a"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,5" />
+
+        <StackPanel Spacing="10" IsVisible="{Binding ShowLogin}">
+            <TextBlock Text="Log in with your forum account."
+                       FontSize="13"
+                       Foreground="#D0FFFFFF"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center" />
+            <TextBox Text="{Binding Username, Mode=TwoWay}"
+                     Watermark="Forum username"
+                     FontSize="13" />
+            <TextBox Text="{Binding Password, Mode=TwoWay}"
+                     PasswordChar="•"
+                     Watermark="Password"
+                     FontSize="13" />
+            <Button Theme="{StaticResource GlassDialogButton}"
+                    Content="Log in"
+                    Command="{Binding LogInCommand}"
+                    IsDefault="True"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Height="38"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="#f0be4a" />
+            <TextBlock Text="{Binding LoginStatus}"
+                       FontSize="12"
+                       Foreground="#D0FFFFFF"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="12" IsVisible="{Binding ShowChannel}">
+            <TextBlock Text="Channel"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="White"
+                       HorizontalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20">
+                <RadioButton GroupName="Channel"
+                             IsChecked="{Binding UseLiveChannel, Mode=TwoWay}"
+                             Content="Live"
+                             Foreground="White" />
+                <RadioButton GroupName="Channel"
+                             IsChecked="{Binding UseDevChannel, Mode=TwoWay}"
+                             Content="Dev builds"
+                             Foreground="White" />
+            </StackPanel>
+            <TextBlock Text="Dev builds install to a separate Game-Dev folder."
+                       FontSize="12"
+                       Foreground="#A0FFFFFF"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center" />
+            <Button Theme="{StaticResource GlassDialogButton}"
+                    Content="Done"
+                    Command="{Binding DoneCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Height="38"
+                    CornerRadius="8"
+                    BorderThickness="1"
+                    BorderBrush="#f0be4a" />
+            <Button Classes="LinkButton"
+                    Content="Remove tester access"
+                    HorizontalAlignment="Center"
+                    Command="{Binding RemoveTesterAccessCommand}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

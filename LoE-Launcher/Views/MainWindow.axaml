@@ -286,6 +286,23 @@
             </Grid>
         </Border>
 
+        <Border IsVisible="{Binding IsDevChannel}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,20,120"
+                Padding="10,4"
+                CornerRadius="6"
+                Background="#C01A1028"
+                BorderBrush="#f0be4a"
+                BorderThickness="1"
+                MaxWidth="360">
+            <TextBlock Text="{Binding ChannelInfoText}"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="#f0be4a"
+                       TextTrimming="CharacterEllipsis" />
+        </Border>
+
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"

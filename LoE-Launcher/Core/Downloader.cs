@@ -25,12 +25,11 @@ public partial class Downloader
         CurrentLauncherVersion = new() { Major = 1, Minor = 2, Build = 2, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
-    private readonly IRelativeDirectoryPath _gameInstallationFolder = ".\\Game".ToRelativeDirectoryPathAuto();
-
     private readonly IAbsoluteDirectoryPath _launcherPath =
         GetLauncherDirectory().ToAbsoluteDirectoryPathAuto();
 
     private readonly Settings _settings;
+    private readonly DevTokenStore _devTokenStore;
 
     private readonly FileOperationsService _fileOps;
     private readonly NetworkDownloadService _network;
@@ -56,7 +55,13 @@ public partial class Downloader
     public DownloadStats DownloadStats => _downloadStats;
 
     public static OS OperatingSystem => PlatformUtils.OperatingSystem;
-    public IAbsoluteDirectoryPath GameInstallFolder => _gameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
+
+    private IRelativeDirectoryPath GameInstallationFolder =>
+        $".\\{_settings.ActiveInstallFolderName}".ToRelativeDirectoryPathAuto();
+
+    public IAbsoluteDirectoryPath GameInstallFolder => GameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
+    public bool IsDevChannel => _settings.IsDevChannelActive;
+    public BuildInfo? CurrentBuild { get; private set; }
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public Settings LauncherSettings => _settings;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
@@ -113,6 +118,9 @@ public partial class Downloader
 
         _settings.MigrateToHttps();
 
+        _devTokenStore = new DevTokenStore(_launcherPath.Path);
+        _settings.DevToken = _devTokenStore.Load();
+
         _hashCache = new HashCacheService(CacheDirectory);
         _network = new NetworkDownloadService(_fileOps, _settings);
         _fileUpdate = new FileUpdateService(_fileOps, _network, _hashCache);
@@ -151,6 +159,12 @@ public partial class Downloader
                         if (_state == GameState.Offline)
                         {
                             Logger.Warn("Offline state detected after version check, exiting refresh");
+                            return;
+                        }
+
+                        if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable)
+                        {
+                            Logger.Warn($"Dev channel unavailable ({_state}), exiting refresh");
                             return;
                         }
 
@@ -327,8 +341,10 @@ public partial class Downloader
 
     private async Task GetVersion()
     {
-        Logger.Info($"Getting version info from {_settings.Stream}");
-        var data = await _network.DownloadJson<VersionsControlFile>(new Uri(_settings.Stream), state => _state = state);
+        Logger.Info($"Getting version info from {_settings.ActiveStream} (channel: {(IsDevChannel ? "Dev" : "Live")})");
+        CurrentBuild = null;
+        var data = await _network.DownloadJson<VersionsControlFile>(new Uri(_settings.ActiveStream),
+            state => _state = state);
 
         if (data == null)
         {
@@ -336,6 +352,8 @@ public partial class Downloader
             _versionDownload = "default";
             return;
         }
+
+        CurrentBuild = data.Build;
 
         Logger.Info($"Successfully retrieved version info. Using OS: {OperatingSystem}");
         switch (OperatingSystem)
@@ -360,6 +378,13 @@ public partial class Downloader
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
+        }
+
+        if (IsDevChannel && string.IsNullOrEmpty(_versionDownload))
+        {
+            Logger.Warn($"Dev stream has no build for {OperatingSystem}");
+            _state = GameState.DevBuildUnavailable;
+            return;
         }
 
         Logger.Info($"Using version download path: {_versionDownload}");
@@ -516,6 +541,13 @@ public partial class Downloader
                         "Cannot repair game files while offline. Please check your internet connection.");
                 }
 
+                if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable)
+                {
+                    throw new InvalidOperationException(_state == GameState.DevAccessDenied
+                        ? "Your dev access token was rejected."
+                        : "There is no dev build for this platform.");
+                }
+
                 var url = new Uri($"{ZsyncLocation}.zsync-control.jar");
                 Logger.Info($"Downloading control file from: {url}");
 
@@ -577,6 +609,9 @@ public partial class Downloader
         _downloadStats.Update(_bytesDownloaded, progressPercentage);
     }
 
+    public Task<DevLoginResult> LogInForDevToken(string username, string password) =>
+        _network.LogInForDevToken(username, password);
+
     public void SaveSettings()
     {
         try
@@ -588,6 +623,15 @@ public partial class Downloader
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to save settings");
+        }
+
+        try
+        {
+            _devTokenStore.Save(_settings.DevToken);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to save dev token ({ex.GetType().Name})");
         }
     }
 
@@ -638,7 +682,7 @@ public partial class Downloader
             return;
         }
 
-        var testUrl = new Uri(_settings.Stream);
+        var testUrl = new Uri(_settings.ActiveStream);
         if (await _network.CheckConnectivity(testUrl))
         {
             Logger.Info("Connectivity restored, refreshing state");
@@ -661,7 +705,9 @@ public enum GameState
     UpToDate,
     Offline,
     ServerMaintenance,
-    LauncherOutOfDate
+    LauncherOutOfDate,
+    DevAccessDenied,
+    DevBuildUnavailable
 }
 
 public class Processing : IDisposable

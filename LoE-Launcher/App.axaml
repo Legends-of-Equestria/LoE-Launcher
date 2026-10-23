@@ -56,6 +56,22 @@
             <Setter Property="Foreground" Value="#E0FFFFFF" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
+
+        <Style Selector="Button.LinkButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#70FFFFFF" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.LinkButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D0FFFFFF" />
+        </Style>
+        <Style Selector="Button.LinkButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>

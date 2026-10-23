@@ -29,6 +29,8 @@ public class DialogService : IDialogService
         _updateManager = VelopackHelper.CreateUpdateManager();
     }
 
+    private Window? _settingsWindow;
+
     private Window? GetOwner() => _windowProvider.GetMainWindow();
 
     private static ControlTheme GlassDialogButton =>
@@ -359,6 +361,25 @@ public class DialogService : IDialogService
 
         viewModel.CloseAction = settingsWindow.Close;
 
-        await settingsWindow.ShowDialog(GetOwner()!);
+        _settingsWindow = settingsWindow;
+        try
+        {
+            await settingsWindow.ShowDialog(GetOwner()!);
+        }
+        finally
+        {
+            _settingsWindow = null;
+        }
+    }
+
+    public async Task ShowTesterAccessWindowAsync()
+    {
+        var viewModel = _serviceProvider.GetRequiredService<TesterAccessViewModel>();
+        var window = CreateDialogWindow("Tester access", 320);
+        window.Content = viewModel;
+        viewModel.CloseAction = window.Close;
+
+        await window.ShowDialog(_settingsWindow ?? GetOwner()!);
+        await viewModel.ApplyChannelChangesAsync();
     }
 }

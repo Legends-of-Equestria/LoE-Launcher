@@ -212,3 +212,6 @@ _Pvt_Extensions/
 ModelManifest.xml
 
 .idea/*
+
+# Local launcher runs and dev server data
+.run/

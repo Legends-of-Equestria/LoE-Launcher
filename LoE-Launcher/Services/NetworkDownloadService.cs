@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -15,6 +16,17 @@ using SyncState = zsyncnet.SyncState;
 
 namespace LoE_Launcher.Services;
 
+public enum DevLoginStatus
+{
+    Ok,
+    WrongLogin,
+    NoAccess,
+    TooManyAttempts,
+    Unreachable
+}
+
+public record DevLoginResult(DevLoginStatus Status, string Token = "");
+
 public class NetworkDownloadService(FileOperationsService fileOps, Settings settings)
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -28,7 +40,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
             handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
         }
 
-        var client = new HttpClient(handler);
+        var client = new HttpClient(new DevTokenHandler(settings, handler));
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LoE-Launcher/1.0");
         return client;
     }
@@ -66,6 +78,15 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
                 {
                     Logger.Error($"Server error {(int)response.StatusCode} {response.StatusCode} @ {url}");
                     setState(GameState.ServerMaintenance);
+                    return null;
+                }
+
+                if ((response.StatusCode is System.Net.HttpStatusCode.Unauthorized
+                        or System.Net.HttpStatusCode.Forbidden)
+                    && settings.ShouldSendDevToken(url))
+                {
+                    Logger.Error($"Dev token rejected ({(int)response.StatusCode}) @ {url}");
+                    setState(GameState.DevAccessDenied);
                     return null;
                 }
 
@@ -406,6 +427,65 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
             Logger.Error(ex, $"Direct download failed: {ex.Message}");
             await fileOps.CleanupDownloadFiles(tempFilePath, filePath);
             return 0;
+        }
+    }
+
+    public async Task<DevLoginResult> LogInForDevToken(string username, string password)
+    {
+        if (!Uri.TryCreate(settings.DevLoginUrl, UriKind.Absolute, out var url) || !settings.IsSafeLoginUri(url))
+        {
+            Logger.Error("Dev login URL is not on the dev host over HTTPS, not sending the password");
+            return new DevLoginResult(DevLoginStatus.Unreachable);
+        }
+
+        try
+        {
+            using var client = CreateHttpClient();
+            client.Timeout = TimeSpan.FromSeconds(15);
+
+            using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["username"] = username.Trim(),
+                ["password"] = password
+            });
+            using var response = await client.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
+
+            Logger.Info($"Dev login: {(int)response.StatusCode}");
+            return ParseDevLoginResponse(response.StatusCode, body);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Dev login failed: {ex.Message}");
+            return new DevLoginResult(DevLoginStatus.Unreachable);
+        }
+    }
+
+    internal static DevLoginResult ParseDevLoginResponse(System.Net.HttpStatusCode status, string body)
+    {
+        switch (status)
+        {
+            case System.Net.HttpStatusCode.OK:
+                try
+                {
+                    var token = Newtonsoft.Json.Linq.JObject.Parse(body).Value<string>("token") ?? "";
+                    return System.Text.RegularExpressions.Regex.IsMatch(token, "^[0-9a-f]{64}$")
+                        ? new DevLoginResult(DevLoginStatus.Ok, token)
+                        : new DevLoginResult(DevLoginStatus.Unreachable);
+                }
+                catch (JsonException)
+                {
+                    return new DevLoginResult(DevLoginStatus.Unreachable);
+                }
+            case System.Net.HttpStatusCode.Unauthorized:
+            case System.Net.HttpStatusCode.BadRequest:
+                return new DevLoginResult(DevLoginStatus.WrongLogin);
+            case System.Net.HttpStatusCode.Forbidden:
+                return new DevLoginResult(DevLoginStatus.NoAccess);
+            case System.Net.HttpStatusCode.TooManyRequests:
+                return new DevLoginResult(DevLoginStatus.TooManyAttempts);
+            default:
+                return new DevLoginResult(DevLoginStatus.Unreachable);
         }
     }
 

@@ -12,6 +12,23 @@ public class VersionsControlFile
     public string Linux { get; set; }
     public string Mac_Intel { get; set; }
     public string Mac_Arm { get; set; }
+
+    // Only on the dev stream
+    public BuildInfo? Build { get; set; }
+}
+
+public class BuildInfo
+{
+    public string? Id { get; set; }
+    public string? Branch { get; set; }
+    public string? Commit { get; set; }
+    public string? Time { get; set; }
+
+    public override string ToString()
+    {
+        var source = string.Join("@", new[] { Branch, Commit }.Where(part => !string.IsNullOrEmpty(part)));
+        return string.Join(" · ", new[] { Id, source, Time }.Where(part => !string.IsNullOrEmpty(part)));
+    }
 }
     
 public class MainControlFile
