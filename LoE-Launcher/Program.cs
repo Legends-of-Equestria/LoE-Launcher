@@ -14,8 +14,8 @@ internal class Program
     public static void Main(string[] args)
     {
         VelopackApp.Build().Run();
-        
-        SetWorkingDirectory();
+
+        SetWorkingDirectory(args);
         ConfigureLogging();
 
         BuildAvaloniaApp()
@@ -27,17 +27,23 @@ internal class Program
             .UsePlatformDetect()
             .LogToTrace();
 
-    private static void SetWorkingDirectory()
+    private static void SetWorkingDirectory(string[] args)
     {
         var appSupportDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "LoE Launcher"
         );
-    
+
+        var index = Array.IndexOf(args, "--data-dir");
+        if (index >= 0 && index + 1 < args.Length)
+        {
+            appSupportDir = Path.GetFullPath(args[index + 1]);
+        }
+
         Directory.CreateDirectory(appSupportDir);
         Directory.SetCurrentDirectory(appSupportDir);
     }
-    
+
     private static void ConfigureLogging()
     {
         var config = new LoggingConfiguration();
@@ -52,7 +58,7 @@ internal class Program
             ArchiveEvery = FileArchivePeriod.Day,
             MaxArchiveFiles = 7
         };
-        
+
         // Detailed log file with Debug level and above
         var detailedLogFile = new FileTarget("detailedlogfile")
         {
@@ -101,7 +107,7 @@ internal class Program
         config.AddRule(LogLevel.Info, LogLevel.Fatal, logConsole);
 
         LogManager.Configuration = config;
-        
+
         var logger = LogManager.GetCurrentClassLogger();
         logger.Info("===============================================");
         logger.Info("LoE Launcher - NEW SESSION STARTED");
@@ -116,12 +122,12 @@ internal class Program
     private static string GetLogDirectory()
     {
         var logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Launcher Logs");
-            
+
         if (!Directory.Exists(logDirectory))
         {
             Directory.CreateDirectory(logDirectory);
         }
-            
+
         return logDirectory;
     }
 }

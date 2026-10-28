@@ -3,7 +3,7 @@
     devtest.py serve                   log in as tester / testpass, player / testpass has no access
     devtest.py publish-fake
     devtest.py publish <build-folder>
-    devtest.py run dev|live
+    devtest.py run dev|live            add --server https://... for a real dev server
 
 Everything goes under .run/
 """
@@ -34,10 +34,6 @@ ACCOUNTS = {"tester": ("testpass", 20), "player": ("testpass", 1)}
 
 def base_url(port):
     return f"http://localhost:{port}/dev/"
-
-
-def login_url(port):
-    return f"http://localhost:{port}/dev-auth/login.php"
 
 
 def serve(args):
@@ -186,7 +182,10 @@ def publish(args):
 
 
 def run(args):
-    folder = os.path.join(RUN, f"launcher-{args.channel}")
+    name = args.channel
+    if args.server:
+        name = args.server.split("//")[-1].split(".")[0].replace("-", "")
+    folder = os.path.join(RUN, f"launcher-{name}")
     os.makedirs(folder, exist_ok=True)
     settings_path = os.path.join(folder, "settings.json")
     settings = {}
@@ -194,17 +193,19 @@ def run(args):
         with open(settings_path) as f:
             settings = json.load(f)
     if args.channel == "dev":
+        base = args.server.rstrip("/") if args.server else f"http://localhost:{args.port}"
         settings.update({
-            "DevStream": base_url(args.port) + "versions-dev.json",
-            "DevZsyncLocation": base_url(args.port) + "{version}/",
-            "DevLoginUrl": login_url(args.port),
+            "DevStream": base + "/dev/versions-dev.json",
+            "DevZsyncLocation": base + "/dev/{version}/",
+            "DevLoginUrl": base + "/dev-auth/login.php",
         })
     else:
         settings["Channel"] = "Live"
     with open(settings_path, "w") as f:
         json.dump(settings, f, indent=2)
 
-    sys.exit(subprocess.run(["dotnet", "run", "--project", LAUNCHER_PROJECT], cwd=folder).returncode)
+    # Without --data-dir the launcher always uses the real install in %APPDATA%/LoE Launcher
+    sys.exit(subprocess.run(["dotnet", "run", "--project", LAUNCHER_PROJECT, "--", "--data-dir", folder]).returncode)
 
 
 def main():
@@ -228,6 +229,7 @@ def main():
 
     p = sub.add_parser("run")
     p.add_argument("channel", choices=["dev", "live"])
+    p.add_argument("--server", help="a real dev server instead of the local one, e.g. https://example.com")
     p.set_defaults(func=run)
 
     args = parser.parse_args()
