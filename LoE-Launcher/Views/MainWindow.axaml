@@ -67,9 +67,10 @@
             <Setter Property="RenderTransform" Value="scale(0.92)" />
         </Style>
 
+        <!-- Same frame colours and gradient as the launch button art; hover and press match the ActionButton theme -->
         <Style Selector="Button.SettingsButton">
-            <Setter Property="Width" Value="70" />
-            <Setter Property="Height" Value="70" />
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Height" Value="72" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
@@ -79,53 +80,56 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
-                        <Border x:Name="PART_Border"
-                                Background="#781A1028"
-                                CornerRadius="35"
-                                BorderThickness="1"
-                                BorderBrush="#80f0be4a">
-                            <Border.Transitions>
+                        <Image x:Name="PART_Plaque"
+                               Source="avares://LoE-Launcher/Assets/settings-button.png"
+                               Stretch="Uniform">
+                            <Image.Transitions>
                                 <Transitions>
-                                    <BrushTransition Property="Background" Duration="0:0:0.15" />
-                                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                                 </Transitions>
-                            </Border.Transitions>
-                            <Image x:Name="PART_Icon"
-                                   Width="36" Height="36"
-                                   Source="avares://LoE-Launcher/Assets/Gear.png"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Opacity="0.9">
-                                <Image.Transitions>
-                                    <Transitions>
-                                        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
-                                    </Transitions>
-                                </Image.Transitions>
-                            </Image>
-                        </Border>
+                            </Image.Transitions>
+                        </Image>
+                        <Rectangle x:Name="PART_Tint"
+                                   Fill="Transparent"
+                                   Opacity="0"
+                                   IsHitTestVisible="False">
+                            <Rectangle.OpacityMask>
+                                <ImageBrush Source="avares://LoE-Launcher/Assets/settings-button.png" Stretch="Uniform" />
+                            </Rectangle.OpacityMask>
+                            <Rectangle.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Fill" Duration="0:0:0.2" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                </Transitions>
+                            </Rectangle.Transitions>
+                        </Rectangle>
+                        <Image Source="avares://LoE-Launcher/Assets/Gear.png"
+                               Width="38" Height="38"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
                     </Grid>
                 </ControlTemplate>
             </Setter>
         </Style>
-        <Style Selector="Button.SettingsButton:pointerover /template/ Border#PART_Border">
-            <Setter Property="Background" Value="#981A1028" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
+        <Style Selector="Button.SettingsButton:pointerover /template/ Image#PART_Plaque">
+            <Setter Property="Opacity" Value="0.95" />
         </Style>
-        <Style Selector="Button.SettingsButton:pointerover /template/ Image#PART_Icon">
-            <Setter Property="Opacity" Value="1.0" />
+        <Style Selector="Button.SettingsButton:pointerover /template/ Rectangle#PART_Tint">
+            <Setter Property="Fill" Value="#FFFFFF" />
+            <Setter Property="Opacity" Value="0.4" />
         </Style>
         <Style Selector="Button.SettingsButton:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.08)" />
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
         </Style>
-        <Style Selector="Button.SettingsButton:pressed /template/ Border#PART_Border">
-            <Setter Property="Background" Value="#551A1028" />
-            <Setter Property="BorderBrush" Value="#CCf0be4a" />
+        <Style Selector="Button.SettingsButton:pressed /template/ Image#PART_Plaque">
+            <Setter Property="Opacity" Value="0.85" />
         </Style>
-        <Style Selector="Button.SettingsButton:pressed /template/ Image#PART_Icon">
-            <Setter Property="Opacity" Value="0.7" />
+        <Style Selector="Button.SettingsButton:pressed /template/ Rectangle#PART_Tint">
+            <Setter Property="Fill" Value="#000000" />
+            <Setter Property="Opacity" Value="0.5" />
         </Style>
         <Style Selector="Button.SettingsButton:pressed">
-            <Setter Property="RenderTransform" Value="scale(0.92)" />
+            <Setter Property="RenderTransform" Value="scale(0.97)" />
         </Style>
 
         <Style Selector="Border.InfoPanel">
@@ -307,7 +311,7 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
                     Margin="0,0,20,20"
-                    Spacing="10">
+                    Spacing="2">
 
             <Button Classes="SettingsButton"
                     Command="{Binding SettingsButtonClickedCommand}"

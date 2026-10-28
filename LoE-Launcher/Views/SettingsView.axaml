@@ -13,7 +13,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Height" Value="55" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="Padding" Value="20,12" />
+            <Setter Property="Padding" Value="20,8,20,16" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
