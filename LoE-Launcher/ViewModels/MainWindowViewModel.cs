@@ -25,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly CacheManager _cacheManager;
     private readonly ChangelogParser _changelogParser;
+    private readonly GameImportFlow _importFlow;
 
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _downloadStopwatch = new();
@@ -51,7 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IBrush _errorColor = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336");
 
     public MainWindowViewModel(Downloader downloader, IDialogService dialogService, CacheManager cacheManager,
-        ChangelogParser changelogParser)
+        ChangelogParser changelogParser, GameImportFlow importFlow)
     {
         Logger.Info("Starting LoE Launcher ViewModel");
 
@@ -59,6 +60,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _dialogService = dialogService;
         _cacheManager = cacheManager;
         _changelogParser = changelogParser;
+        _importFlow = importFlow;
 
         _actionButtonBackground = _downloadColor;
 
@@ -184,10 +186,21 @@ public partial class MainWindowViewModel : ViewModelBase
                 await _dialogService.ShowErrorMessage("Server Maintenance",
                     "The game servers are currently under maintenance or temporarily unavailable. Please try again in a few hours.");
             }
+            else if (_downloader.State == GameState.PlatformUnsupported)
+            {
+                await _dialogService.ShowErrorMessage("System Not Supported",
+                    "Legends of Equestria needs 64-bit Windows, macOS or 64-bit Linux.");
+            }
             else if (_downloader.State == GameState.DevAccessDenied)
             {
                 await _dialogService.ShowErrorMessage("Tester Login Expired",
                     "Your tester login expired or was revoked. Log in again in Options, or switch back to live builds.");
+            }
+
+            if (_downloader.State == GameState.NotFound)
+            {
+                UpdateState();
+                await _importFlow.OfferFoundInstall();
             }
 
             _downloadStopwatch.Stop();
@@ -259,6 +272,11 @@ public partial class MainWindowViewModel : ViewModelBase
                 break;
             case GameState.DevBuildUnavailable:
                 ActionButtonText = "No Dev Build";
+                ActionButtonBackground = _errorColor;
+                enabledState = false;
+                break;
+            case GameState.PlatformUnsupported:
+                ActionButtonText = "Not Supported";
                 ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;

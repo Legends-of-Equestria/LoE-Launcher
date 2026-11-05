@@ -62,14 +62,14 @@ public static class ProcessLauncher
             case OS.WindowsX86:
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = Path.Combine(gameInstallPath, "loe.exe"),
+                    FileName = Path.Combine(gameInstallPath, PlatformUtils.GameExecutableName(currentOS)),
                     UseShellExecute = PlatformUtils.UseShellExecute
                 });
                 break;
 
             case OS.MacIntel:
             case OS.MacArm:
-                var macAppPath = Path.Combine(gameInstallPath, "LoE.app");
+                var macAppPath = Path.Combine(gameInstallPath, PlatformUtils.GameExecutableName(currentOS));
 
                 var permissionProcess = new Process();
                 permissionProcess.RunInlineAndWait(new ProcessStartInfo
@@ -88,8 +88,7 @@ public static class ProcessLauncher
                 break;
 
             case OS.X11:
-                var is64Bit = Environment.Is64BitProcess;
-                var linuxExePath = Path.Combine(gameInstallPath, $"LoE.x86{(is64Bit ? "_64" : "")}");
+                var linuxExePath = Path.Combine(gameInstallPath, PlatformUtils.GameExecutableName(currentOS));
 
                 var linuxPermProcess = new Process();
                 linuxPermProcess.RunInlineAndWait(new ProcessStartInfo

@@ -36,6 +36,7 @@ public partial class App : Application
         services.AddSingleton<ChangelogParser>();
         services.AddSingleton<IWindowProvider, WindowProvider>();
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<GameImportFlow>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();

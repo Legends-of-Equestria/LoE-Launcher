@@ -15,7 +15,20 @@ public static class PlatformUtils
 {
     public static OS OperatingSystem { get; }
     public static bool UseShellExecute => true;
-    
+
+    public static string GameExecutableName(OS os) => os switch
+    {
+        OS.MacArm or OS.MacIntel => "LoE.app",
+        OS.X11 => "LoE.x86_64",
+        _ => "LoE.exe"
+    };
+
+    public static bool GameExecutableExists(string folder, OS os)
+    {
+        var path = Path.Combine(folder, GameExecutableName(os));
+        return os is OS.MacArm or OS.MacIntel ? Directory.Exists(path) : File.Exists(path);
+    }
+
     static PlatformUtils()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

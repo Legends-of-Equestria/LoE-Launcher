@@ -5,6 +5,7 @@ namespace LoE_Launcher.Services;
 public interface IDialogService
 {
     Task<bool> ShowConfirmDialog(string title, string message);
+    Task<int> ShowChoiceDialog(string title, string message, params string[] choices);
     Task ShowInfoMessage(string title, string message);
     Task ShowErrorMessage(string title, string message);
     Task ShowGameLogsNotFoundDialog();

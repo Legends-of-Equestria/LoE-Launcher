@@ -7,14 +7,28 @@ namespace Models;
 
 public class VersionsControlFile
 {
-    public string Win32 { get; set; }
-    public string Win64 { get; set; }
-    public string Linux { get; set; }
-    public string Mac_Intel { get; set; }
-    public string Mac_Arm { get; set; }
+    public string? Win64 { get; set; }
+    public string? Linux { get; set; }
+    public string? Mac { get; set; }
+    public string? Mac_Intel { get; set; }
+    public string? Mac_Arm { get; set; }
 
     // Only on the dev stream
     public BuildInfo? Build { get; set; }
+
+    public static bool IsSupported(OS os) => os is OS.WindowsX64 or OS.X11 or OS.MacArm or OS.MacIntel;
+
+    public string? ForPlatform(OS os) => os switch
+    {
+        OS.WindowsX64 => Win64,
+        OS.X11 => Linux,
+        OS.MacArm => FirstSet(Mac, Mac_Arm),
+        OS.MacIntel => FirstSet(Mac, Mac_Intel),
+        _ => null
+    };
+
+    private static string? FirstSet(string? preferred, string? fallback) =>
+        string.IsNullOrEmpty(preferred) ? fallback : preferred;
 }
 
 public class BuildInfo

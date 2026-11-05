@@ -22,6 +22,8 @@ public class Settings
 
     public bool CloseAfterLaunch { get; set; } = true;
 
+    public bool ImportOffered { get; set; }
+
     [JsonConverter(typeof(StringEnumConverter))]
     public GameChannel Channel { get; set; } = GameChannel.Live;
 

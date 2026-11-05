@@ -25,7 +25,7 @@ SERVED = os.path.join(RUN, "dev-server")
 LAUNCHER_PROJECT = os.path.join(REPO, "LoE-Launcher", "LoE-Launcher.csproj")
 DEFAULT_PATCH_GENERATOR = os.path.join(os.path.dirname(REPO), "LoETools", "PatchGenerator", "PatchGenerator",
                                        "PatchGenerator.csproj")
-PLATFORM_KEYS = ["Win64", "Win32", "Linux", "Mac_Intel", "Mac_Arm"]
+PLATFORM_KEYS = ["Win64", "Linux", "Mac"]
 
 
 # Stand-in forum accounts and access levels, dev builds need 20 (team members)
@@ -167,7 +167,7 @@ def publish_fake(args):
     source = os.path.join(RUN, "fake-build")
     if not os.path.isdir(source):
         os.makedirs(os.path.join(source, "data"))
-        with open(os.path.join(source, "loe.exe"), "w") as f:
+        with open(os.path.join(source, "LoE.exe"), "w") as f:
             f.write("fake game executable\n")
         with open(os.path.join(source, "data", "big.bin"), "wb") as f:
             f.write(random.Random(1).randbytes(300_000))
@@ -204,7 +204,7 @@ def run(args):
     with open(settings_path, "w") as f:
         json.dump(settings, f, indent=2)
 
-    # Without --data-dir the launcher always uses the real install in %APPDATA%/LoE Launcher
+    # Without --data-dir the launcher always uses the real install in %LOCALAPPDATA%/LoE Launcher
     sys.exit(subprocess.run(["dotnet", "run", "--project", LAUNCHER_PROJECT, "--", "--data-dir", folder]).returncode)
 
 

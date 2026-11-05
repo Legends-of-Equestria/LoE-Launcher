@@ -22,7 +22,7 @@ public partial class Downloader
     private static readonly int OfflineRetryIntervalSeconds = 30;
 
     private static readonly VersionInfo
-        CurrentLauncherVersion = new() { Major = 1, Minor = 2, Build = 2, Revision = 0 };
+        CurrentLauncherVersion = new() { Major = 1, Minor = 3, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IAbsoluteDirectoryPath _launcherPath =
@@ -162,9 +162,9 @@ public partial class Downloader
                             return;
                         }
 
-                        if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable)
+                        if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable or GameState.PlatformUnsupported)
                         {
-                            Logger.Warn($"Dev channel unavailable ({_state}), exiting refresh");
+                            Logger.Warn($"No build available ({_state}), exiting refresh");
                             return;
                         }
 
@@ -174,7 +174,7 @@ public partial class Downloader
                                 "No valid version path available, marking as offline but allowing local gameplay");
 
                             if (GameInstallFolder.Exists &&
-                                File.Exists(Path.Combine(GameInstallFolder.Path, "loe.exe")))
+                                PlatformUtils.GameExecutableExists(GameInstallFolder.Path, OperatingSystem))
                             {
                                 Logger.Info("Found existing game installation, allowing launch in offline mode");
                                 _state = GameState.UpToDate;
@@ -211,6 +211,8 @@ public partial class Downloader
                             _data.ControlFile.RootUri = new Uri(ZsyncLocation);
                         }
 
+                        TidyInstall();
+
                         if (_data.ToProcess.Count == 0)
                         {
                             Logger.Info("No files to process, game is up to date");
@@ -220,9 +222,10 @@ public partial class Downloader
 
                         Logger.Info($"Need to process {_data.ToProcess.Count} files");
 
-                        if (!GameInstallFolder.Exists)
+                        if (!GameInstallFolder.Exists
+                            || !Directory.EnumerateFileSystemEntries(GameInstallFolder.Path).Any())
                         {
-                            Logger.Info($"Game folder doesn't exist: {GameInstallFolder.Path}");
+                            Logger.Info($"No game files in {GameInstallFolder.Path}");
                             _state = GameState.NotFound;
                             return;
                         }
@@ -356,29 +359,14 @@ public partial class Downloader
         CurrentBuild = data.Build;
 
         Logger.Info($"Successfully retrieved version info. Using OS: {OperatingSystem}");
-        switch (OperatingSystem)
+        if (!VersionsControlFile.IsSupported(OperatingSystem))
         {
-            case OS.WindowsX86:
-                _versionDownload = data.Win32;
-                break;
-            case OS.WindowsX64:
-                _versionDownload = data.Win64;
-                break;
-            case OS.MacArm:
-                _versionDownload = data.Mac_Arm;
-                break;
-            case OS.MacIntel:
-                _versionDownload = data.Mac_Intel;
-                break;
-            case OS.X11:
-                _versionDownload = data.Linux;
-                break;
-            case OS.Other:
-                _versionDownload = data.Win32;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
+            Logger.Warn($"No game builds for {OperatingSystem}");
+            _state = GameState.PlatformUnsupported;
+            return;
         }
+
+        _versionDownload = data.ForPlatform(OperatingSystem) ?? "";
 
         if (IsDevChannel && string.IsNullOrEmpty(_versionDownload))
         {
@@ -541,11 +529,14 @@ public partial class Downloader
                         "Cannot repair game files while offline. Please check your internet connection.");
                 }
 
-                if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable)
+                if (_state is GameState.DevAccessDenied or GameState.DevBuildUnavailable or GameState.PlatformUnsupported)
                 {
-                    throw new InvalidOperationException(_state == GameState.DevAccessDenied
-                        ? "Your dev access token was rejected."
-                        : "There is no dev build for this platform.");
+                    throw new InvalidOperationException(_state switch
+                    {
+                        GameState.DevAccessDenied => "Your dev access token was rejected.",
+                        GameState.DevBuildUnavailable => "There is no dev build for this platform.",
+                        _ => "The game isn't available for this system."
+                    });
                 }
 
                 var url = new Uri($"{ZsyncLocation}.zsync-control.jar");
@@ -607,6 +598,48 @@ public partial class Downloader
         }
 
         _downloadStats.Update(_bytesDownloaded, progressPercentage);
+    }
+
+    private void TidyInstall()
+    {
+        var folder = GameInstallFolder.Path;
+        if (!PlatformUtils.GameExecutableExists(folder, OperatingSystem))
+        {
+            return;
+        }
+
+        try
+        {
+            var current = _data.ControlFile.Content
+                .Select(item => Path.GetRelativePath(folder, item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder).Path))
+                .ToList();
+
+            InstalledFiles.RemoveDropped(folder, current);
+            InstalledFiles.SweepJunk(folder, removePartialDownloads: _data.ToProcess.Count == 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Couldn't tidy the game folder");
+        }
+    }
+
+    public async Task ImportInstall(string gameFolder)
+    {
+        Logger.Info($"Importing game install from {gameFolder}");
+        Progress = new ImportingProgress(this) { Marquee = true };
+
+        using (new Processing(Progress))
+        {
+            await Task.Run(() => GameImporter.MoveInstall(gameFolder, GameInstallFolder.Path, (done, total) =>
+            {
+                if (Progress.Marquee)
+                {
+                    Progress.ResetCounter(total, true);
+                }
+
+                Progress.SetCount(done);
+            }));
+        }
     }
 
     public Task<DevLoginResult> LogInForDevToken(string username, string password) =>
@@ -707,7 +740,8 @@ public enum GameState
     ServerMaintenance,
     LauncherOutOfDate,
     DevAccessDenied,
-    DevBuildUnavailable
+    DevBuildUnavailable,
+    PlatformUnsupported
 }
 
 public class Processing : IDisposable

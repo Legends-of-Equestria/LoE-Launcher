@@ -33,6 +33,8 @@ public class DialogService : IDialogService
 
     private Window? GetOwner() => _windowProvider.GetMainWindow();
 
+    private Window? TopOwner => _settingsWindow is { IsVisible: true } ? _settingsWindow : GetOwner();
+
     private static ControlTheme GlassDialogButton =>
         (ControlTheme)Application.Current!.Resources["GlassDialogButton"]!;
 
@@ -47,10 +49,13 @@ public class DialogService : IDialogService
         FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif")
     };
 
-    public async Task<bool> ShowConfirmDialog(string title, string message)
+    public async Task<bool> ShowConfirmDialog(string title, string message) =>
+        await ShowChoiceDialog(title, message, "Yes", "No") == 0;
+
+    public async Task<int> ShowChoiceDialog(string title, string message, params string[] choices)
     {
-        var result = false;
-        var confirmBox = CreateDialogWindow(title);
+        var result = -1;
+        var dialog = CreateDialogWindow(title);
 
         var panel = new StackPanel
         {
@@ -74,51 +79,35 @@ public class DialogService : IDialogService
             Spacing = 15
         };
 
-        var yesButton = new Button
+        for (var i = 0; i < choices.Length; i++)
         {
-            Content = "Yes",
-            Width = 100,
-            Height = 38,
-            CornerRadius = new CornerRadius(8),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
-            BorderThickness = new Thickness(1),
-            Theme = GlassDialogButton
-        };
+            var index = i;
+            var button = new Button
+            {
+                Content = choices[i],
+                MinWidth = 100,
+                Height = 38,
+                Padding = new Thickness(16, 0),
+                CornerRadius = new CornerRadius(8),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                BorderBrush = new SolidColorBrush(Color.Parse(i == 0 ? "#f0be4a" : "#80f0be4a")),
+                BorderThickness = new Thickness(1),
+                Theme = GlassDialogButton
+            };
+            button.Click += (_, _) =>
+            {
+                result = index;
+                dialog.Close();
+            };
+            buttonPanel.Children.Add(button);
+        }
 
-        var noButton = new Button
-        {
-            Content = "No",
-            Width = 100,
-            Height = 38,
-            CornerRadius = new CornerRadius(8),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            BorderBrush = new SolidColorBrush(Color.Parse("#80f0be4a")),
-            BorderThickness = new Thickness(1),
-            Theme = GlassDialogButton
-        };
-
-        yesButton.Click += (s, e) =>
-        {
-            result = true;
-            confirmBox.Close();
-        };
-
-        noButton.Click += (s, e) =>
-        {
-            result = false;
-            confirmBox.Close();
-        };
-
-        buttonPanel.Children.Add(yesButton);
-        buttonPanel.Children.Add(noButton);
         panel.Children.Add(messageText);
         panel.Children.Add(buttonPanel);
-        confirmBox.Content = panel;
+        dialog.Content = panel;
 
-        await confirmBox.ShowDialog(GetOwner()!);
+        await dialog.ShowDialog(TopOwner!);
         return result;
     }
 
@@ -379,7 +368,7 @@ public class DialogService : IDialogService
         window.Content = viewModel;
         viewModel.CloseAction = window.Close;
 
-        await window.ShowDialog(_settingsWindow ?? GetOwner()!);
+        await window.ShowDialog(TopOwner!);
         await viewModel.ApplyChannelChangesAsync();
     }
 }

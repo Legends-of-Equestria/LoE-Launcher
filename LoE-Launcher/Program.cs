@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using LoE_Launcher.Core;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -29,20 +30,12 @@ internal class Program
 
     private static void SetWorkingDirectory(string[] args)
     {
-        var appSupportDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "LoE Launcher"
-        );
-
-        var index = Array.IndexOf(args, "--data-dir");
-        if (index >= 0 && index + 1 < args.Length)
-        {
-            appSupportDir = Path.GetFullPath(args[index + 1]);
-        }
-
+        var appSupportDir = DataFolder.Resolve(args, out _dataFolderNote);
         Directory.CreateDirectory(appSupportDir);
         Directory.SetCurrentDirectory(appSupportDir);
     }
+
+    private static string? _dataFolderNote;
 
     private static void ConfigureLogging()
     {
@@ -113,6 +106,10 @@ internal class Program
         logger.Info("LoE Launcher - NEW SESSION STARTED");
         logger.Info("===============================================");
         logger.Info($"Log Directory: {GetLogDirectory()}");
+        if (_dataFolderNote != null)
+        {
+            logger.Info(_dataFolderNote);
+        }
         logger.Info("Log Files:");
         logger.Info("  - LoE-Launcher.log (Main)");
         logger.Info("  - LoE-Launcher-Debug.log (Detailed)");

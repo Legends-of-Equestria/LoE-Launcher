@@ -150,6 +150,13 @@ partial class Downloader
         }
     }
     
+    public class ImportingProgress(Downloader model) : ProgressData(model)
+    {
+        protected override string GetText() => Marquee
+            ? "Moving game files..."
+            : "Moving game files ({0}/{1})...".Format(Current, Max);
+    }
+
     public class CleanupProgress(Downloader model) : ProgressData(model)
     {
         protected override string GetText()
