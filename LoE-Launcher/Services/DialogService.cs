@@ -294,22 +294,12 @@ public class DialogService : IDialogService
 
         try
         {
-            if (_updateManager == null)
+            var updateInfo = _updateManager == null ? null : await _updateManager.CheckForUpdatesAsync();
+            if (_updateManager == null || updateInfo == null)
             {
-                Logger.Warn("UpdateManager is not available. Cannot perform update.");
-                messageText.Text = "Update system not available.";
-                await Task.Delay(2000);
+                Logger.Warn("No automatic launcher update available, offering the downloads page");
                 updateDialog.Close();
-                await ShowErrorMessage("Update Unavailable", "The update system is not available in this build.");
-                return;
-            }
-
-            var updateInfo = await _updateManager.CheckForUpdatesAsync();
-            if (updateInfo == null)
-            {
-                messageText.Text = "No updates found, closing dialog.";
-                await Task.Delay(1500);
-                updateDialog.Close();
+                await OfferManualDownload("This launcher can't update itself. Download the latest version from the website.");
                 return;
             }
 
@@ -329,7 +319,15 @@ public class DialogService : IDialogService
             progressBar.IsIndeterminate = true;
             await Task.Delay(3000);
             updateDialog.Close();
-            await ShowErrorMessage("Update Failed", "Failed to update the launcher. Please try again later.");
+            await OfferManualDownload("The launcher couldn't update itself. Download the latest version from the website.");
+        }
+    }
+
+    private async Task OfferManualDownload(string message)
+    {
+        if (await ShowChoiceDialog("Launcher Update", message, "Open downloads page", "Cancel") == 0)
+        {
+            ProcessLauncher.LaunchUrl(Constants.LauncherDownloadUrl);
         }
     }
 
