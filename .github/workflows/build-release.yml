@@ -148,7 +148,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           ls -lh
-          for file in LoE-Launcher-win-Setup.exe LoE-Launcher-osx-Setup.pkg LoE-Launcher-linux.AppImage LoE-Launcher-linux.flatpak; do
+          for file in LoE-Launcher-win-Setup.exe LoE-Launcher-osx-Setup.pkg LoE-Launcher.AppImage LoE-Launcher-linux.flatpak; do
             [ -f "$file" ] || { echo "::error::Missing $file"; exit 1; }
           done
           for channel in win osx linux; do
