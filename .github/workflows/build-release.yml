@@ -1,299 +1,165 @@
-name: Build Cross-Platform Release
+name: Build and Release
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
-  workflow_dispatch:  # Allows manual triggering
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  VPK_VERSION: '0.0.1298'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  VERSION: ${{ github.ref_name }}
+  RELEASE_BUILD: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Check the tag matches the launcher version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual=$(sed -nE 's/.*CurrentLauncherVersion = new\(\) \{ Major = ([0-9]+), Minor = ([0-9]+), Build = ([0-9]+).*/\1.\2.\3/p' LoE-Launcher/Core/Downloader.cs)
+          if [ "$actual" != "$expected" ]; then
+            echo "::error file=LoE-Launcher/Core/Downloader.cs::Tag $GITHUB_REF_NAME doesn't match CurrentLauncherVersion ($actual)"
+            exit 1
+          fi
+          echo "Launcher version $actual matches the tag"
 
-    - name: Build solution
-      run: dotnet build --no-restore --configuration Release
+      - name: Test
+        run: dotnet test --configuration Release --logger "console;verbosity=minimal"
 
-    - name: Run tests
-      run: dotnet test --no-build --configuration Release --verbosity normal
-
-  build-mac:
+  build:
+    name: Build ${{ matrix.name }}
     needs: test
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest
-
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            script: build-windows.sh
+            output: Publish/Windows
+          - name: macOS
+            os: macos-latest
+            script: build-mac.sh
+            output: Publish/Mac
+          - name: Linux
+            os: ubuntu-latest
+            script: build-linux.sh
+            output: Publish/Linux
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install vpk
-      run: dotnet tool install --global vpk
+      - name: Install vpk
+        run: dotnet tool install --global vpk --version ${{ env.VPK_VERSION }}
 
-    - name: Make build script executable
-      run: chmod +x .github/scripts/build-mac.sh
+      - name: Build and package
+        shell: bash
+        run: bash .github/scripts/${{ matrix.script }}
+        env:
+          MACOS_CERTIFICATE_P12: ${{ matrix.name == 'macOS' && secrets.MACOS_CERTIFICATE_P12 || '' }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ matrix.name == 'macOS' && secrets.MACOS_CERTIFICATE_PASSWORD || '' }}
+          NOTARIZATION_APPLE_ID: ${{ matrix.name == 'macOS' && secrets.NOTARIZATION_APPLE_ID || '' }}
+          NOTARIZATION_PASSWORD: ${{ matrix.name == 'macOS' && secrets.NOTARIZATION_PASSWORD || '' }}
+          NOTARIZATION_TEAM_ID: ${{ matrix.name == 'macOS' && secrets.NOTARIZATION_TEAM_ID || '' }}
 
-    - name: Build macOS App Bundle
-      run: .github/scripts/build-mac.sh
-      env:
-        VERSION: ${{ github.ref_name }}
-        MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-        MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-        NOTARIZATION_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
-        NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-        NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path: ${{ matrix.output }}/*
+          if-no-files-found: error
 
-    - name: Upload macOS Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: LoE-Launcher-macOS
-        path: Publish/Mac/**
-
-  build-linux:
-    needs: test
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: Install vpk
-      run: dotnet tool install --global vpk
-
-    - name: Make build script executable
-      run: chmod +x .github/scripts/build-linux.sh
-
-    - name: Build Linux AppImage
-      run: .github/scripts/build-linux.sh
-      env:
-        VERSION: ${{ github.ref_name }}
-
-    - name: Upload Linux Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: LoE-Launcher-Linux
-        path: Publish/Linux/**
-
-  build-flatpak:
+  flatpak:
+    name: Build Flatpak
     needs: test
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     container:
       image: bilelmoussaoui/flatpak-github-actions:freedesktop-24.08
       options: --privileged
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Make build script executable
-      run: chmod +x .github/scripts/build-flatpak.sh
+      - name: Publish
+        run: bash .github/scripts/build-flatpak.sh
 
-    - name: Build Flatpak preparation
-      run: .github/scripts/build-flatpak.sh
+      - uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: LoE-Launcher-linux.flatpak
+          manifest-path: com.loe.Launcher.json
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
 
-    - name: Build Flatpak
-      uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v6
-      with:
-        bundle: loe-launcher.flatpak
-        manifest-path: com.loe.Launcher.json
-        cache-key: flatpak-builder-${{ github.sha }}
-        upload-artifact: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-Flatpak
+          path: LoE-Launcher-linux.flatpak
+          if-no-files-found: error
 
-    - name: Upload Flatpak Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: LoE-Launcher-Flatpak
-        path: loe-launcher.flatpak
-
-  build-windows:
-    needs: test
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    runs-on: windows-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: Install vpk
-      run: dotnet tool install --global vpk
-      shell: pwsh
-
-    - name: Build Windows Executable
-      run: .github/scripts/build-windows.sh
-      shell: bash
-      env:
-        VERSION: ${{ github.ref_name }}
-
-    - name: Upload Windows Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: LoE-Launcher-Windows
-        path: Publish/Windows/**
-
-  create-release:
+  release:
+    name: Publish release
+    needs: [build, flatpak]
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-mac, build-linux, build-flatpak, build-windows]
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
-    - name: Download macOS build
-      uses: actions/download-artifact@v4
-      with:
-        name: LoE-Launcher-macOS
-        path: ./artifacts/mac/
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
 
-    - name: Download Linux build
-      uses: actions/download-artifact@v4
-      with:
-        name: LoE-Launcher-Linux
-        path: ./artifacts/linux/
+      - name: Check release files
+        working-directory: release
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          ls -lh
+          for file in LoE-Launcher-win-Setup.exe LoE-Launcher-osx-Setup.pkg LoE-Launcher-linux.AppImage LoE-Launcher-linux.flatpak; do
+            [ -f "$file" ] || { echo "::error::Missing $file"; exit 1; }
+          done
+          for channel in win osx linux; do
+            feed="releases.$channel.json"
+            [ -f "$feed" ] || { echo "::error::Missing $feed"; exit 1; }
+            jq -e --arg v "$version" '.Assets | length > 0 and all(.Version == $v and .PackageId == "LoE-Launcher")' "$feed" > /dev/null \
+              || { echo "::error::$feed doesn't list LoE-Launcher $version"; cat "$feed"; exit 1; }
+          done
 
-    - name: Download Flatpak build
-      uses: actions/download-artifact@v4
-      with:
-        name: LoE-Launcher-Flatpak
-        path: ./artifacts/flatpak/
-
-    - name: Download Windows build
-      uses: actions/download-artifact@v4
-      with:
-        name: LoE-Launcher-Windows
-        path: ./artifacts/windows/
-
-    - name: List all artifacts
-      run: find ./artifacts -type f | sort
-
-    - name: Prepare and merge release assets
-      run: |
-        mkdir -p ./release-assets
-
-        echo "=== Copying all platform binaries (nupkg files are already unique per platform) ==="
-
-        # Copy ALL files from each platform - with platform-specific packIds,
-        # the .nupkg files are now uniquely named:
-        # - Windows: LoE-Launcher-X.X.X-stable-full.nupkg
-        # - Mac: LoE-Launcher-Mac-X.X.X-stable-full.nupkg
-        # - Linux: LoE-Launcher-Linux-X.X.X-stable-full.nupkg
-
-        # Copy Windows artifacts (all files)
-        echo "Copying Windows artifacts..."
-        find ./artifacts/windows -type f -exec cp -v {} ./release-assets/ \;
-
-        # Copy Mac artifacts (all files - unique names due to packId)
-        echo "Copying Mac artifacts..."
-        find ./artifacts/mac -type f -exec cp -v {} ./release-assets/ \;
-
-        # Copy Linux artifacts (all files - unique names due to packId)
-        echo "Copying Linux artifacts..."
-        find ./artifacts/linux -type f -exec cp -v {} ./release-assets/ \;
-
-        # Copy Flatpak (standalone, no Velopack metadata)
-        echo "Copying Flatpak..."
-        find ./artifacts/flatpak -type f -exec cp -v {} ./release-assets/ \;
-
-        echo ""
-        echo "=== Merging Velopack releases.stable.json files ==="
-
-        # Velopack's GithubSource with packId parameter filters releases by packId.
-        # Each platform's JSON contains only its own releases, so we merge them into one file.
-        # The client passes its platform-specific packId to filter the correct entries.
-
-        # Collect all releases.stable.json files
-        WINDOWS_JSON="./artifacts/windows/releases.stable.json"
-        MAC_JSON="./artifacts/mac/releases.stable.json"
-        LINUX_JSON="./artifacts/linux/releases.stable.json"
-
-        # Merge using jq - combine arrays from all platforms
-        if [ -f "$WINDOWS_JSON" ] && [ -f "$MAC_JSON" ] && [ -f "$LINUX_JSON" ]; then
-          echo "Merging releases.stable.json from all platforms..."
-          jq -s 'add' "$WINDOWS_JSON" "$MAC_JSON" "$LINUX_JSON" > ./release-assets/releases.stable.json
-          echo "Merged releases.stable.json created"
-        elif [ -f "$WINDOWS_JSON" ] && [ -f "$MAC_JSON" ]; then
-          jq -s 'add' "$WINDOWS_JSON" "$MAC_JSON" > ./release-assets/releases.stable.json
-        elif [ -f "$WINDOWS_JSON" ] && [ -f "$LINUX_JSON" ]; then
-          jq -s 'add' "$WINDOWS_JSON" "$LINUX_JSON" > ./release-assets/releases.stable.json
-        elif [ -f "$MAC_JSON" ] && [ -f "$LINUX_JSON" ]; then
-          jq -s 'add' "$MAC_JSON" "$LINUX_JSON" > ./release-assets/releases.stable.json
-        elif [ -f "$WINDOWS_JSON" ]; then
-          cp "$WINDOWS_JSON" ./release-assets/releases.stable.json
-        elif [ -f "$MAC_JSON" ]; then
-          cp "$MAC_JSON" ./release-assets/releases.stable.json
-        elif [ -f "$LINUX_JSON" ]; then
-          cp "$LINUX_JSON" ./release-assets/releases.stable.json
-        fi
-
-        echo ""
-        echo "=== Merging assets.stable.json files ==="
-
-        WINDOWS_ASSETS="./artifacts/windows/assets.stable.json"
-        MAC_ASSETS="./artifacts/mac/assets.stable.json"
-        LINUX_ASSETS="./artifacts/linux/assets.stable.json"
-
-        # Merge assets JSON files similarly
-        if [ -f "$WINDOWS_ASSETS" ] && [ -f "$MAC_ASSETS" ] && [ -f "$LINUX_ASSETS" ]; then
-          echo "Merging assets.stable.json from all platforms..."
-          jq -s 'add' "$WINDOWS_ASSETS" "$MAC_ASSETS" "$LINUX_ASSETS" > ./release-assets/assets.stable.json
-          echo "Merged assets.stable.json created"
-        elif [ -f "$WINDOWS_ASSETS" ] && [ -f "$MAC_ASSETS" ]; then
-          jq -s 'add' "$WINDOWS_ASSETS" "$MAC_ASSETS" > ./release-assets/assets.stable.json
-        elif [ -f "$WINDOWS_ASSETS" ] && [ -f "$LINUX_ASSETS" ]; then
-          jq -s 'add' "$WINDOWS_ASSETS" "$LINUX_ASSETS" > ./release-assets/assets.stable.json
-        elif [ -f "$MAC_ASSETS" ] && [ -f "$LINUX_ASSETS" ]; then
-          jq -s 'add' "$MAC_ASSETS" "$LINUX_ASSETS" > ./release-assets/assets.stable.json
-        elif [ -f "$WINDOWS_ASSETS" ]; then
-          cp "$WINDOWS_ASSETS" ./release-assets/assets.stable.json
-        elif [ -f "$MAC_ASSETS" ]; then
-          cp "$MAC_ASSETS" ./release-assets/assets.stable.json
-        elif [ -f "$LINUX_ASSETS" ]; then
-          cp "$LINUX_ASSETS" ./release-assets/assets.stable.json
-        fi
-
-        echo ""
-        echo "=== Final release assets ==="
-        ls -lah ./release-assets/
-
-        echo ""
-        echo "=== Merged releases.stable.json content ==="
-        cat ./release-assets/releases.stable.json || echo "No releases.stable.json"
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ./release-assets/*
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true

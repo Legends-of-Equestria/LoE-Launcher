@@ -1,76 +1,40 @@
 #!/bin/bash
+source "$(dirname "$0")/common.sh"
 
-# .github/scripts/build-linux.sh
-# Builds LoE Launcher for Linux with Velopack in GitHub Actions
+resolve_version
+WORK="build/linux"
+OUTPUT="Publish/Linux"
 
-set -e
+rm -rf "$WORK" "$OUTPUT"
+echo "Building LoE Launcher $VERSION for Linux"
 
-if [ -z "$VERSION" ]; then
-    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
-fi
-
-# Strip leading 'v' (v1.0.0 -> 1.0.0)
-VERSION="${VERSION#v}"
-
-# Check if VERSION is a valid number (e.g. 1.0.0). If not (e.g. 'main'), default to 0.0.0
-if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-    echo "⚠️  Version '$VERSION' is not numeric. Defaulting to 0.0.1 for build safety."
-    VERSION="0.0.1"
-fi
-
-PACK_ID="LoE-Launcher-Linux"
-
-PROJECT_DIR="LoE-Launcher"
-PROJECT_FILE="$PROJECT_DIR/LoE-Launcher.csproj"
-OUTPUT_DIR="$PROJECT_DIR/bin/Release/net8.0/linux-x64/publish"
-VELOPACK_OUTPUT_DIR="Publish/Linux"
-
-echo "🚀 Starting build for Linux..."
-echo "🔹 Building Version: $VERSION"
-echo "🔹 Pack ID: $PACK_ID"
-
-# Clean previous output
-rm -rf "$PROJECT_DIR/bin/Release"
-rm -rf "$VELOPACK_OUTPUT_DIR"
-
-# Build + publish
-echo "🔨 Publishing project..."
+group "Publish linux-x64"
+# shellcheck disable=SC2046
 dotnet publish "$PROJECT_FILE" \
     -c Release \
     -f net8.0 \
     -r linux-x64 \
     --self-contained true \
-    -p:UseAppHost=true \
-    -p:SelfContained=true \
     -p:PublishSingleFile=false \
-    -p:IncludeNativeLibrariesForSelfExtract=true \
-    -p:IncludeAllContentForSelfExtract=true \
-    -p:EnableCompressionInSingleFile=false \
     -p:PublishReadyToRun=true \
-    -p:TrimUnusedDependencies=false \
-    -p:CopyOutputSymbolsToPublishDirectory=false \
-    -p:UseSharedCompilation=true \
-    -p:BuildInParallel=true \
-    -p:AssemblyVersion="$VERSION" \
-    -p:FileVersion="$VERSION" \
-    -p:InformationalVersion="$VERSION" \
+    -p:DebugType=None \
+    $(version_args "$VERSION") \
+    -o "$WORK" \
     --verbosity minimal
+[ -f "$WORK/LoE-Launcher" ] || fail "Publish didn't produce LoE-Launcher"
+endgroup
 
-# Make sure it worked
-if [ ! -f "$OUTPUT_DIR/LoE-Launcher" ]; then
-    echo "❌ Build failed — couldn't find output executable"
-    exit 1
-fi
-
-# Velopack packaging
-echo "📦 Packaging with Velopack..."
+group "Package with Velopack"
 vpk pack \
     --packId "$PACK_ID" \
     --packVersion "$VERSION" \
-    --packDir "$OUTPUT_DIR" \
-    --outputDir "$VELOPACK_OUTPUT_DIR" \
-    --channel Stable \
-    --mainExe "LoE-Launcher"
+    --packTitle "$PACK_TITLE" \
+    --packAuthors "$PACK_AUTHORS" \
+    --packDir "$WORK" \
+    --mainExe "LoE-Launcher" \
+    --icon "Assets/Icon.png" \
+    --channel linux \
+    --outputDir "$OUTPUT"
+endgroup
 
-echo "✅ Linux build complete!"
-echo "📦 Created: $VELOPACK_OUTPUT_DIR"
+ls -lh "$OUTPUT"
