@@ -12,7 +12,7 @@ warn() { echo "::warning::$1"; }
 fail() { echo "::error::$1"; exit 1; }
 
 resolve_version() {
-    local raw="${VERSION:-}"
+    local raw="${RELEASE_TAG:-}"
     VERSION="${raw#v}"
     if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         [ "${RELEASE_BUILD:-false}" = "true" ] && fail "Release builds need a version like v1.2.3, got '$raw'"

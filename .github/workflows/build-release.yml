@@ -19,7 +19,7 @@ env:
   VPK_VERSION: '0.0.1298'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  VERSION: ${{ github.ref_name }}
+  RELEASE_TAG: ${{ github.ref_name }}
   RELEASE_BUILD: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
