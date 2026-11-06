@@ -109,7 +109,7 @@ vpk pack \
     --packAuthors "$PACK_AUTHORS" \
     --packDir "$UNIVERSAL" \
     --mainExe "LoE-Launcher" \
-    --bundleId "com.legendsofequestria.loelauncher" \
+    --bundleId "com.legendsofequestria.launcher" \
     --icon "Assets/Icon.icns" \
     --channel osx \
     --outputDir "$OUTPUT" \
