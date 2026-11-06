@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Models;
 using Models.Utils;
-using Newtonsoft.Json;
+using LoE_Launcher.Core;
 
 namespace LoE_Launcher.Tests;
 
@@ -20,7 +20,7 @@ public class VersionsControlFileTests
     [Fact]
     public void ForPlatform_ShouldReadCurrentLiveFile()
     {
-        var data = JsonConvert.DeserializeObject<VersionsControlFile>(LiveJson)!;
+        var data = LauncherJson.Parse(LiveJson, LauncherJson.Default.VersionsControlFile)!;
 
         data.ForPlatform(OS.WindowsX64).Should().Be("LoE_Win64_2026.03.001");
         data.ForPlatform(OS.X11).Should().Be("LoE_Linux_2026.03.001");
@@ -31,8 +31,8 @@ public class VersionsControlFileTests
     [Fact]
     public void ForPlatform_ShouldPreferSingleMacKey()
     {
-        var data = JsonConvert.DeserializeObject<VersionsControlFile>(
-            """{ "Mac": "LoE_Mac_2026.04.001", "Mac_Arm": "old", "Mac_Intel": "old" }""")!;
+        var data = LauncherJson.Parse(
+            """{ "Mac": "LoE_Mac_2026.04.001", "Mac_Arm": "old", "Mac_Intel": "old" }""", LauncherJson.Default.VersionsControlFile)!;
 
         data.ForPlatform(OS.MacArm).Should().Be("LoE_Mac_2026.04.001");
         data.ForPlatform(OS.MacIntel).Should().Be("LoE_Mac_2026.04.001");
@@ -43,7 +43,7 @@ public class VersionsControlFileTests
     [InlineData(OS.Other)]
     public void Unsupported_ShouldHaveNoBuild(OS os)
     {
-        var data = JsonConvert.DeserializeObject<VersionsControlFile>(LiveJson)!;
+        var data = LauncherJson.Parse(LiveJson, LauncherJson.Default.VersionsControlFile)!;
 
         VersionsControlFile.IsSupported(os).Should().BeFalse();
         data.ForPlatform(os).Should().BeNull();

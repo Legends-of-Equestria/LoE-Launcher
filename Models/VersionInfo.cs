@@ -1,24 +1,19 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 namespace Models;
 
+[JsonConverter(typeof(VersionInfoConverter))]
 public class VersionInfo
 {
-    [JsonProperty("Major")]
     public int Major { get; set; } = 0;
 
-    [JsonProperty("Minor")]
     public int Minor { get; set; } = 2;
 
-    [JsonProperty("Build")]
     public int Build { get; set; } = -1;
 
-    [JsonProperty("Revision")]
     public int Revision { get; set; } = -1;
 
-    [JsonProperty("MajorRevision")]
     public int MajorRevision { get; set; } = -1;
 
-    [JsonProperty("MinorRevision")]
     public int MinorRevision { get; set; } = -1;
 
 
@@ -26,16 +21,6 @@ public class VersionInfo
     {
     }
 
-    [JsonConstructor]
-    private VersionInfo(int major, int minor, int build, int revision, int majorRevision, int minorRevision)
-    {
-        Major = major;
-        Minor = minor;
-        Build = build;
-        Revision = revision;
-        MajorRevision = majorRevision;
-        MinorRevision = minorRevision;
-    }
 
     public static implicit operator VersionInfo(string versionString)
     {

@@ -1,6 +1,5 @@
 ﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
 
 namespace LoE_Launcher;
 
@@ -24,7 +23,7 @@ public class Settings
 
     public bool ImportOffered { get; set; }
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<GameChannel>))]
     public GameChannel Channel { get; set; } = GameChannel.Live;
 
     // Stored by DevTokenStore, never in settings.json

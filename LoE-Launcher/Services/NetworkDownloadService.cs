@@ -6,9 +6,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using LoE_Launcher.Core;
-using Models.Paths.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using NLog;
 using zsyncnet;
 using zsyncnet.Sync;
@@ -45,18 +44,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
         return client;
     }
 
-    public static readonly JsonSerializerSettings JsonSettings = new()
-    {
-        MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
-        DateParseHandling = DateParseHandling.None,
-        Converters =
-        {
-            new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
-        },
-        ContractResolver = new RelativeFilePathContractResolver()
-    };
-
-    public async Task<TType?> DownloadJson<TType>(Uri url, Action<GameState> setState)
+    public async Task<TType?> DownloadJson<TType>(Uri url, JsonTypeInfo<TType> type, Action<GameState> setState)
         where TType : class
     {
         for (int attempt = 0; attempt < MaxNetworkRetries; attempt++)
@@ -94,7 +82,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
                 var result = await response.Content.ReadAsStringAsync(cts.Token);
 
                 Logger.Info($"JSON download successful (attempt {attempt + 1})");
-                return JsonConvert.DeserializeObject<TType>(result, JsonSettings);
+                return LauncherJson.Parse(result, type);
             }
             catch (OperationCanceledException) when (attempt < MaxNetworkRetries - 1)
             {
@@ -468,7 +456,11 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
             case System.Net.HttpStatusCode.OK:
                 try
                 {
-                    var token = Newtonsoft.Json.Linq.JObject.Parse(body).Value<string>("token") ?? "";
+                    using var document = JsonDocument.Parse(body);
+                    var token = document.RootElement.TryGetProperty("token", out var value)
+                                && value.ValueKind == JsonValueKind.String
+                        ? value.GetString() ?? ""
+                        : "";
                     return System.Text.RegularExpressions.Regex.IsMatch(token, "^[0-9a-f]{64}$")
                         ? new DevLoginResult(DevLoginStatus.Ok, token)
                         : new DevLoginResult(DevLoginStatus.Unreachable);

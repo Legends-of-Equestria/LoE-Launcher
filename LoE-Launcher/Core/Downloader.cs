@@ -4,13 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using LoE_Launcher.Services;
 using Models;
 using Models.Paths;
-using Models.Paths.Json;
 using Models.Utils;
-using Newtonsoft.Json;
 using NLog;
 using Velopack;
 
@@ -111,10 +110,7 @@ public partial class Downloader
         _fileOps = new FileOperationsService(_launcherPath.Path);
 
         var settingsFile = SettingsFile;
-        _settings = settingsFile.Exists
-            ? JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFile.Path),
-                NetworkDownloadService.JsonSettings) ?? new Settings()
-            : new Settings();
+        _settings = LoadSettings(settingsFile.Path);
 
         _settings.MigrateToHttps();
 
@@ -314,7 +310,7 @@ public partial class Downloader
         try
         {
             var launcherVersionInfo =
-                await _network.DownloadJson<LauncherVersionInfo>(new Uri(_settings.LauncherVersionUrl),
+                await _network.DownloadJson(new Uri(_settings.LauncherVersionUrl), LauncherJson.Default.LauncherVersionInfo,
                     state => _state = state);
 
             if (launcherVersionInfo == null)
@@ -346,7 +342,7 @@ public partial class Downloader
     {
         Logger.Info($"Getting version info from {_settings.ActiveStream} (channel: {(IsDevChannel ? "Dev" : "Live")})");
         CurrentBuild = null;
-        var data = await _network.DownloadJson<VersionsControlFile>(new Uri(_settings.ActiveStream),
+        var data = await _network.DownloadJson(new Uri(_settings.ActiveStream), LauncherJson.Default.VersionsControlFile,
             state => _state = state);
 
         if (data == null)
@@ -645,11 +641,29 @@ public partial class Downloader
     public Task<DevLoginResult> LogInForDevToken(string username, string password) =>
         _network.LogInForDevToken(username, password);
 
+    private static Settings LoadSettings(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return new Settings();
+        }
+
+        try
+        {
+            return LauncherJson.Parse(File.ReadAllText(path), LauncherJson.Default.Settings) ?? new Settings();
+        }
+        catch (JsonException ex)
+        {
+            Logger.Error(ex, "Couldn't read settings.json, using defaults");
+            return new Settings();
+        }
+    }
+
     public void SaveSettings()
     {
         try
         {
-            var settingsJson = JsonConvert.SerializeObject(_settings, Formatting.Indented);
+            var settingsJson = JsonSerializer.Serialize(_settings, LauncherJson.Default.Settings);
             File.WriteAllText(SettingsFile.Path, settingsJson);
             Logger.Info("Settings saved successfully");
         }

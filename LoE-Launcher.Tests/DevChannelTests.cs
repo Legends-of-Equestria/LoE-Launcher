@@ -3,7 +3,8 @@ using FluentAssertions;
 using LoE_Launcher;
 using LoE_Launcher.Services;
 using Models;
-using Newtonsoft.Json;
+using System.Text.Json;
+using LoE_Launcher.Core;
 using Xunit;
 
 namespace LoE_Launcher.Tests;
@@ -91,14 +92,14 @@ public class DevChannelTests
     [Fact]
     public void Settings_ShouldRoundTripChannelAsString_WithoutToken()
     {
-        var json = JsonConvert.SerializeObject(DevSettings());
+        var json = JsonSerializer.Serialize(DevSettings(), LauncherJson.Default.Settings);
 
-        json.Should().Contain("\"Channel\":\"Dev\"");
+        json.Should().Contain("\"Channel\": \"Dev\"");
         json.Should().NotContain("IsDevChannelActive");
         json.Should().NotContain("DevToken");
         json.Should().NotContain("secret");
 
-        var restored = JsonConvert.DeserializeObject<Settings>(json)!;
+        var restored = LauncherJson.Parse(json, LauncherJson.Default.Settings)!;
         restored.Channel.Should().Be(GameChannel.Dev);
         restored.DevToken.Should().BeEmpty();
     }
@@ -106,7 +107,7 @@ public class DevChannelTests
     [Fact]
     public void Settings_ShouldIgnoreTokenFoundInSettingsJson()
     {
-        var restored = JsonConvert.DeserializeObject<Settings>("{\"Channel\":\"Dev\",\"DevToken\":\"secret\"}")!;
+        var restored = LauncherJson.Parse("{\"Channel\":\"Dev\",\"DevToken\":\"secret\"}", LauncherJson.Default.Settings)!;
 
         restored.DevToken.Should().BeEmpty();
         restored.IsDevChannelActive.Should().BeFalse();
@@ -115,7 +116,7 @@ public class DevChannelTests
     [Fact]
     public void OldSettingsFile_ShouldDefaultToLive()
     {
-        var restored = JsonConvert.DeserializeObject<Settings>("{\"CloseAfterLaunch\":false}")!;
+        var restored = LauncherJson.Parse("{\"CloseAfterLaunch\":false}", LauncherJson.Default.Settings)!;
 
         restored.Channel.Should().Be(GameChannel.Live);
         restored.IsDevChannelActive.Should().BeFalse();
@@ -131,7 +132,7 @@ public class DevChannelTests
             }
             """;
 
-        var data = JsonConvert.DeserializeObject<VersionsControlFile>(json)!;
+        var data = LauncherJson.Parse(json, LauncherJson.Default.VersionsControlFile)!;
 
         data.Win64.Should().Be("build-1234");
         data.Linux.Should().BeNull();

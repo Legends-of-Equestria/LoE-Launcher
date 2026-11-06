@@ -10,7 +10,6 @@ using Avalonia.Threading;
 using LoE_Launcher.Core;
 using Models;
 using Models.Paths;
-using Models.Paths.Json;
 using Models.Utils;
 using NLog;
 
@@ -22,7 +21,7 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
 
     public async Task<Downloader.DownloadData?> DownloadMainControlFile(Uri url, ProgressData progress, IAbsoluteDirectoryPath gameInstallFolder, Action<GameState> setState)
     {
-        var mainControlFile = await network.DownloadJson<MainControlFile>(url, setState);
+        var mainControlFile = await network.DownloadJson(url, LauncherJson.Default.MainControlFile, setState);
         if (mainControlFile == null)
         {
             return null;

@@ -1,38 +1,19 @@
-using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using LoE_Launcher.ViewModels;
+using LoE_Launcher.Views;
 
 namespace LoE_Launcher;
 
 public class ViewLocator : IDataTemplate
 {
-    public Control Build(object? data)
+    public Control Build(object? data) => data switch
     {
-        if (data is null)
-        {
-            return new TextBlock { Text = "data is null" };
-        }
-
-        var viewModelType = data.GetType();
-        var viewName = viewModelType.Name.Replace("ViewModel", "View");
-        
-        if (viewModelType.Namespace is null)
-        {
-            return new TextBlock { Text = "Not Found: ViewModel has no namespace" };
-        }
-        
-        var viewNamespace = viewModelType.Namespace.Replace("ViewModels", "Views");
-        var viewTypeName = $"{viewNamespace}.{viewName}";
-        var type = Type.GetType(viewTypeName);
-
-        if (type != null)
-        {
-            return (Control)Activator.CreateInstance(type)!;
-        }
-
-        return new TextBlock { Text = "Not Found: " + viewTypeName };
-    }
+        SettingsViewModel => new SettingsView(),
+        TesterAccessViewModel => new TesterAccessView(),
+        null => new TextBlock { Text = "data is null" },
+        _ => new TextBlock { Text = "Not Found: " + data.GetType().Name }
+    };
 
     public bool Match(object? data)
     {

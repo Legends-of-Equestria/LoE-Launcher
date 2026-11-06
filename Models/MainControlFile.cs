@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Models.Paths;
 using Models.Utils;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Models;
 
@@ -47,14 +47,13 @@ public class BuildInfo
     
 public class MainControlFile
 {
-    [JsonProperty("Version")]
-    [JsonConverter(typeof(VersionInfoConverter))]
+    [JsonPropertyName("Version")]
     public VersionInfo Version { get; set; }
 
-    [JsonProperty("Content")]
+    [JsonPropertyName("Content")]
     public List<ControlFileItem> Content { get; set; } = [];
 
-    [JsonProperty("RootUri")]
+    [JsonPropertyName("RootUri")]
     public Uri? RootUri { get; set; }
 
     public MainControlFile()
@@ -67,16 +66,16 @@ public class ControlFileItem
 {
     public const string ZsyncExtension = ".zsync.jar";
 
-    [JsonProperty("RelativeContentUrl")]
+    [JsonPropertyName("RelativeContentUrl")]
     public Uri RelativeContentUrl { get; set; }
 
     [JsonIgnore]
     public IRelativeFilePath? InstallPath { get; set; }
 
-    [JsonProperty("FileHash")]
+    [JsonPropertyName("FileHash")]
     public string FileHash { get; set; }
 
-    [JsonProperty("_installPath")]
+    [JsonPropertyName("_installPath")]
     public string _installPath
     {
         get => InstallPath?.ToString();

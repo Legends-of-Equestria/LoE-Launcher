@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json;
+using LoE_Launcher.Core;
 using NLog;
 
 namespace LoE_Launcher.Services;
@@ -24,7 +25,7 @@ public static class InstalledFiles
         try
         {
             return File.Exists(path)
-                ? JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(path)) ?? []
+                ? LauncherJson.Parse(File.ReadAllText(path), LauncherJson.Default.ListString) ?? []
                 : [];
         }
         catch (Exception ex)
@@ -37,7 +38,7 @@ public static class InstalledFiles
     public static void Save(string gameFolder, IEnumerable<string> files)
     {
         var sorted = files.Distinct(PathComparer).OrderBy(f => f, StringComparer.Ordinal).ToList();
-        File.WriteAllText(Path.Combine(gameFolder, ManifestName), JsonConvert.SerializeObject(sorted, Formatting.Indented));
+        File.WriteAllText(Path.Combine(gameFolder, ManifestName), JsonSerializer.Serialize(sorted, LauncherJson.Default.ListString));
     }
 
     public static IReadOnlyList<string> RemoveDropped(string gameFolder, IReadOnlyCollection<string> current)

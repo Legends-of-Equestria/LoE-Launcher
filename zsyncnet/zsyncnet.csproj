@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
     <Version>0.1.9</Version>
     <Authors>James McCartney, Keithen</Authors>
     <PackageProjectUrl>https://github.com/BeowulfStratOps/zsyncnet</PackageProjectUrl>

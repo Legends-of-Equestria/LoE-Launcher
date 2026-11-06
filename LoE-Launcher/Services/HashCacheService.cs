@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Models.Paths.Json;
-using Newtonsoft.Json;
+using System.Text.Json;
+using LoE_Launcher.Core;
 using NLog;
 
 namespace LoE_Launcher.Services;
@@ -24,7 +24,7 @@ public class HashCacheService(string cacheDirectory)
             if (File.Exists(cacheFile))
             {
                 var json = File.ReadAllText(cacheFile);
-                return JsonConvert.DeserializeObject<Dictionary<string, FileHashCache>>(json)
+                return LauncherJson.Parse(json, LauncherJson.Default.DictionaryStringFileHashCache)
                     ?? new Dictionary<string, FileHashCache>();
             }
         }
@@ -46,7 +46,7 @@ public class HashCacheService(string cacheDirectory)
             }
 
             var cacheFile = Path.Combine(cacheDirectory, "hash_cache.json");
-            var json = JsonConvert.SerializeObject(cache);
+            var json = JsonSerializer.Serialize(cache, LauncherJson.Default.DictionaryStringFileHashCache);
             File.WriteAllText(cacheFile, json);
         }
         catch (Exception ex)
