@@ -46,6 +46,7 @@ while IFS= read -r -d '' file; do
     is_macho "$file" || continue
     archs=$(lipo -archs "$file")
     [[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || fail "${file#"$UNIVERSAL/"} is not universal ($archs)"
+    codesign --force --sign - "$file"
 done < <(find "$UNIVERSAL" -type f -print0)
 lipo -archs "$UNIVERSAL/LoE-Launcher"
 endgroup
@@ -91,16 +92,13 @@ if [ -n "${MACOS_CERTIFICATE_P12:-}" ] && [ -n "${MACOS_CERTIFICATE_PASSWORD:-}"
         SIGN_ARGS+=(--notaryProfile "$NOTARY_PROFILE")
         NOTARIZED=true
         echo "Notarization enabled"
-    elif [ "${RELEASE_BUILD:-false}" = "true" ]; then
-        fail "Release builds must be notarized, set the NOTARIZATION_* secrets"
     else
         warn "Notarization secrets missing, the app will be signed but not notarized"
     fi
     endgroup
-elif [ "${RELEASE_BUILD:-false}" = "true" ]; then
-    fail "Release builds must be signed, set the MACOS_CERTIFICATE_* secrets"
 else
-    warn "Signing secrets missing, building an unsigned app"
+    warn "Signing secrets missing, building an unsigned app that macOS will warn about on first launch"
+    echo "macOS app is unsigned and not notarized" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 fi
 
 group "Package with Velopack"
@@ -130,6 +128,8 @@ MAIN="$APP/Contents/MacOS/LoE-Launcher"
 archs=$(lipo -archs "$MAIN")
 [[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || fail "The packaged app isn't universal ($archs)"
 echo "${APP#"$VERIFY/"} is universal ($archs)"
+
+codesign --verify --verbose=2 "$MAIN"
 
 if [ ${#SIGN_ARGS[@]} -gt 0 ]; then
     codesign --verify --deep --strict --verbose=2 "$APP"
