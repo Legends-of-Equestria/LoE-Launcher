@@ -4,7 +4,7 @@ source "$(dirname "$0")/common.sh"
 resolve_version
 WORK="build/mac"
 OUTPUT="Publish/Mac"
-ENTITLEMENTS=".github/macos/entitlements.plist"
+ENTITLEMENTS=".github/macos/LoE-Launcher.entitlements"
 NOTARY_PROFILE="loe-notary"
 
 rm -rf "$WORK" "$OUTPUT"
