@@ -129,10 +129,9 @@ archs=$(lipo -archs "$MAIN")
 [[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || fail "The packaged app isn't universal ($archs)"
 echo "${APP#"$VERIFY/"} is universal ($archs)"
 
-codesign --verify --verbose=2 "$MAIN"
+codesign --verify --deep --strict --verbose=2 "$APP"
 
 if [ ${#SIGN_ARGS[@]} -gt 0 ]; then
-    codesign --verify --deep --strict --verbose=2 "$APP"
     if [ "$NOTARIZED" = "true" ]; then
         spctl --assess --type execute --verbose=4 "$APP"
         xcrun stapler validate "$APP" || warn "The app is notarized but its ticket isn't stapled, the first launch needs internet"
