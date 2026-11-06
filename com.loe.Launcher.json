@@ -1,35 +1,41 @@
 {
     "app-id": "com.loe.Launcher",
     "runtime": "org.freedesktop.Platform",
-    "runtime-version": "24.08", 
+    "runtime-version": "24.08",
     "sdk": "org.freedesktop.Sdk",
-    "command": "loe-launcher-wrapper",
+    "command": "LoE-Launcher",
     "finish-args": [
         "--socket=x11",
-        "--socket=wayland", 
+        "--socket=wayland",
         "--share=network",
         "--share=ipc",
         "--device=dri",
-        "--socket=pulseaudio",
-        "--persist=loe-launcher"
+        "--socket=pulseaudio"
     ],
     "modules": [
         {
             "name": "loe-launcher",
             "buildsystem": "simple",
             "build-commands": [
-                "install -Dm755 Publish/Flatpak/LoE-Launcher /app/bin/LoE-Launcher",
-                "install -Dm755 Publish/Flatpak/libHarfBuzzSharp.so /app/bin/libHarfBuzzSharp.so 2>/dev/null || true",
-                "install -Dm755 Publish/Flatpak/libSkiaSharp.so /app/bin/libSkiaSharp.so 2>/dev/null || true", 
-				"install -Dm644 com.loe.Launcher.desktop /app/share/applications/com.loe.Launcher.desktop",
-                "install -Dm644 com.loe.Launcher.png /app/share/icons/hicolor/256x256/apps/com.loe.Launcher.png",
-                "cp -r Publish/Flatpak/* /app/bin/ || true",
-                "install -Dm755 loe-launcher-wrapper.sh /app/bin/loe-launcher-wrapper"
+                "mkdir -p /app/bin",
+                "cp -r launcher/. /app/bin/",
+                "chmod +x /app/bin/LoE-Launcher",
+                "install -Dm644 com.loe.Launcher.desktop /app/share/applications/com.loe.Launcher.desktop",
+                "install -Dm644 com.loe.Launcher.png /app/share/icons/hicolor/256x256/apps/com.loe.Launcher.png"
             ],
             "sources": [
                 {
                     "type": "dir",
-                    "path": "."
+                    "path": "Publish/Flatpak",
+                    "dest": "launcher"
+                },
+                {
+                    "type": "file",
+                    "path": "com.loe.Launcher.desktop"
+                },
+                {
+                    "type": "file",
+                    "path": "com.loe.Launcher.png"
                 }
             ]
         }

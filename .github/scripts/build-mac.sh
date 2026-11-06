@@ -23,7 +23,7 @@ for rid in osx-arm64 osx-x64; do
         $(version_args "$VERSION") \
         -o "$WORK/$rid" \
         --verbosity minimal
-    find "$WORK/$rid" -name "*.dSYM" -prune -exec rm -rf {} +
+    find "$WORK/$rid" -iname "*.dsym" -prune -exec rm -rf {} +
     endgroup
 done
 
@@ -51,6 +51,8 @@ lipo -archs "$UNIVERSAL/LoE-Launcher"
 endgroup
 
 SIGN_ARGS=()
+INSTALL_IDENTITY=""
+NOTARIZED=false
 if [ -n "${MACOS_CERTIFICATE_P12:-}" ] && [ -n "${MACOS_CERTIFICATE_PASSWORD:-}" ]; then
     group "Set up code signing"
     KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
@@ -87,6 +89,7 @@ if [ -n "${MACOS_CERTIFICATE_P12:-}" ] && [ -n "${MACOS_CERTIFICATE_PASSWORD:-}"
             --password "$NOTARIZATION_PASSWORD" \
             --keychain "$KEYCHAIN" > /dev/null
         SIGN_ARGS+=(--notaryProfile "$NOTARY_PROFILE")
+        NOTARIZED=true
         echo "Notarization enabled"
     elif [ "${RELEASE_BUILD:-false}" = "true" ]; then
         fail "Release builds must be notarized, set the NOTARIZATION_* secrets"
@@ -112,7 +115,30 @@ vpk pack \
     --icon "Assets/Icon.icns" \
     --channel osx \
     --outputDir "$OUTPUT" \
-    "${SIGN_ARGS[@]}"
+    ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"}
 endgroup
 
+group "Verify the packaged app"
 ls -lh "$OUTPUT"
+VERIFY="$WORK/verify"
+mkdir -p "$VERIFY"
+ditto -x -k "$OUTPUT/$PACK_ID-osx-Portable.zip" "$VERIFY"
+APP=$(find "$VERIFY" -maxdepth 2 -name "*.app" -type d | head -1)
+[ -n "$APP" ] || fail "The portable zip has no .app bundle"
+MAIN="$APP/Contents/MacOS/LoE-Launcher"
+[ -f "$MAIN" ] || fail "No LoE-Launcher in ${APP#"$VERIFY/"}/Contents/MacOS: $(ls "$APP/Contents/MacOS")"
+archs=$(lipo -archs "$MAIN")
+[[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || fail "The packaged app isn't universal ($archs)"
+echo "${APP#"$VERIFY/"} is universal ($archs)"
+
+if [ ${#SIGN_ARGS[@]} -gt 0 ]; then
+    codesign --verify --deep --strict --verbose=2 "$APP"
+    if [ "$NOTARIZED" = "true" ]; then
+        spctl --assess --type execute --verbose=4 "$APP"
+        xcrun stapler validate "$APP" || warn "The app is notarized but its ticket isn't stapled, the first launch needs internet"
+    fi
+    if [ -n "$INSTALL_IDENTITY" ]; then
+        pkgutil --check-signature "$OUTPUT/$PACK_ID-osx-Setup.pkg"
+    fi
+fi
+endgroup

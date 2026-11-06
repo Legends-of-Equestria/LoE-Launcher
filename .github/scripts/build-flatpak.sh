@@ -41,14 +41,4 @@ endgroup
 cp -r "$WORK"/* "$OUTPUT/"
 chmod +x "$OUTPUT/LoE-Launcher"
 
-cat > loe-launcher-wrapper.sh << 'EOF'
-#!/bin/bash
-mkdir -p /var/data/loe-launcher
-cp -r /app/bin/* /var/data/loe-launcher/
-chmod +x /var/data/loe-launcher/LoE-Launcher
-cd /var/data/loe-launcher
-exec ./LoE-Launcher "$@"
-EOF
-chmod +x loe-launcher-wrapper.sh
-
 ls -lh "$OUTPUT"

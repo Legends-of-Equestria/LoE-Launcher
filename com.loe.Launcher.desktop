@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=LoE Launcher
 Comment=Legends of Equestria Launcher
-Exec=loe-launcher-wrapper
+Exec=LoE-Launcher
 Icon=com.loe.Launcher
 Terminal=false
 Type=Application
