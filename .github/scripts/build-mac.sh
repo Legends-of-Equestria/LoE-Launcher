@@ -46,7 +46,6 @@ while IFS= read -r -d '' file; do
     is_macho "$file" || continue
     archs=$(lipo -archs "$file")
     [[ "$archs" == *x86_64* && "$archs" == *arm64* ]] || fail "${file#"$UNIVERSAL/"} is not universal ($archs)"
-    codesign --force --sign - "$file"
 done < <(find "$UNIVERSAL" -type f -print0)
 lipo -archs "$UNIVERSAL/LoE-Launcher"
 endgroup
@@ -97,8 +96,9 @@ if [ -n "${MACOS_CERTIFICATE_P12:-}" ] && [ -n "${MACOS_CERTIFICATE_PASSWORD:-}"
     fi
     endgroup
 else
-    warn "Signing secrets missing, building an unsigned app that macOS will warn about on first launch"
-    echo "macOS app is unsigned and not notarized" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+    warn "Signing secrets missing, the app is only ad-hoc signed and macOS will warn about it on first launch"
+    echo "macOS app is only ad-hoc signed and not notarized" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+    SIGN_ARGS+=(--signAppIdentity "-" --signEntitlements "$ENTITLEMENTS")
 fi
 
 group "Package with Velopack"
