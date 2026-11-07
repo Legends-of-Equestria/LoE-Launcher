@@ -121,4 +121,37 @@ public class GameImporterTests : IDisposable
 
         found.Should().Equal(newer, older);
     }
+
+    [Fact]
+    public void FindInstalls_ShouldNeverOfferASharedPlaceItself()
+    {
+        var desktop = MakeWindowsGame("Desktop");
+        File.WriteAllText(Path.Combine(desktop, "family-photo.jpg"), "photo");
+        var known = new KnownFolders(Path.Combine(_root, "Home"), [desktop], []);
+
+        GameImporter.FindInstalls([(desktop, 3)], OS.WindowsX64, Target, LauncherFolder, known: known)
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FindInstalls_ShouldStillFindAnInstallInsideASharedPlace()
+    {
+        var desktop = Path.Combine(_root, "Desktop");
+        var game = MakeWindowsGame(Path.Combine("Desktop", "LoE_Win"));
+        var known = new KnownFolders(Path.Combine(_root, "Home"), [desktop], []);
+
+        GameImporter.FindInstalls([(desktop, 3)], OS.WindowsX64, Target, LauncherFolder, known: known)
+            .Should().Equal(game);
+    }
+
+    [Fact]
+    public void FindInstalls_ShouldNeverOfferApplicationsForAMacApp()
+    {
+        var apps = Path.Combine(_root, "Applications");
+        Directory.CreateDirectory(Path.Combine(apps, "LoE.app", "Contents", "MacOS"));
+        var known = new KnownFolders(Path.Combine(_root, "Home"), [], [apps]);
+
+        GameImporter.FindInstalls([(apps, 1)], OS.MacArm, Target, LauncherFolder, known: known)
+            .Should().BeEmpty();
+    }
 }

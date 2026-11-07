@@ -93,7 +93,7 @@ public static class GameImporter
     }
 
     public static IReadOnlyList<string> FindInstalls(IEnumerable<(string Path, int Depth)> roots, OS os,
-        string target, string launcherFolder, int maxFolders = 5000)
+        string target, string launcherFolder, int maxFolders = 5000, KnownFolders? known = null)
     {
         var found = new List<string>();
         var seen = new HashSet<string>(OperatingSystem.IsWindows()
@@ -101,6 +101,7 @@ public static class GameImporter
             : StringComparer.Ordinal);
         var queue = new Queue<(string Path, int DepthLeft)>(roots);
         var launcher = Normalize(launcherFolder);
+        known ??= KnownFolders.ForCurrentUser(os);
 
         while (queue.Count > 0 && seen.Count < maxFolders)
         {
@@ -124,7 +125,9 @@ public static class GameImporter
             var game = FindGameFolder(full, os);
             if (game != null)
             {
-                if (Check(game, target) == ImportCheck.Ok && !found.Contains(game, StringComparer.Ordinal))
+                if (!GameFolderRules.IsSharedPlace(game, known, os)
+                    && Check(game, target) == ImportCheck.Ok
+                    && !found.Contains(game, StringComparer.Ordinal))
                 {
                     found.Add(game);
                 }
