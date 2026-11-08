@@ -156,16 +156,25 @@ public partial class SettingsViewModel : ViewModelBase
 
     private string FormatGameVersion()
     {
-        var channel = _downloader.IsDevChannel ? "Dev" : "Live";
-        var build = _downloader.CurrentBuild;
-        var buildText = string.IsNullOrEmpty(build?.Id) ? build?.ToString() : build.Id;
-
-        if (!string.IsNullOrEmpty(buildText))
+        var state = _downloader.State;
+        if (state == GameState.NotFound)
         {
-            return $"{buildText} · {channel}";
+            return "Not installed";
         }
 
-        return _downloader.State == GameState.NotFound ? "Not installed" : channel;
+        string version;
+        if (state == GameState.UpdateAvailable)
+        {
+            version = "Update available";
+        }
+        else
+        {
+            var build = _downloader.CurrentBuild;
+            var buildText = string.IsNullOrEmpty(build?.Id) ? build?.ToString() : build.Id;
+            version = string.IsNullOrEmpty(buildText) ? _downloader.GameVersionName ?? "Unknown" : buildText;
+        }
+
+        return _downloader.IsDevChannel ? $"{version} · Dev" : version;
     }
 
     private static string FormatVersion(VersionInfo version) =>

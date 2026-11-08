@@ -27,6 +27,9 @@ public class VersionsControlFile
         _ => null
     };
 
+    public static string? VersionName(string? folder) =>
+        string.IsNullOrEmpty(folder) || folder == "default" ? null : folder[(folder.LastIndexOf('_') + 1)..];
+
     private static string? FirstSet(string? preferred, string? fallback) =>
         string.IsNullOrEmpty(preferred) ? fallback : preferred;
 }

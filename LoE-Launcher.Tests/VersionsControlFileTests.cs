@@ -28,6 +28,18 @@ public class VersionsControlFileTests
         data.ForPlatform(OS.MacIntel).Should().Be("LoE_Mac_2026.03.001");
     }
 
+    [Theory]
+    [InlineData("LoE_Win64_2026.03.001", "2026.03.001")]
+    [InlineData("LoE_Mac_2026.03.001", "2026.03.001")]
+    [InlineData("2026.03.001", "2026.03.001")]
+    [InlineData("default", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void VersionName_ShouldStripThePlatformPrefix(string? folder, string? expected)
+    {
+        VersionsControlFile.VersionName(folder).Should().Be(expected);
+    }
+
     [Fact]
     public void ForPlatform_ShouldPreferSingleMacKey()
     {

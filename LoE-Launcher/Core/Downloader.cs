@@ -80,6 +80,7 @@ public partial class Downloader
 
     public bool IsDevChannel => _settings.IsDevChannelActive;
     public BuildInfo? CurrentBuild { get; private set; }
+    public string? GameVersionName => VersionsControlFile.VersionName(_versionDownload);
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
     public Settings LauncherSettings => _settings;
     public IAbsoluteFilePath SettingsFile => _settingsFile.GetAbsolutePathFrom(_launcherPath);
