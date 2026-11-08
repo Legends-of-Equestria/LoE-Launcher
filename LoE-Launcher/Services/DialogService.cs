@@ -43,34 +43,31 @@ public class DialogService : IDialogService
         Title = title,
         Width = width,
         SizeToContent = SizeToContent.Height,
-        Background = new SolidColorBrush(Color.Parse("#F21A1028")),
+        Background = BrushFactory.FromResource("PlumDialogBrush"),
         WindowStartupLocation = WindowStartupLocation.CenterOwner,
         CanResize = false,
         FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif")
     };
 
-    public async Task<bool> ShowConfirmDialog(string title, string message) =>
-        await ShowChoiceDialog(title, message, "Yes", "No") == 0;
+    private static Button CreateDialogButton(string content, string borderBrushKey) => new Button
+    {
+        Content = content,
+        MinWidth = 120,
+        Height = 38,
+        Padding = new Thickness(16, 0),
+        CornerRadius = new CornerRadius(8),
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+        VerticalContentAlignment = VerticalAlignment.Center,
+        BorderBrush = BrushFactory.FromResource(borderBrushKey),
+        BorderThickness = new Thickness(1),
+        Theme = GlassDialogButton
+    };
 
-    public async Task<int> ShowChoiceDialog(string title, string message, params string[] choices)
+    private static async Task<int> ShowMessageDialog(Window owner, string title, string message, string primaryBorderKey,
+        params string[] choices)
     {
         var result = -1;
         var dialog = CreateDialogWindow(title);
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
 
         var buttonPanel = new StackPanel
         {
@@ -82,19 +79,7 @@ public class DialogService : IDialogService
         for (var i = 0; i < choices.Length; i++)
         {
             var index = i;
-            var button = new Button
-            {
-                Content = choices[i],
-                MinWidth = 100,
-                Height = 38,
-                Padding = new Thickness(16, 0),
-                CornerRadius = new CornerRadius(8),
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                BorderBrush = new SolidColorBrush(Color.Parse(i == 0 ? "#f0be4a" : "#80f0be4a")),
-                BorderThickness = new Thickness(1),
-                Theme = GlassDialogButton
-            };
+            var button = CreateDialogButton(choices[i], i == 0 ? primaryBorderKey : "GoldSoftBrush");
             button.Click += (_, _) =>
             {
                 result = index;
@@ -103,144 +88,42 @@ public class DialogService : IDialogService
             buttonPanel.Children.Add(button);
         }
 
-        panel.Children.Add(messageText);
-        panel.Children.Add(buttonPanel);
-        dialog.Content = panel;
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(20, 50, 20, 20),
+            Spacing = 20,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = message,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = Brushes.White,
+                    TextAlignment = TextAlignment.Center,
+                    FontSize = 14
+                },
+                buttonPanel
+            }
+        };
 
-        await dialog.ShowDialog(TopOwner!);
+        await dialog.ShowDialog(owner);
         return result;
     }
 
-    public async Task ShowInfoMessage(string title, string message)
-    {
-        var messageBox = CreateDialogWindow(title);
+    public async Task<bool> ShowConfirmDialog(string title, string message) =>
+        await ShowChoiceDialog(title, message, "Yes", "No") == 0;
 
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
+    public Task<int> ShowChoiceDialog(string title, string message, params string[] choices) =>
+        ShowMessageDialog(TopOwner!, title, message, "GoldBrush", choices);
 
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
+    public Task ShowInfoMessage(string title, string message) =>
+        ShowMessageDialog(GetOwner()!, title, message, "GoldBrush", "OK");
 
-        var okButton = new Button
-        {
-            Content = "OK",
-            Width = 120,
-            Height = 38,
-            CornerRadius = new CornerRadius(8),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
-            BorderThickness = new Thickness(1),
-            Theme = GlassDialogButton
-        };
+    public Task ShowErrorMessage(string title, string message) =>
+        ShowMessageDialog(GetOwner()!, title, message, "ErrorBrush", "OK");
 
-        okButton.Click += (s, e) => messageBox.Close();
-
-        panel.Children.Add(messageText);
-        panel.Children.Add(okButton);
-        messageBox.Content = panel;
-
-        await messageBox.ShowDialog(GetOwner()!);
-    }
-
-    public async Task ShowErrorMessage(string title, string message)
-    {
-        var messageBox = CreateDialogWindow(title);
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20, 50, 20, 20),
-            Spacing = 20
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.White,
-            TextAlignment = TextAlignment.Center,
-            FontSize = 14
-        };
-
-        var okButton = new Button
-        {
-            Content = "OK",
-            Width = 120,
-            Height = 38,
-            CornerRadius = new CornerRadius(8),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            BorderBrush = new SolidColorBrush(Color.Parse("#E05555")),
-            BorderThickness = new Thickness(1),
-            Theme = GlassDialogButton
-        };
-
-        okButton.Click += (s, e) => messageBox.Close();
-
-        panel.Children.Add(messageText);
-        panel.Children.Add(okButton);
-        messageBox.Content = panel;
-
-        await messageBox.ShowDialog(GetOwner()!);
-    }
-
-    public async Task ShowGameLogsNotFoundDialog()
-    {
-        var messageBox = CreateDialogWindow("Game Logs Not Found", width: 300);
-        messageBox.SizeToContent = SizeToContent.Manual;
-        messageBox.Height = 150;
-
-        var messagePanel = new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 15,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var messageText = new TextBlock
-        {
-            Text = "Game logs not found. Launch the game at least once to generate logs.",
-            FontSize = 14,
-            Foreground = Brushes.White,
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        var okButton = new Button
-        {
-            Content = "OK",
-            Width = 80,
-            Height = 32,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            BorderBrush = new SolidColorBrush(Color.Parse("#f0be4a")),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Theme = GlassDialogButton
-        };
-
-        okButton.Click += (s, e) => messageBox.Close();
-
-        messagePanel.Children.Add(messageText);
-        messagePanel.Children.Add(okButton);
-        messageBox.Content = messagePanel;
-
-        await messageBox.ShowDialog(GetOwner()!);
-    }
+    public Task ShowGameLogsNotFoundDialog() =>
+        ShowInfoMessage("Game Logs Not Found", "Game logs not found. Launch the game at least once to generate logs.");
 
     public async Task ShowLauncherUpdateDialog()
     {
@@ -258,7 +141,7 @@ public class DialogService : IDialogService
             Text = "Updating Launcher...",
             FontSize = 18,
             FontWeight = FontWeight.Bold,
-            Foreground = new SolidColorBrush(Color.Parse("#f0be4a")),
+            Foreground = BrushFactory.FromResource("GoldBrush"),
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 0, 0, 10)
         };
@@ -340,7 +223,7 @@ public class DialogService : IDialogService
             Width = 340,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.Parse("#F21A1028")),
+            Background = BrushFactory.FromResource("PlumDialogBrush"),
             CanResize = false,
             FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif"),
             Content = viewModel

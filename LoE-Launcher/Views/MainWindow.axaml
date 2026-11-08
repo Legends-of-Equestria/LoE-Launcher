@@ -35,10 +35,10 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border x:Name="PART_GlassBorder"
-                            Background="#601A1028"
+                            Background="{StaticResource PlumGlassBrush}"
                             CornerRadius="25"
                             BorderThickness="1"
-                            BorderBrush="#80f0be4a">
+                            BorderBrush="{StaticResource GoldSoftBrush}">
                         <Border.Transitions>
                             <Transitions>
                                 <BrushTransition Property="Background" Duration="0:0:0.15" />
@@ -53,15 +53,15 @@
             </Setter>
         </Style>
         <Style Selector="Button.SocialButton:pointerover /template/ Border#PART_GlassBorder">
-            <Setter Property="Background" Value="#801A1028" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="Background" Value="{StaticResource PlumPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
         </Style>
         <Style Selector="Button.SocialButton:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.08)" />
         </Style>
         <Style Selector="Button.SocialButton:pressed /template/ Border#PART_GlassBorder">
-            <Setter Property="Background" Value="#451A1028" />
-            <Setter Property="BorderBrush" Value="#CCf0be4a" />
+            <Setter Property="Background" Value="{StaticResource PlumGlassPressedBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldStrongBrush}" />
         </Style>
         <Style Selector="Button.SocialButton:pressed">
             <Setter Property="RenderTransform" Value="scale(0.92)" />
@@ -133,10 +133,10 @@
         </Style>
 
         <Style Selector="Border.InfoPanel">
-            <Setter Property="Background" Value="#801A1028" />
+            <Setter Property="Background" Value="{StaticResource PlumPanelBrush}" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#f0be4a" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
             <Setter Property="BoxShadow" Value="0 4 20 0 #50000000" />
             <Setter Property="Transitions">
                 <Transitions>
@@ -149,12 +149,12 @@
         <!-- Scrollbar theme overrides -->
         <Style Selector="ScrollViewer.ChangelogScroll">
             <Style.Resources>
-                <SolidColorBrush x:Key="ScrollBarThumbFill" Color="#99f0be4a" />
-                <SolidColorBrush x:Key="ScrollBarThumbFillPointerOver" Color="#f0be4a" />
-                <SolidColorBrush x:Key="ScrollBarThumbFillPressed" Color="#DDf0be4a" />
+                <StaticResource x:Key="ScrollBarThumbFill" ResourceKey="GoldMutedBrush" />
+                <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="GoldBrush" />
+                <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="GoldPressedBrush" />
                 <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
                 <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
-                <SolidColorBrush x:Key="ScrollBarPanningThumbBackground" Color="#99f0be4a" />
+                <StaticResource x:Key="ScrollBarPanningThumbBackground" ResourceKey="GoldMutedBrush" />
                 <x:Double x:Key="ScrollBarSize">8</x:Double>
             </Style.Resources>
             <Setter Property="Padding" Value="0,0,2,0" />
@@ -164,15 +164,15 @@
             <Setter Property="Margin" Value="0,4,3,4" />
         </Style>
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb /template/ Border">
-            <Setter Property="Background" Value="#99f0be4a" />
+            <Setter Property="Background" Value="{StaticResource GoldMutedBrush}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pointerover /template/ Border">
-            <Setter Property="Background" Value="#f0be4a" />
+            <Setter Property="Background" Value="{StaticResource GoldBrush}" />
         </Style>
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ Thumb:pressed /template/ Border">
-            <Setter Property="Background" Value="#DDf0be4a" />
+            <Setter Property="Background" Value="{StaticResource GoldPressedBrush}" />
         </Style>
         <Style Selector="ScrollViewer.ChangelogScroll /template/ ScrollBar /template/ RepeatButton">
             <Setter Property="IsVisible" Value="False" />
@@ -272,7 +272,7 @@
                 <TextBlock Grid.Row="0"
                            Text="Changelog"
                            FontSize="20" FontWeight="Bold"
-                           Foreground="#f0be4a"
+                           Foreground="{StaticResource GoldBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,12" />
 
@@ -285,7 +285,7 @@
                                          TextWrapping="Wrap"
                                          Padding="0,0,6,0"
                                          LineHeight="20"
-                                         SelectionBrush="#50f0be4a" />
+                                         SelectionBrush="{StaticResource GoldSelectionBrush}" />
                 </ScrollViewer>
             </Grid>
         </Border>
@@ -296,14 +296,14 @@
                 Margin="0,0,20,120"
                 Padding="10,4"
                 CornerRadius="6"
-                Background="#C01A1028"
-                BorderBrush="#f0be4a"
+                Background="{StaticResource PlumBadgeBrush}"
+                BorderBrush="{StaticResource GoldBrush}"
                 BorderThickness="1"
                 MaxWidth="360">
             <TextBlock Text="{Binding ChannelInfoText}"
                        FontSize="12"
                        FontWeight="SemiBold"
-                       Foreground="#f0be4a"
+                       Foreground="{StaticResource GoldBrush}"
                        TextTrimming="CharacterEllipsis" />
         </Border>
 
@@ -359,7 +359,6 @@
                         IsVisible="{Binding !IsProgressOverlayVisible}"
                         Theme="{StaticResource ActionButton}"
                         Width="280" Height="90"
-                        FontSize="28" FontWeight="Bold"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         Cursor="Hand" />
             </Grid>

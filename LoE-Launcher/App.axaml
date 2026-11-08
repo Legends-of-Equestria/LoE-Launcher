@@ -11,50 +11,11 @@
     <Application.Styles>
         <FluentTheme />
         
-        <!-- Custom styles -->
-        <Style Selector="Button.action">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="16,8" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
-                </Transitions>
-            </Setter>
-        </Style>
-
-        <Style Selector="Button.action:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.03)" />
-            <Setter Property="Opacity" Value="0.95" />
-        </Style>
-
-        <Style Selector="Button.action:pressed">
-            <Setter Property="RenderTransform" Value="scale(0.97)" />
-            <Setter Property="Opacity" Value="0.9" />
-        </Style>
-
-        <Style Selector="Border.glassPanel">
-            <Setter Property="Background" Value="#30000000" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="BoxShadow" Value="0 4 20 0 #40000000" />
-        </Style>
-
         <Style Selector="ProgressBar">
             <Setter Property="Height" Value="8" />
-            <Setter Property="Foreground" Value="#3D85C6" />
+            <Setter Property="Foreground" Value="{DynamicResource PaintedPurpleBrush}" />
             <Setter Property="Background" Value="#20FFFFFF" />
             <Setter Property="CornerRadius" Value="4" />
-        </Style>
-
-        <Style Selector="TextBlock.heading">
-            <Setter Property="FontSize" Value="24" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-
-        <Style Selector="TextBlock.statusText">
-            <Setter Property="Foreground" Value="#E0FFFFFF" />
-            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <Style Selector="Button.LinkButton">
@@ -77,6 +38,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://LoE-Launcher/Resources/Palette.axaml" />
                 <ResourceInclude Source="avares://LoE-Launcher/Resources/IconPaths.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
@@ -126,6 +88,8 @@
         </ControlTheme>
 
         <ControlTheme x:Key="ActionButton" TargetType="Button">
+            <Setter Property="FontSize" Value="32" />
+            <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
@@ -167,8 +131,8 @@
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           TextElement.Foreground="White"
-                                          TextElement.FontSize="32"
-                                          TextElement.FontWeight="Bold" />
+                                          TextElement.FontSize="{TemplateBinding FontSize}"
+                                          TextElement.FontWeight="{TemplateBinding FontWeight}" />
                     </Grid>
                 </ControlTemplate>
             </Setter>
@@ -261,10 +225,6 @@
                     </Grid>
                 </ControlTemplate>
             </Setter>
-            
-            <Style Selector="^:horizontal /template/ Border#PART_Indicator">
-                <Setter Property="Width" Value="{Binding $parent[Grid].Width}" />
-            </Style>
             
             <Style Selector="^:horizontal /template/ Border#PART_Indicator">
                 <Setter Property="Width" Value="{Binding $parent[Grid].Width}" />

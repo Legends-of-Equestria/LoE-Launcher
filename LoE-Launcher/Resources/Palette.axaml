@@ -1,0 +1,27 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="PlumGlassPressedBrush" Color="#451A1028" />
+    <SolidColorBrush x:Key="PlumGlassBrush" Color="#601A1028" />
+    <SolidColorBrush x:Key="PlumPanelBrush" Color="#801A1028" />
+    <SolidColorBrush x:Key="PlumBadgeBrush" Color="#C01A1028" />
+    <SolidColorBrush x:Key="PlumDialogBrush" Color="#F21A1028" />
+
+    <SolidColorBrush x:Key="GoldBrush" Color="#F0BE4A" />
+    <SolidColorBrush x:Key="GoldSelectionBrush" Color="#50F0BE4A" />
+    <SolidColorBrush x:Key="GoldSoftBrush" Color="#80F0BE4A" />
+    <SolidColorBrush x:Key="GoldMutedBrush" Color="#99F0BE4A" />
+    <SolidColorBrush x:Key="GoldStrongBrush" Color="#CCF0BE4A" />
+    <SolidColorBrush x:Key="GoldPressedBrush" Color="#DDF0BE4A" />
+
+    <!-- Painted purple, sampled from launch-button.png and progress-fill.png -->
+    <Color x:Key="PaintedPurpleStartColor">#9E69B5</Color>
+    <Color x:Key="PaintedPurpleEndColor">#C97ECB</Color>
+    <LinearGradientBrush x:Key="PaintedPurpleBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="{StaticResource PaintedPurpleStartColor}" Offset="0" />
+        <GradientStop Color="{StaticResource PaintedPurpleEndColor}" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ErrorBrush" Color="#E05555" />
+
+</ResourceDictionary>
