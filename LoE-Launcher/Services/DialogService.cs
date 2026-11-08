@@ -29,11 +29,7 @@ public class DialogService : IDialogService
         _updateManager = VelopackHelper.CreateUpdateManager();
     }
 
-    private Window? _settingsWindow;
-
     private Window? GetOwner() => _windowProvider.GetMainWindow();
-
-    private Window? TopOwner => _settingsWindow is { IsVisible: true } ? _settingsWindow : GetOwner();
 
     private static ControlTheme GlassDialogButton =>
         (ControlTheme)Application.Current!.Resources["GlassDialogButton"]!;
@@ -114,7 +110,7 @@ public class DialogService : IDialogService
         await ShowChoiceDialog(title, message, "Yes", "No") == 0;
 
     public Task<int> ShowChoiceDialog(string title, string message, params string[] choices) =>
-        ShowMessageDialog(TopOwner!, title, message, "GoldBrush", choices);
+        ShowMessageDialog(GetOwner()!, title, message, "GoldBrush", choices);
 
     public Task ShowInfoMessage(string title, string message) =>
         ShowMessageDialog(GetOwner()!, title, message, "GoldBrush", "OK");
@@ -214,34 +210,6 @@ public class DialogService : IDialogService
         }
     }
 
-    public async Task ShowSettingsWindowAsync()
-    {
-        var viewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
-        var settingsWindow = new Window
-        {
-            Title = "Options",
-            Width = 340,
-            SizeToContent = SizeToContent.Height,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = BrushFactory.FromResource("PlumDialogBrush"),
-            CanResize = false,
-            FontFamily = new FontFamily("Segoe UI, SF Pro Display, Arial, sans-serif"),
-            Content = viewModel
-        };
-
-        viewModel.CloseAction = settingsWindow.Close;
-
-        _settingsWindow = settingsWindow;
-        try
-        {
-            await settingsWindow.ShowDialog(GetOwner()!);
-        }
-        finally
-        {
-            _settingsWindow = null;
-        }
-    }
-
     public async Task ShowTesterAccessWindowAsync()
     {
         var viewModel = _serviceProvider.GetRequiredService<TesterAccessViewModel>();
@@ -249,7 +217,7 @@ public class DialogService : IDialogService
         window.Content = viewModel;
         viewModel.CloseAction = window.Close;
 
-        await window.ShowDialog(TopOwner!);
+        await window.ShowDialog(GetOwner()!);
         await viewModel.ApplyChannelChangesAsync();
     }
 }

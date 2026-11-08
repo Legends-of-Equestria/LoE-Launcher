@@ -20,7 +20,7 @@ public partial class Downloader
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly int OfflineRetryIntervalSeconds = 30;
 
-    private static readonly VersionInfo
+    public static readonly VersionInfo
         CurrentLauncherVersion = new() { Major = 1, Minor = 4, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();

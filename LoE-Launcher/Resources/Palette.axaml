@@ -24,4 +24,21 @@
 
     <SolidColorBrush x:Key="ErrorBrush" Color="#E05555" />
 
+    <Color x:Key="PaintedPurpleFrameColor">#733A96</Color>
+    <SolidColorBrush x:Key="PaintedPurpleFrameBrush" Color="{StaticResource PaintedPurpleFrameColor}" />
+
+    <SolidColorBrush x:Key="ScrimBrush" Color="#730A0612" />
+    <SolidColorBrush x:Key="PanelSidebarBrush" Color="#2E000000" />
+    <SolidColorBrush x:Key="NavSelectedBrush" Color="#24F0BE4A" />
+    <SolidColorBrush x:Key="CardBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="RowDividerBrush" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="CloseButtonBrush" Color="#9A1A1028" />
+
+    <SolidColorBrush x:Key="DangerBorderBrush" Color="#CC6655" />
+    <SolidColorBrush x:Key="DangerFillBrush" Color="#1FFF4433" />
+    <SolidColorBrush x:Key="DangerHoverBorderBrush" Color="#EE6655" />
+    <SolidColorBrush x:Key="DangerHoverFillBrush" Color="#35FF4433" />
+    <SolidColorBrush x:Key="DangerPressedBorderBrush" Color="#AA6655" />
+    <SolidColorBrush x:Key="DangerPressedFillBrush" Color="#12FF4433" />
+
 </ResourceDictionary>

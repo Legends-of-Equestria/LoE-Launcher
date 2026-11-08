@@ -3,9 +3,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
+using LoE_Launcher.ViewModels;
 using NLog;
 
 namespace LoE_Launcher.Views;
@@ -16,6 +18,8 @@ public partial class MainWindow : Window
 
     private Image _logoImage = null!;
     private Rectangle _titleBarArea = null!;
+    private Rectangle _optionsTitleBarArea = null!;
+    private Rectangle _optionsScrim = null!;
 
     private bool _isDraggingLogo;
     private Point _lastLogoPosition;
@@ -38,6 +42,7 @@ public partial class MainWindow : Window
 #endif
         SetupDraggableLogo();
         SetupTitleBarDrag();
+        SetupOptionsOverlay();
         
         _physicsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _physicsTimer.Tick += OnPhysicsTick;
@@ -49,6 +54,8 @@ public partial class MainWindow : Window
 
         _logoImage = this.FindControl<Image>("logoImage")!;
         _titleBarArea = this.FindControl<Rectangle>("titleBarArea")!;
+        _optionsTitleBarArea = this.FindControl<Rectangle>("optionsTitleBarArea")!;
+        _optionsScrim = this.FindControl<Rectangle>("optionsScrim")!;
     }
     
     #region UI Interaction Logic
@@ -76,13 +83,38 @@ public partial class MainWindow : Window
     private void SetupTitleBarDrag()
     {
         _titleBarArea.PointerPressed += OnTitleBarPointerPressed;
+        _optionsTitleBarArea.PointerPressed += OnTitleBarPointerPressed;
     }
 
     private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.GetCurrentPoint(_titleBarArea).Properties.IsLeftButtonPressed)
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             BeginMoveDrag(e);
+        }
+    }
+
+    private void SetupOptionsOverlay()
+    {
+        _optionsScrim.PointerPressed += OnOptionsScrimPointerPressed;
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+    }
+
+    private void OnOptionsScrimPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel { IsOptionsOpen: true } vm)
+        {
+            vm.CloseOptionsCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && DataContext is MainWindowViewModel { IsOptionsOpen: true } vm)
+        {
+            vm.CloseOptionsCommand.Execute(null);
+            e.Handled = true;
         }
     }
 

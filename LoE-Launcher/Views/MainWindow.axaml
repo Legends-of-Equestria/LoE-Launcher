@@ -363,5 +363,18 @@
                         Cursor="Hand" />
             </Grid>
         </StackPanel>
+
+        <Panel IsVisible="{Binding IsOptionsOpen}" ZIndex="20">
+            <Rectangle x:Name="optionsScrim" Fill="{StaticResource ScrimBrush}" />
+            <Rectangle x:Name="optionsTitleBarArea"
+                       Height="32"
+                       VerticalAlignment="Top"
+                       HorizontalAlignment="Stretch"
+                       Fill="Transparent" />
+            <ContentControl Content="{Binding Options}"
+                            Width="740" Height="444"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Panel>
     </Grid>
 </Window>

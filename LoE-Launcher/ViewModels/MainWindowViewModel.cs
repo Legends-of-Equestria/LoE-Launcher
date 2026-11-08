@@ -43,6 +43,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private Bitmap? _logoImageSource;
     [ObservableProperty] private bool _isDevChannel;
     [ObservableProperty] private string _channelInfoText = "";
+    [ObservableProperty] private bool _isOptionsOpen;
+
+    public SettingsViewModel Options { get; }
 
     public ObservableCollection<ChangelogLine> ChangelogLines { get; } = [];
 
@@ -52,7 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IBrush _errorColor = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336");
 
     public MainWindowViewModel(Downloader downloader, IDialogService dialogService, CacheManager cacheManager,
-        ChangelogParser changelogParser, GameImportFlow importFlow)
+        ChangelogParser changelogParser, GameImportFlow importFlow, SettingsViewModel options)
     {
         Logger.Info("Starting LoE Launcher ViewModel");
 
@@ -61,6 +64,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _cacheManager = cacheManager;
         _changelogParser = changelogParser;
         _importFlow = importFlow;
+
+        Options = options;
+        Options.CloseAction = () => IsOptionsOpen = false;
 
         _actionButtonBackground = _downloadColor;
 
@@ -287,6 +293,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
         IsActionButtonEnabled = enabledState && !_downloader.Progress.Processing;
 
+        if (IsOptionsOpen)
+        {
+            Options.RefreshBusy();
+        }
+
         IsDevChannel = _downloader.IsDevChannel;
         var build = _downloader.CurrentBuild?.ToString();
         ChannelInfoText = string.IsNullOrEmpty(build) ? "DEV BUILD" : $"DEV BUILD · {build}";
@@ -376,10 +387,14 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task SettingsButtonClicked()
+    private void SettingsButtonClicked()
     {
-        await _dialogService.ShowSettingsWindowAsync();
+        Options.Refresh();
+        IsOptionsOpen = true;
     }
+
+    [RelayCommand]
+    private void CloseOptions() => IsOptionsOpen = false;
 
     [RelayCommand]
     private static void OpenYoutube() => ProcessLauncher.LaunchUrl(Constants.YouTubeUrl);

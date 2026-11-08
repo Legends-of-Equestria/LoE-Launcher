@@ -12,6 +12,7 @@ public static class Constants
     public const string BackgroundImageUrl = "https://loedata.legendsofequestria.com/data/Background.png";
     public const string ChangelogUrl = "https://loedata.legendsofequestria.com/data/Changelog.txt";
     public const string LauncherDownloadUrl = "https://legendsofequestria.com/downloads";
+    public const string ThirdPartyNoticesUrl = "https://github.com/Legends-of-Equestria/LoE-Launcher/blob/main/THIRD-PARTY-NOTICES.md";
 
     public const string YouTubeUrl = "https://www.youtube.com/@legendsofequestria";
     public const string DiscordUrl = "https://discord.com/invite/legendsofeq";

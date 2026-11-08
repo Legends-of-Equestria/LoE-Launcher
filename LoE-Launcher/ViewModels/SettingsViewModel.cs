@@ -3,12 +3,15 @@ using CommunityToolkit.Mvvm.Input;
 using LoE_Launcher.Core;
 using LoE_Launcher.Services;
 using LoE_Launcher.Utils;
+using Models;
 using NLog;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace LoE_Launcher.ViewModels;
+
+public enum OptionsPage { Game, Launcher, Help, About }
 
 public partial class SettingsViewModel : ViewModelBase
 {
@@ -20,6 +23,24 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _closeAfterLaunch;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGamePage), nameof(IsLauncherPage), nameof(IsHelpPage), nameof(IsAboutPage))]
+    private OptionsPage _selectedPage = OptionsPage.Game;
+
+    [ObservableProperty] private string _gameFolderPath = "";
+    [ObservableProperty] private string _gameSizeText = "";
+    [ObservableProperty] private string _launcherVersionText = "";
+    [ObservableProperty] private string _gameVersionText = "";
+    [ObservableProperty] private bool _isBusy;
+
+    public bool CanChangeLocation => false;
+    public bool IsCustomLocation => false;
+
+    public bool IsGamePage => SelectedPage == OptionsPage.Game;
+    public bool IsLauncherPage => SelectedPage == OptionsPage.Launcher;
+    public bool IsHelpPage => SelectedPage == OptionsPage.Help;
+    public bool IsAboutPage => SelectedPage == OptionsPage.About;
+
     public Action? CloseAction { get; set; }
 
     public SettingsViewModel(Downloader downloader, IDialogService dialogService)
@@ -29,8 +50,68 @@ public partial class SettingsViewModel : ViewModelBase
         _closeAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
     }
 
+    public void Refresh()
+    {
+        CloseAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
+        GameFolderPath = _downloader.GameInstallFolder.Path;
+        LauncherVersionText = FormatVersion(Downloader.CurrentLauncherVersion);
+        GameVersionText = FormatGameVersion();
+        RefreshBusy();
+        _ = RefreshGameSizeAsync();
+    }
+
+    public void RefreshBusy() => IsBusy = _downloader.Progress.Processing;
+
+    private async Task RefreshGameSizeAsync()
+    {
+        if (string.IsNullOrEmpty(GameSizeText))
+        {
+            GameSizeText = "…";
+        }
+
+        var size = await Task.Run(() => _downloader.TotalGameSize);
+        GameSizeText = FormatSize(size);
+    }
+
+    private string FormatGameVersion()
+    {
+        var channel = _downloader.IsDevChannel ? "Dev" : "Live";
+        var build = _downloader.CurrentBuild;
+        var buildText = string.IsNullOrEmpty(build?.Id) ? build?.ToString() : build.Id;
+
+        if (!string.IsNullOrEmpty(buildText))
+        {
+            return $"{buildText} · {channel}";
+        }
+
+        return _downloader.State == GameState.NotFound ? "Not installed" : channel;
+    }
+
+    private static string FormatVersion(VersionInfo version) =>
+        $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}";
+
+    private static string FormatSize(long bytes)
+    {
+        const double kb = 1024, mb = kb * 1024, gb = mb * 1024;
+        return bytes switch
+        {
+            >= (long)gb => $"{bytes / gb:0.0} GB",
+            >= (long)mb => $"{bytes / mb:0.0} MB",
+            _ => $"{bytes / kb:0.0} KB"
+        };
+    }
+
+    [RelayCommand]
+    private void SelectPage(OptionsPage page) => SelectedPage = page;
+
+    [RelayCommand]
+    private void Close() => CloseAction?.Invoke();
+
     [RelayCommand]
     private Task OpenTesterAccess() => _dialogService.ShowTesterAccessWindowAsync();
+
+    [RelayCommand]
+    private static void OpenThirdPartyNotices() => ProcessLauncher.LaunchUrl(Constants.ThirdPartyNoticesUrl);
 
     partial void OnCloseAfterLaunchChanged(bool value)
     {
