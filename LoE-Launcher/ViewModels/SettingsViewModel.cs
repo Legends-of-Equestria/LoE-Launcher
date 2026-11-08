@@ -30,6 +30,8 @@ public partial class SettingsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsGamePage), nameof(IsLauncherPage), nameof(IsHelpPage), nameof(IsAboutPage))]
     private OptionsPage _selectedPage = OptionsPage.Game;
 
+    [ObservableProperty] private bool _isTesterLoginOpen;
+
     [ObservableProperty] private string _gameFolderPath = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LocationNote), nameof(HasLocationNote))]
@@ -76,13 +78,20 @@ public partial class SettingsViewModel : ViewModelBase
 
     public Action? CloseAction { get; set; }
 
-    public SettingsViewModel(Downloader downloader, IDialogService dialogService, GameLocationFlow locationFlow)
+    public event EventHandler? Closed;
+
+    public TesterAccessViewModel Tester { get; }
+
+    public SettingsViewModel(Downloader downloader, IDialogService dialogService, GameLocationFlow locationFlow,
+        TesterAccessViewModel tester)
     {
         _downloader = downloader;
         _dialogService = dialogService;
         _locationFlow = locationFlow;
+        Tester = tester;
+        Tester.ChangesApplied = OnTesterChangesApplied;
         _closeAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
-        _downloader.StateRefreshed += (_, _) => Dispatcher.UIThread.Post(RefreshBusy);
+        _downloader.StateRefreshed += (_, _) => Dispatcher.UIThread.Post(OnStateRefreshed);
     }
 
     public void Refresh()
@@ -94,8 +103,25 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ShowResetLocation));
         LauncherVersionText = FormatVersion(Downloader.CurrentLauncherVersion);
         GameVersionText = FormatGameVersion();
+        Tester.Refresh();
         RefreshBusy();
         _ = RefreshGameSizeAsync();
+    }
+
+    private void OnStateRefreshed()
+    {
+        RefreshBusy();
+        if (!IsTesterLoginOpen)
+        {
+            Tester.Refresh();
+        }
+    }
+
+    public void NotifyClosed()
+    {
+        IsTesterLoginOpen = false;
+        Tester.Password = "";
+        Closed?.Invoke(this, EventArgs.Empty);
     }
 
     public void RefreshBusy()
@@ -146,16 +172,42 @@ public partial class SettingsViewModel : ViewModelBase
         $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}";
 
     [RelayCommand]
-    private void SelectPage(OptionsPage page) => SelectedPage = page;
+    private void SelectPage(OptionsPage page)
+    {
+        IsTesterLoginOpen = false;
+        SelectedPage = page;
+    }
 
     [RelayCommand]
     private void Close() => CloseAction?.Invoke();
 
     [RelayCommand]
-    private async Task OpenTesterAccess()
+    private void OpenTesterLogin() => IsTesterLoginOpen = true;
+
+    [RelayCommand]
+    private void CloseTesterLogin()
     {
-        await _dialogService.ShowTesterAccessWindowAsync();
+        Tester.Password = "";
+        IsTesterLoginOpen = false;
+    }
+
+    [RelayCommand]
+    private async Task SwitchToLiveBuilds()
+    {
+        await Tester.RemoveTesterAccessCommand.ExecuteAsync(null);
+        if (!Tester.HasTesterAccess)
+        {
+            IsTesterLoginOpen = false;
+        }
+    }
+
+    private void OnTesterChangesApplied()
+    {
         Refresh();
+        if (Tester.ShowChannel)
+        {
+            IsTesterLoginOpen = false;
+        }
     }
 
     [RelayCommand]

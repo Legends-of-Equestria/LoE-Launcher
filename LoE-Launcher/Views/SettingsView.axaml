@@ -111,6 +111,44 @@
             </Style>
         </ControlTheme>
 
+        <ControlTheme x:Key="OptionsSegment" TargetType="RadioButton">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#D0FFFFFF" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="PART_Border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontSize="{TemplateBinding FontSize}"
+                                          TextElement.FontWeight="{TemplateBinding FontWeight}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#0FFFFFFF" />
+                <Setter Property="Foreground" Value="White" />
+            </Style>
+            <Style Selector="^:checked">
+                <Setter Property="Background" Value="{StaticResource GoldSelectionBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+        </ControlTheme>
+
         <ControlTheme x:Key="OptionsCloseButton" TargetType="Button">
             <Setter Property="Width" Value="28" />
             <Setter Property="Height" Value="28" />
@@ -204,6 +242,55 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
+        <Style Selector="Border.segments">
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldSoftBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.segments:disabled">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+        <Style Selector="Border.segments:disabled RadioButton">
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+
+        <Style Selector="TextBox.field">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{StaticResource PlumPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldSoftBrush}" />
+            <Setter Property="CaretBrush" Value="White" />
+            <Setter Property="SelectionBrush" Value="{StaticResource GoldSelectionBrush}" />
+            <Setter Property="SelectionForegroundBrush" Value="White" />
+        </Style>
+        <Style Selector="TextBox.field /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource PlumPanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldSoftBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="TextBox.field /template/ TextBlock#PART_Watermark">
+            <Setter Property="Foreground" Value="#80FFFFFF" />
+        </Style>
+        <Style Selector="TextBox.field:pointerover">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{StaticResource GoldStrongBrush}" />
+        </Style>
+        <Style Selector="TextBox.field:focus">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource PlumBadgeBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+        </Style>
+
         <Style Selector="Button.LinkButton:disabled">
             <Setter Property="Opacity" Value="0.45" />
         </Style>
@@ -269,186 +356,279 @@
                 </Border>
 
                 <Panel Grid.Column="1">
-                    <Panel Margin="28,22">
-                        <StackPanel IsVisible="{Binding IsGamePage}">
-                            <TextBlock Classes="pageTitle" Text="Game" />
+                    <ScrollViewer x:Name="pageScroll"
+                                  Classes="ChangelogScroll"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Panel Margin="28,22">
+                            <StackPanel IsVisible="{Binding IsGamePage}">
+                                <TextBlock Classes="pageTitle" Text="Game" />
 
-                            <TextBlock Classes="section" Text="INSTALL LOCATION" />
-                            <Border Classes="card">
-                                <Border Classes="row">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Classes="rowName" Text="Game folder" />
-                                            <TextBlock Classes="path"
-                                                       Text="{Binding GameFolderPath}"
-                                                       ToolTip.Tip="{Binding GameFolderPath}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1"
-                                                    Orientation="Horizontal"
-                                                    Spacing="8"
-                                                    Margin="12,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    IsVisible="{Binding CanChangeLocation}">
-                                            <Button Classes="LinkButton"
-                                                    Content="Reset to default"
-                                                    VerticalAlignment="Center"
-                                                    IsVisible="{Binding ShowResetLocation}"
-                                                    IsEnabled="{Binding CanMove}"
-                                                    Command="{Binding ResetLocationCommand}" />
-                                            <Button Theme="{StaticResource OptionsRowButton}"
-                                                    Content="Change…"
-                                                    IsEnabled="{Binding CanMove}"
-                                                    Command="{Binding ChangeLocationCommand}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </Border>
-                            <TextBlock Classes="muted"
-                                       Margin="2,8,0,0"
-                                       Text="{Binding LocationNote}"
-                                       IsVisible="{Binding HasLocationNote}" />
-
-                            <TextBlock Classes="section" Text="MAINTENANCE" />
-                            <Border Classes="card">
-                                <StackPanel>
-                                    <Border Classes="row">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Classes="rowName" Text="Repair game files" />
-                                                <TextBlock Classes="rowHint" Text="Verify and fix corrupted game files" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1"
-                                                    Theme="{StaticResource OptionsRowButton}"
-                                                    Content="Repair"
-                                                    Margin="12,0,0,0"
-                                                    IsEnabled="{Binding CanRepair}"
-                                                    Command="{Binding RepairGameCommand}" />
-                                        </Grid>
+                                <StackPanel IsVisible="{Binding Tester.ShowChannel}">
+                                    <TextBlock Classes="section" Text="BUILD CHANNEL" />
+                                    <Border Classes="card">
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Classes="rowName" Text="Channel" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1"
+                                                        Classes="segments"
+                                                        Margin="12,0,0,0"
+                                                        IsEnabled="{Binding !IsBusy}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                                        <RadioButton Theme="{StaticResource OptionsSegment}"
+                                                                     GroupName="Channel"
+                                                                     Content="Live"
+                                                                     IsChecked="{Binding Tester.UseLiveChannel, Mode=TwoWay}" />
+                                                        <RadioButton Theme="{StaticResource OptionsSegment}"
+                                                                     GroupName="Channel"
+                                                                     Content="Dev builds"
+                                                                     IsChecked="{Binding Tester.UseDevChannel, Mode=TwoWay}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
                                     </Border>
-                                    <Rectangle Classes="divider" />
-                                    <Border Classes="row">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Classes="rowName" Text="Delete game files" />
-                                                <TextBlock Classes="rowHint" Text="Remove all downloaded game files" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1"
-                                                    Theme="{StaticResource OptionsRowButton}"
-                                                    Classes="danger"
-                                                    Content="Delete"
-                                                    Margin="12,0,0,0"
-                                                    IsEnabled="{Binding CanDelete}"
-                                                    Command="{Binding DeleteGameCommand}" />
-                                        </Grid>
-                                    </Border>
+                                    <DockPanel Margin="2,6,0,0">
+                                        <Button DockPanel.Dock="Right"
+                                                Classes="LinkButton"
+                                                Content="Remove tester access"
+                                                Margin="12,0,-4,0"
+                                                VerticalAlignment="Center"
+                                                IsEnabled="{Binding !IsBusy}"
+                                                Command="{Binding Tester.RemoveTesterAccessCommand}" />
+                                        <TextBlock Classes="muted"
+                                                   VerticalAlignment="Center"
+                                                   Text="Dev builds install to a separate folder." />
+                                    </DockPanel>
                                 </StackPanel>
-                            </Border>
-                            <TextBlock FontSize="12" Foreground="#A0FFFFFF" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="Needs an internet connection to tell which files belong to the game."
-                                       IsVisible="{Binding ShowFileListHint}" />
-                        </StackPanel>
 
-                        <StackPanel IsVisible="{Binding IsLauncherPage}">
-                            <TextBlock Classes="pageTitle" Text="Launcher" />
-
-                            <TextBlock Classes="section" Text="LAUNCHING" />
-                            <Border Classes="card">
-                                <Border Classes="row">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Classes="rowName" Text="Close the launcher when the game starts" />
-                                            <TextBlock Classes="rowHint" Text="Turn this off to keep the launcher open while you play" />
-                                        </StackPanel>
-                                        <ToggleButton Grid.Column="1"
-                                                      Theme="{StaticResource OptionsToggle}"
-                                                      Margin="12,0,0,0"
-                                                      AutomationProperties.Name="Close the launcher when the game starts"
-                                                      IsChecked="{Binding CloseAfterLaunch, Mode=TwoWay}" />
-                                    </Grid>
+                                <TextBlock Classes="section" Text="INSTALL LOCATION" />
+                                <Border Classes="card">
+                                    <Border Classes="row">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Classes="rowName" Text="Game folder" />
+                                                <TextBlock Classes="path"
+                                                           Text="{Binding GameFolderPath}"
+                                                           ToolTip.Tip="{Binding GameFolderPath}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        Spacing="8"
+                                                        Margin="12,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        IsVisible="{Binding CanChangeLocation}">
+                                                <Button Classes="LinkButton"
+                                                        Content="Reset to default"
+                                                        VerticalAlignment="Center"
+                                                        IsVisible="{Binding ShowResetLocation}"
+                                                        IsEnabled="{Binding CanMove}"
+                                                        Command="{Binding ResetLocationCommand}" />
+                                                <Button Theme="{StaticResource OptionsRowButton}"
+                                                        Content="Change…"
+                                                        IsEnabled="{Binding CanMove}"
+                                                        Command="{Binding ChangeLocationCommand}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </Border>
-                            </Border>
-                        </StackPanel>
+                                <TextBlock Classes="muted"
+                                           Margin="2,8,0,0"
+                                           Text="{Binding LocationNote}"
+                                           IsVisible="{Binding HasLocationNote}" />
 
-                        <StackPanel IsVisible="{Binding IsHelpPage}">
-                            <TextBlock Classes="pageTitle" Text="Help" />
-
-                            <TextBlock Classes="section" Text="LOGS" />
-                            <Border Classes="card">
-                                <StackPanel>
-                                    <Border Classes="row">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Classes="rowName" Text="Game logs" />
-                                                <TextBlock Classes="rowHint" Text="For game crashes and gameplay issues" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1"
-                                                    Theme="{StaticResource OptionsRowButton}"
-                                                    Content="Open"
-                                                    Margin="12,0,0,0"
-                                                    Command="{Binding OpenGameLogsCommand}" />
-                                        </Grid>
-                                    </Border>
-                                    <Rectangle Classes="divider" />
-                                    <Border Classes="row">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Classes="rowName" Text="Launcher logs" />
-                                                <TextBlock Classes="rowHint" Text="For launcher and download issues" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1"
-                                                    Theme="{StaticResource OptionsRowButton}"
-                                                    Content="Open"
-                                                    Margin="12,0,0,0"
-                                                    Command="{Binding OpenLauncherLogsCommand}" />
-                                        </Grid>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-                            <TextBlock Classes="muted"
-                                       Margin="2,8,0,0"
-                                       Text="Attach these when you report a problem." />
-                        </StackPanel>
-
-                        <DockPanel IsVisible="{Binding IsAboutPage}">
-                            <StackPanel DockPanel.Dock="Bottom"
-                                        Orientation="Horizontal"
-                                        Spacing="12"
-                                        Margin="-4,0,0,-6">
-                                <Button Classes="LinkButton"
-                                        Content="Third-party notices"
-                                        Command="{Binding OpenThirdPartyNoticesCommand}" />
-                                <Button Classes="LinkButton"
-                                        Content="Tester access"
-                                        Command="{Binding OpenTesterAccessCommand}" />
-                            </StackPanel>
-
-                            <StackPanel>
-                                <TextBlock Classes="pageTitle" Text="About" />
-
-                                <TextBlock Classes="section" Text="VERSIONS" />
+                                <TextBlock Classes="section" Text="MAINTENANCE" />
                                 <Border Classes="card">
                                     <StackPanel>
                                         <Border Classes="row">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Classes="rowName" Text="Launcher" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1" Classes="rowValue" Text="{Binding LauncherVersionText}" />
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Classes="rowName" Text="Repair game files" />
+                                                    <TextBlock Classes="rowHint" Text="Verify and fix corrupted game files" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Theme="{StaticResource OptionsRowButton}"
+                                                        Content="Repair"
+                                                        Margin="12,0,0,0"
+                                                        IsEnabled="{Binding CanRepair}"
+                                                        Command="{Binding RepairGameCommand}" />
                                             </Grid>
                                         </Border>
                                         <Rectangle Classes="divider" />
                                         <Border Classes="row">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Classes="rowName" Text="Game" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1"
-                                                           Classes="rowValue"
-                                                           Text="{Binding GameVersionText}"
-                                                           ToolTip.Tip="{Binding GameVersionText}" />
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Classes="rowName" Text="Delete game files" />
+                                                    <TextBlock Classes="rowHint" Text="Remove all downloaded game files" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Theme="{StaticResource OptionsRowButton}"
+                                                        Classes="danger"
+                                                        Content="Delete"
+                                                        Margin="12,0,0,0"
+                                                        IsEnabled="{Binding CanDelete}"
+                                                        Command="{Binding DeleteGameCommand}" />
                                             </Grid>
                                         </Border>
                                     </StackPanel>
                                 </Border>
+                                <TextBlock FontSize="12" Foreground="#A0FFFFFF" Margin="2,8,0,0" TextWrapping="Wrap"
+                                           Text="Needs an internet connection to tell which files belong to the game."
+                                           IsVisible="{Binding ShowFileListHint}" />
                             </StackPanel>
-                        </DockPanel>
-                    </Panel>
+
+                            <StackPanel IsVisible="{Binding IsLauncherPage}">
+                                <TextBlock Classes="pageTitle" Text="Launcher" />
+
+                                <TextBlock Classes="section" Text="LAUNCHING" />
+                                <Border Classes="card">
+                                    <Border Classes="row">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Classes="rowName" Text="Close the launcher when the game starts" />
+                                                <TextBlock Classes="rowHint" Text="Turn this off to keep the launcher open while you play" />
+                                            </StackPanel>
+                                            <ToggleButton Grid.Column="1"
+                                                          Theme="{StaticResource OptionsToggle}"
+                                                          Margin="12,0,0,0"
+                                                          AutomationProperties.Name="Close the launcher when the game starts"
+                                                          IsChecked="{Binding CloseAfterLaunch, Mode=TwoWay}" />
+                                        </Grid>
+                                    </Border>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding IsHelpPage}">
+                                <TextBlock Classes="pageTitle" Text="Help" />
+
+                                <TextBlock Classes="section" Text="LOGS" />
+                                <Border Classes="card">
+                                    <StackPanel>
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Classes="rowName" Text="Game logs" />
+                                                    <TextBlock Classes="rowHint" Text="For game crashes and gameplay issues" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Theme="{StaticResource OptionsRowButton}"
+                                                        Content="Open"
+                                                        Margin="12,0,0,0"
+                                                        Command="{Binding OpenGameLogsCommand}" />
+                                            </Grid>
+                                        </Border>
+                                        <Rectangle Classes="divider" />
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Classes="rowName" Text="Launcher logs" />
+                                                    <TextBlock Classes="rowHint" Text="For launcher and download issues" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        Theme="{StaticResource OptionsRowButton}"
+                                                        Content="Open"
+                                                        Margin="12,0,0,0"
+                                                        Command="{Binding OpenLauncherLogsCommand}" />
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Classes="muted"
+                                           Margin="2,8,0,0"
+                                           Text="Attach these when you report a problem." />
+                            </StackPanel>
+
+                            <Panel IsVisible="{Binding IsAboutPage}">
+                                <DockPanel IsVisible="{Binding !IsTesterLoginOpen}">
+                                    <StackPanel DockPanel.Dock="Bottom"
+                                                Orientation="Horizontal"
+                                                Spacing="12"
+                                                Margin="-4,0,0,-6">
+                                        <Button Classes="LinkButton"
+                                                Content="Third-party notices"
+                                                Command="{Binding OpenThirdPartyNoticesCommand}" />
+                                        <Button Classes="LinkButton"
+                                                Content="Tester access"
+                                                IsVisible="{Binding Tester.ShowLogin}"
+                                                Command="{Binding OpenTesterLoginCommand}" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock Classes="pageTitle" Text="About" />
+
+                                        <TextBlock Classes="section" Text="VERSIONS" />
+                                        <Border Classes="card">
+                                            <StackPanel>
+                                                <Border Classes="row">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0" Classes="rowName" Text="Launcher" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1" Classes="rowValue" Text="{Binding LauncherVersionText}" />
+                                                    </Grid>
+                                                </Border>
+                                                <Rectangle Classes="divider" />
+                                                <Border Classes="row">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0" Classes="rowName" Text="Game" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Classes="rowValue"
+                                                                   Text="{Binding GameVersionText}"
+                                                                   ToolTip.Tip="{Binding GameVersionText}" />
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <StackPanel IsVisible="{Binding IsTesterLoginOpen}">
+                                    <TextBlock Classes="pageTitle" Text="Tester access" />
+                                    <TextBlock Classes="muted"
+                                               Margin="0,6,0,0"
+                                               Text="Log in with your forum account." />
+
+                                    <Border Classes="card" Margin="0,14,0,0" Padding="14">
+                                        <StackPanel Spacing="10">
+                                            <TextBox x:Name="testerUsername"
+                                                     Classes="field"
+                                                     Watermark="Forum username"
+                                                     Text="{Binding Tester.Username, Mode=TwoWay}" />
+                                            <TextBox Classes="field"
+                                                     Watermark="Password"
+                                                     PasswordChar="•"
+                                                     Text="{Binding Tester.Password, Mode=TwoWay}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,14,0,0">
+                                        <Button Theme="{StaticResource OptionsRowButton}"
+                                                BorderBrush="{StaticResource GoldBrush}"
+                                                MinWidth="96"
+                                                Content="Log in"
+                                                IsDefault="{Binding IsTesterLoginOpen}"
+                                                IsEnabled="{Binding !IsBusy}"
+                                                Command="{Binding Tester.LogInCommand}" />
+                                        <Button Classes="LinkButton"
+                                                Content="Back"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding CloseTesterLoginCommand}" />
+                                        <Button Classes="LinkButton"
+                                                Content="Switch back to live builds"
+                                                VerticalAlignment="Center"
+                                                IsVisible="{Binding Tester.LoginExpired}"
+                                                IsEnabled="{Binding !IsBusy}"
+                                                Command="{Binding SwitchToLiveBuildsCommand}" />
+                                    </StackPanel>
+
+                                    <TextBlock FontSize="12"
+                                               Foreground="#D0FFFFFF"
+                                               TextWrapping="Wrap"
+                                               Margin="2,12,0,0"
+                                               Text="{Binding Tester.LoginStatus}"
+                                               IsVisible="{Binding Tester.LoginStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                            </Panel>
+                        </Panel>
+                    </ScrollViewer>
 
                     <Button Theme="{StaticResource OptionsCloseButton}"
                             HorizontalAlignment="Right"

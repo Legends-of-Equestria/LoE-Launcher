@@ -481,6 +481,14 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void CloseOptions() => IsOptionsOpen = false;
 
+    partial void OnIsOptionsOpenChanged(bool value)
+    {
+        if (!value)
+        {
+            Options.NotifyClosed();
+        }
+    }
+
     [RelayCommand]
     private static void OpenYoutube() => ProcessLauncher.LaunchUrl(Constants.YouTubeUrl);
 

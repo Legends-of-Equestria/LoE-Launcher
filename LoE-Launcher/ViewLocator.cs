@@ -10,7 +10,6 @@ public class ViewLocator : IDataTemplate
     public Control Build(object? data) => data switch
     {
         SettingsViewModel => new SettingsView(),
-        TesterAccessViewModel => new TesterAccessView(),
         null => new TextBlock { Text = "data is null" },
         _ => new TextBlock { Text = "Not Found: " + data.GetType().Name }
     };

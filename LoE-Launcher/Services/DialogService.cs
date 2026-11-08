@@ -8,8 +8,6 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using LoE_Launcher.Core;
 using LoE_Launcher.Utils;
-using LoE_Launcher.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Velopack;
 
@@ -19,13 +17,11 @@ public class DialogService : IDialogService
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private readonly IWindowProvider _windowProvider;
-    private readonly IServiceProvider _serviceProvider;
     private readonly UpdateManager? _updateManager;
 
-    public DialogService(IWindowProvider windowProvider, IServiceProvider serviceProvider)
+    public DialogService(IWindowProvider windowProvider)
     {
         _windowProvider = windowProvider;
-        _serviceProvider = serviceProvider;
         _updateManager = VelopackHelper.CreateUpdateManager();
     }
 
@@ -208,16 +204,5 @@ public class DialogService : IDialogService
         {
             ProcessLauncher.LaunchUrl(Constants.LauncherDownloadUrl);
         }
-    }
-
-    public async Task ShowTesterAccessWindowAsync()
-    {
-        var viewModel = _serviceProvider.GetRequiredService<TesterAccessViewModel>();
-        var window = CreateDialogWindow("Tester access", 320);
-        window.Content = viewModel;
-        viewModel.CloseAction = window.Close;
-
-        await window.ShowDialog(GetOwner()!);
-        await viewModel.ApplyChannelChangesAsync();
     }
 }

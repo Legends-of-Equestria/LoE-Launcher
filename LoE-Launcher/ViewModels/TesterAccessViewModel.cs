@@ -16,7 +16,9 @@ public partial class TesterAccessViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
 
     // Only tokens from a successful login end up here
-    private string _pendingToken;
+    private string _pendingToken = "";
+
+    private bool _syncing;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowLogin), nameof(ShowChannel))]
@@ -52,21 +54,41 @@ public partial class TesterAccessViewModel : ViewModelBase
         set => UseDevChannel = !value;
     }
 
-    public Action? CloseAction { get; set; }
+    public Action? ChangesApplied { get; set; }
 
     public TesterAccessViewModel(Downloader downloader, IDialogService dialogService)
     {
         _downloader = downloader;
         _dialogService = dialogService;
-        _pendingToken = _downloader.LauncherSettings.DevToken;
-        _hasTesterAccess = !string.IsNullOrWhiteSpace(_pendingToken);
-        _useDevChannel = _hasTesterAccess && _downloader.LauncherSettings.Channel == GameChannel.Dev;
+        Refresh();
+    }
 
-        if (_hasTesterAccess && _downloader.State == GameState.DevAccessDenied)
+    public void Refresh()
+    {
+        var settings = _downloader.LauncherSettings;
+        _syncing = true;
+        try
         {
-            _loginExpired = true;
-            _loginStatus = "Your tester login expired, log in again";
+            _pendingToken = settings.DevToken;
+            HasTesterAccess = !string.IsNullOrWhiteSpace(_pendingToken);
+            LoginExpired = HasTesterAccess && _downloader.State == GameState.DevAccessDenied;
+            UseDevChannel = HasTesterAccess && settings.Channel == GameChannel.Dev;
+            LoginStatus = LoginExpired ? "Your tester login expired, log in again" : "";
         }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    partial void OnUseDevChannelChanged(bool value)
+    {
+        if (_syncing || !ShowChannel)
+        {
+            return;
+        }
+
+        _ = ApplyAndNotifyAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanLogIn))]
@@ -83,7 +105,6 @@ public partial class TesterAccessViewModel : ViewModelBase
         try
         {
             var result = await _downloader.LogInForDevToken(Username, Password);
-            Password = "";
             switch (result.Status)
             {
                 case DevLoginStatus.Ok:
@@ -95,7 +116,7 @@ public partial class TesterAccessViewModel : ViewModelBase
                     }
                     HasTesterAccess = true;
                     LoginExpired = false;
-                    LoginStatus = "";
+                    await ApplyAndNotifyAsync();
                     break;
                 case DevLoginStatus.WrongLogin:
                     LoginStatus = "Wrong username or password";
@@ -113,6 +134,7 @@ public partial class TesterAccessViewModel : ViewModelBase
         }
         finally
         {
+            Password = "";
             IsLoggingIn = false;
         }
     }
@@ -120,20 +142,17 @@ public partial class TesterAccessViewModel : ViewModelBase
     private bool CanLogIn() => !IsLoggingIn;
 
     [RelayCommand]
-    private void RemoveTesterAccess()
+    private async Task RemoveTesterAccess()
     {
         _pendingToken = "";
-        UseDevChannel = false;
-        LoginExpired = false;
         HasTesterAccess = false;
+        LoginExpired = false;
+        UseDevChannel = false;
+        await ApplyAndNotifyAsync();
     }
-
-    [RelayCommand]
-    private void Done() => CloseAction?.Invoke();
 
     private GameChannel PendingChannel => UseDevChannel && HasTesterAccess ? GameChannel.Dev : GameChannel.Live;
 
-    // Applied when the popup closes so switching back and forth doesn't refresh each time
     private bool ApplyChannelChanges()
     {
         var settings = _downloader.LauncherSettings;
@@ -174,5 +193,19 @@ public partial class TesterAccessViewModel : ViewModelBase
         {
             await Task.Run(() => _downloader.RefreshState());
         }
+    }
+
+    private async Task ApplyAndNotifyAsync()
+    {
+        try
+        {
+            await ApplyChannelChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to apply the channel change");
+        }
+
+        ChangesApplied?.Invoke();
     }
 }
