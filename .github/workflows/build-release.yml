@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   VPK_VERSION: '0.0.1298'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -94,6 +94,7 @@ jobs:
         shell: bash
         run: bash .github/scripts/${{ matrix.script }}
         env:
+          DOTNET_ROLL_FORWARD: Major
           MACOS_CERTIFICATE_P12: ${{ matrix.name == 'macOS' && secrets.MACOS_CERTIFICATE_P12 || '' }}
           MACOS_CERTIFICATE_PASSWORD: ${{ matrix.name == 'macOS' && secrets.MACOS_CERTIFICATE_PASSWORD || '' }}
           NOTARIZATION_APPLE_ID: ${{ matrix.name == 'macOS' && secrets.NOTARIZATION_APPLE_ID || '' }}

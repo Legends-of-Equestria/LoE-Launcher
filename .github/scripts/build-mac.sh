@@ -15,7 +15,7 @@ for rid in osx-arm64 osx-x64; do
     # shellcheck disable=SC2046
     dotnet publish "$PROJECT_FILE" \
         -c Release \
-        -f net8.0 \
+        -f net10.0 \
         -r "$rid" \
         -p:PublishAot=true \
         -p:StripSymbols=true \

@@ -1,5 +1,5 @@
 <Project>
     <ItemGroup>
-        <KnownILLinkPack Update="@(KnownILLinkPack)" ILLinkPackVersion="8.0.33" />
+        <KnownILLinkPack Update="@(KnownILLinkPack)" ILLinkPackVersion="10.0.14" />
     </ItemGroup>
 </Project>

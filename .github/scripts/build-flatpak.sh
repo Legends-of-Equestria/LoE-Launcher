@@ -13,7 +13,7 @@ group "Publish linux-x64"
 # shellcheck disable=SC2046
 dotnet publish "$PROJECT_FILE" \
     -c Release \
-    -f net8.0 \
+    -f net10.0 \
     -r linux-x64 \
     --self-contained true \
     -p:PublishSingleFile=false \

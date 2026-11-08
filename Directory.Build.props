@@ -2,6 +2,7 @@
     <PropertyGroup>
         <RuntimeIdentifiers>win-x86;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <NuGetLockFilePath Condition="'$(PublishAot)' == 'true'">$(MSBuildProjectDirectory)/obj/packages.aot.lock.json</NuGetLockFilePath>
         <RestoreLockedMode Condition="'$(CI)' == 'true' and '$(PublishAot)' != 'true'">true</RestoreLockedMode>
     </PropertyGroup>
 </Project>
