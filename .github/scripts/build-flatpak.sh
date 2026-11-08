@@ -9,18 +9,6 @@ rm -rf "$WORK" "$OUTPUT"
 mkdir -p "$OUTPUT"
 echo "Preparing LoE Launcher $VERSION for Flatpak"
 
-group "Install ICU"
-if command -v dnf > /dev/null 2>&1; then
-    dnf install -y libicu-devel
-elif command -v zypper > /dev/null 2>&1; then
-    zypper install -y libicu-devel
-elif command -v pacman > /dev/null 2>&1; then
-    pacman -S --noconfirm icu
-else
-    warn "Unknown package manager, continuing without installing ICU"
-fi
-endgroup
-
 group "Publish linux-x64"
 # shellcheck disable=SC2046
 dotnet publish "$PROJECT_FILE" \
