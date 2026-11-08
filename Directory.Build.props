@@ -1,0 +1,7 @@
+<Project>
+    <PropertyGroup>
+        <RuntimeIdentifiers>win-x86;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <RestoreLockedMode Condition="'$(CI)' == 'true' and '$(PublishAot)' != 'true'">true</RestoreLockedMode>
+    </PropertyGroup>
+</Project>
