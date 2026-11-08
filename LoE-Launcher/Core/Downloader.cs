@@ -21,7 +21,7 @@ public partial class Downloader
     private static readonly int OfflineRetryIntervalSeconds = 30;
 
     public static readonly VersionInfo
-        CurrentLauncherVersion = new() { Major = 1, Minor = 4, Build = 0, Revision = 0 };
+        CurrentLauncherVersion = new() { Major = 1, Minor = 5, Build = 0, Revision = 0 };
 
     private readonly IRelativeFilePath _settingsFile = "settings.json".ToRelativeFilePathAuto();
     private readonly IAbsoluteDirectoryPath _launcherPath =
