@@ -611,7 +611,7 @@ public partial class Downloader
                 .ToList();
 
             InstalledFiles.RemoveDropped(folder, current);
-            InstalledFiles.SweepJunk(folder, removePartialDownloads: _data.ToProcess.Count == 0);
+            InstalledFiles.SweepJunk(folder, removePartialDownloads: _data.ToProcess.Count == 0, current);
         }
         catch (Exception ex)
         {

@@ -78,20 +78,38 @@ public class InstalledFilesTests : IDisposable
     }
 
     [Fact]
-    public void SweepJunk_ShouldRemoveUnityDoNotShipFoldersAndPartialDownloads()
+    public void SweepJunk_ShouldOnlyRemoveTheGamesOwnJunkFolders()
     {
+        Touch(P("LoE_BurstDebugInformation_DoNotShip", "Data", "lib.txt"));
         Touch(P("Legends of Equestria_BurstDebugInformation_DoNotShip", "Data", "lib.txt"));
-        Touch(P("loe_Data", "resources.resource.jar.part"));
-        Touch(P("loe_Data", "resources.resource"));
+        Touch(P("OtherGame_BurstDebugInformation_DoNotShip", "lib.txt"));
+        Touch(P("Sub", "LoE_x_DoNotShip", "lib.txt"));
 
-        InstalledFiles.SweepJunk(_game, removePartialDownloads: false);
+        InstalledFiles.SweepJunk(_game, removePartialDownloads: false, ["LoE.exe"]);
 
+        Directory.Exists(Path.Combine(_game, "LoE_BurstDebugInformation_DoNotShip")).Should().BeFalse();
         Directory.Exists(Path.Combine(_game, "Legends of Equestria_BurstDebugInformation_DoNotShip")).Should().BeFalse();
-        Exists(P("loe_Data", "resources.resource.jar.part")).Should().BeTrue();
+        Exists(P("OtherGame_BurstDebugInformation_DoNotShip", "lib.txt")).Should().BeTrue();
+        Exists(P("Sub", "LoE_x_DoNotShip", "lib.txt")).Should().BeTrue();
+    }
 
-        InstalledFiles.SweepJunk(_game, removePartialDownloads: true);
+    [Fact]
+    public void SweepJunk_ShouldOnlyRemovePartFilesOfListedFiles()
+    {
+        var listed = P("loe_Data", "resources.resource");
+        Touch(listed);
+        Touch(P("loe_Data", "resources.resource.gz.part"));
+        Touch(P("loe_Data", "notes.part"));
+        Touch("notes.part");
 
-        Exists(P("loe_Data", "resources.resource.jar.part")).Should().BeFalse();
-        Exists(P("loe_Data", "resources.resource")).Should().BeTrue();
+        InstalledFiles.SweepJunk(_game, removePartialDownloads: false, [listed]);
+        Exists(P("loe_Data", "resources.resource.gz.part")).Should().BeTrue();
+
+        InstalledFiles.SweepJunk(_game, removePartialDownloads: true, [listed]);
+
+        Exists(P("loe_Data", "resources.resource.gz.part")).Should().BeFalse();
+        Exists(listed).Should().BeTrue();
+        Exists(P("loe_Data", "notes.part")).Should().BeTrue();
+        Exists("notes.part").Should().BeTrue();
     }
 }

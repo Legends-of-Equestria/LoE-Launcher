@@ -14,10 +14,12 @@ public static class InstalledFiles
 
     public const string ManifestName = "launcher-files.json";
 
+    private static readonly string[] JunkPrefixes = ["Legends of Equestria_", "LoE_"];
+
     private static readonly string[] UnityJunkSuffixes = ["_DoNotShip", "_ButDontShipItWithYourGame"];
 
     private static StringComparer PathComparer =>
-        OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        IgnoresCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public static IReadOnlyList<string> Load(string gameFolder)
     {
@@ -63,8 +65,8 @@ public static class InstalledFiles
         var kept = new List<string>();
         foreach (var file in dropped)
         {
-            var full = Path.GetFullPath(Path.Combine(root, file));
-            if (!full.StartsWith(root + Path.DirectorySeparatorChar, PathComparison))
+            var full = InsideOrNull(root, file);
+            if (full == null)
             {
                 continue;
             }
@@ -94,7 +96,7 @@ public static class InstalledFiles
         return removed;
     }
 
-    public static void SweepJunk(string gameFolder, bool removePartialDownloads)
+    public static void SweepJunk(string gameFolder, bool removePartialDownloads, IReadOnlyList<string> files)
     {
         var root = new DirectoryInfo(gameFolder);
         if (!root.Exists)
@@ -103,7 +105,9 @@ public static class InstalledFiles
         }
 
         foreach (var dir in root.EnumerateDirectories()
-                     .Where(d => UnityJunkSuffixes.Any(s => d.Name.EndsWith(s, StringComparison.OrdinalIgnoreCase))))
+                     .Where(d => JunkPrefixes.Any(x => d.Name.StartsWith(x, StringComparison.OrdinalIgnoreCase))
+                                 && UnityJunkSuffixes.Any(s => d.Name.EndsWith(s, StringComparison.OrdinalIgnoreCase))
+                                 && InsideOrNull(gameFolder, d.Name) != null))
         {
             TryDelete(() => dir.Delete(true), dir.Name);
         }
@@ -113,9 +117,10 @@ public static class InstalledFiles
             return;
         }
 
-        foreach (var file in root.EnumerateFiles("*.part", SearchOption.AllDirectories))
+        foreach (var path in GameFiles.TempFilesFor(gameFolder, files)
+                     .Where(f => f.EndsWith(".part", StringComparison.OrdinalIgnoreCase)))
         {
-            TryDelete(file.Delete, file.Name);
+            TryDelete(() => File.Delete(path), Path.GetFileName(path));
         }
     }
 
@@ -132,7 +137,7 @@ public static class InstalledFiles
         }
     }
 
-    private static void RemoveEmptyParents(string file, string root)
+    internal static void RemoveEmptyParents(string file, string root)
     {
         var dir = Path.GetDirectoryName(file);
         while (dir != null && dir.Length > root.Length && !Directory.EnumerateFileSystemEntries(dir).Any())
@@ -142,6 +147,30 @@ public static class InstalledFiles
         }
     }
 
-    private static StringComparison PathComparison =>
-        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    internal static bool IsInside(string root, string full) =>
+        full.StartsWith(root + Path.DirectorySeparatorChar, PathComparison);
+
+    internal static string? InsideOrNull(string gameFolder, string file)
+    {
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(gameFolder));
+        var full = Path.GetFullPath(Path.Combine(root, file));
+        if (!IsInside(root, full))
+        {
+            Logger.Warn($"Skipping {file}, it is outside the game folder");
+            return null;
+        }
+
+        if (!IsInside(GameFolderRules.Normalize(root), GameFolderRules.Normalize(full)))
+        {
+            Logger.Warn($"Skipping {file}, it resolves outside the game folder");
+            return null;
+        }
+
+        return full;
+    }
+
+    internal static bool IgnoresCase => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+
+    internal static StringComparison PathComparison =>
+        IgnoresCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 }

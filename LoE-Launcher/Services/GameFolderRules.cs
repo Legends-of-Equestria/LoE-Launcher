@@ -54,8 +54,16 @@ public sealed record KnownFolders(string Home, IReadOnlyList<string> Personal, I
     }
 }
 
+public enum FolderKind { Allowed, ParentOnly, Forbidden }
+
+public sealed record FolderVerdict(FolderKind Kind, string? Reason);
+
 public static class GameFolderRules
 {
+    public const string PersonalReason = "Pick a folder outside your Desktop, Documents, Downloads and cloud-synced folders.";
+    public const string SystemReason = "That's a system folder. Pick a folder you own, like one on another drive.";
+    public const string NetworkReason = "Network drives aren't supported. Pick a folder on this computer.";
+
     public static string Normalize(string path)
     {
         var full = Path.GetFullPath(path);
@@ -94,10 +102,73 @@ public static class GameFolderRules
                || known.System.Any(p => Matches(normalized, p, comparison));
     }
 
+    public static FolderVerdict Classify(string path, KnownFolders known, OS os)
+    {
+        if (IsNetwork(path, os))
+        {
+            return new FolderVerdict(FolderKind.Forbidden, NetworkReason);
+        }
+
+        var comparison = Comparison(os);
+        var normalized = Normalize(path);
+
+        if (known.Personal.Any(p => Matches(normalized, p, comparison, true)))
+        {
+            return new FolderVerdict(FolderKind.Forbidden, PersonalReason);
+        }
+
+        if (known.System.Any(p => Matches(normalized, p, comparison, true)))
+        {
+            return new FolderVerdict(FolderKind.Forbidden, SystemReason);
+        }
+
+        return Path.GetPathRoot(normalized) == normalized || Matches(normalized, known.Home, comparison)
+            ? new FolderVerdict(FolderKind.ParentOnly, null)
+            : new FolderVerdict(FolderKind.Allowed, null);
+    }
+
+    public static bool IsSameOrInside(string path, string folder, OS os) =>
+        IsSameOrInside(Normalize(path), Normalize(folder), Comparison(os));
+
     public static StringComparison Comparison(OS os) =>
         os is OS.X11 or OS.Other ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
-    private static bool Matches(string normalized, string folder, StringComparison comparison)
+    private static bool IsSameOrInside(string normalized, string folder, StringComparison comparison)
+    {
+        if (string.Equals(normalized, folder, comparison))
+        {
+            return true;
+        }
+
+        var prefix = folder.EndsWith(Path.DirectorySeparatorChar) || folder.EndsWith(Path.AltDirectorySeparatorChar)
+            ? folder
+            : folder + Path.DirectorySeparatorChar;
+        return normalized.StartsWith(prefix, comparison);
+    }
+
+    private static bool IsNetwork(string path, OS os)
+    {
+        if (path.StartsWith(@"\\") || path.StartsWith("//"))
+        {
+            return true;
+        }
+
+        if (os is not (OS.WindowsX64 or OS.WindowsX86) || !OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        try
+        {
+            return new DriveInfo(Path.GetPathRoot(Path.GetFullPath(path)) ?? "").DriveType == DriveType.Network;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool Matches(string normalized, string folder, StringComparison comparison, bool includeInside = false)
     {
         if (string.IsNullOrEmpty(folder))
         {
@@ -106,7 +177,8 @@ public static class GameFolderRules
 
         try
         {
-            return string.Equals(normalized, Normalize(folder), comparison);
+            var other = Normalize(folder);
+            return includeInside ? IsSameOrInside(normalized, other, comparison) : string.Equals(normalized, other, comparison);
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
