@@ -35,6 +35,7 @@ public partial class Downloader
     private readonly HashCacheService _hashCache;
     private readonly FileUpdateService _fileUpdate;
     private readonly UpdateManager? _updateManager;
+    private static readonly TimeSpan LauncherUpdateCheckTimeout = TimeSpan.FromSeconds(15);
 
     private string _versionDownload = "";
     private GameState _state = GameState.Unknown;
@@ -316,7 +317,7 @@ public partial class Downloader
             Logger.Info("Checking for Velopack launcher updates...");
             try
             {
-                var updateInfo = await _updateManager.CheckForUpdatesAsync();
+                var updateInfo = await _updateManager.CheckForUpdatesAsync().WaitAsync(LauncherUpdateCheckTimeout);
                 if (updateInfo != null)
                 {
                     Logger.Info($"Velopack update available: {updateInfo.TargetFullRelease.Version}");
@@ -327,6 +328,10 @@ public partial class Downloader
                 {
                     Logger.Info("No Velopack launcher updates available.");
                 }
+            }
+            catch (TimeoutException)
+            {
+                Logger.Warn($"Launcher update check took longer than {LauncherUpdateCheckTimeout.TotalSeconds:0}s, skipping it");
             }
             catch (Exception ex)
             {
