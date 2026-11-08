@@ -127,12 +127,14 @@
                         </Rectangle>
 
                         <!-- Content -->
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          TextElement.Foreground="White"
-                                          TextElement.FontSize="{TemplateBinding FontSize}"
-                                          TextElement.FontWeight="{TemplateBinding FontWeight}" />
+                        <Viewbox MaxWidth="230" StretchDirection="DownOnly"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              TextElement.Foreground="White"
+                                              TextElement.FontSize="{TemplateBinding FontSize}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}" />
+                        </Viewbox>
                     </Grid>
                 </ControlTemplate>
             </Setter>

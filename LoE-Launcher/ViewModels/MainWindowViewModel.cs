@@ -344,7 +344,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 enabledState = false;
                 break;
             case GameState.LauncherOutOfDate:
-                ActionButtonText = "Update Required";
+                ActionButtonText = "Update Launcher";
                 ActionButtonBackground = _errorColor;
                 enabledState = true;
                 break;
