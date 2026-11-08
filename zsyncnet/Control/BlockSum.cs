@@ -41,7 +41,7 @@ namespace zsyncnet.Control
         private static uint ReadRsum(Stream input, int bytes)
         {
             var block = new byte[bytes];
-            input.Read(block);
+            input.ReadExactly(block);
             return EndianConverter.FromBigEndian(block);
         }
 
@@ -49,7 +49,7 @@ namespace zsyncnet.Control
         private static byte[] ReadChecksum(Stream input, int length)
         {
             var buffer = new byte[length];
-            input.Read(buffer);
+            input.ReadExactly(buffer);
             return buffer;
         }
     }

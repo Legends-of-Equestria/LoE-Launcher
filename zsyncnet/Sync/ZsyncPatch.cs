@@ -172,7 +172,7 @@ namespace zsyncnet.Sync
                 var length = sectionSize + 2 * header.BlockSize;
                 if (offset + length <= inputLength) // somewhere in the middle of the file. can just read.
                 {
-                    input.Read(buffer);
+                    input.ReadExactly(buffer);
                 }
                 else
                 {
@@ -185,7 +185,7 @@ namespace zsyncnet.Sync
 
                     buffer = new byte[length];
                     Array.Fill<byte>(buffer, 0); // pad with zeroes
-                    input.Read(buffer, 0, (int)(inputLength - offset));
+                    input.ReadExactly(buffer, 0, (int)(inputLength - offset));
                 }
 
                 FindExistingBlocks(output, buffer, offset, header, remoteBlockSums, existingBlocks, output == input, progress);
