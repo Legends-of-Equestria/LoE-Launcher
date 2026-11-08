@@ -26,7 +26,7 @@ public static class GameLocation
     private const string Nested = "The new folder can't be inside the current game folder, or the other way around.";
     private const string OtherChannel = "That folder is used by the other channel's game.";
     private const string TooLong = "That folder's path is too long for the game.";
-    private const string NotWritable = "The launcher can't write to that folder.";
+    public const string NotWritable = "The launcher can't write to that folder.";
     private const string NotEmpty = "That folder already has other files in it.";
 
     public static LocationChoice Resolve(string picked, LocationContext context)
@@ -39,6 +39,49 @@ public static class GameLocation
         {
             return new LocationChoice.Refused(CannotUse);
         }
+    }
+
+    public static LocationChoice ResolveDefault(string defaultFolder, string currentFolder, string? otherChannelFolder, OS os)
+    {
+        var comparison = GameFolderRules.Comparison(os);
+
+        if (string.Equals(GameFolderRules.Normalize(defaultFolder), GameFolderRules.Normalize(currentFolder), comparison))
+        {
+            return new LocationChoice.Unchanged();
+        }
+
+        if (GameFolderRules.IsSameOrInside(defaultFolder, currentFolder, os)
+            || GameFolderRules.IsSameOrInside(currentFolder, defaultFolder, os))
+        {
+            return new LocationChoice.Refused(Nested);
+        }
+
+        if (!string.IsNullOrEmpty(otherChannelFolder)
+            && (GameFolderRules.IsSameOrInside(defaultFolder, otherChannelFolder, os)
+                || GameFolderRules.IsSameOrInside(otherChannelFolder, defaultFolder, os)))
+        {
+            return new LocationChoice.Refused(OtherChannel);
+        }
+
+        if (GameImporter.ContainsGame(defaultFolder, os))
+        {
+            return new LocationChoice.UseInPlace(defaultFolder);
+        }
+
+        if (Directory.Exists(defaultFolder) && Directory.EnumerateFileSystemEntries(defaultFolder).Any())
+        {
+            return new LocationChoice.Refused($"The default game folder already has other files in it:\n{defaultFolder}");
+        }
+
+        return new LocationChoice.NewFolder(defaultFolder);
+    }
+
+    public static bool IsSeparateCopy(string oldCopy, string currentFolder, string? otherChannelFolder, OS os)
+    {
+        bool Overlaps(string folder) =>
+            GameFolderRules.IsSameOrInside(oldCopy, folder, os) || GameFolderRules.IsSameOrInside(folder, oldCopy, os);
+
+        return !Overlaps(currentFolder) && (string.IsNullOrEmpty(otherChannelFolder) || !Overlaps(otherChannelFolder));
     }
 
     private static LocationChoice ResolveCore(string picked, LocationContext context)

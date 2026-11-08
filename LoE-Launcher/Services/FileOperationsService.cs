@@ -281,42 +281,6 @@ public class FileOperationsService(string launcherPath)
         }
     }
 
-    public void CleanGameFolder(IAbsoluteDirectoryPath gameInstallFolder)
-    {
-        try
-        {
-            if (!gameInstallFolder.Exists)
-            {
-                Directory.CreateDirectory(gameInstallFolder.ToString());
-            }
-
-            var extensions = new[] { "*.zsync", "*.jar", "*.gz", "*.zs-old" };
-            foreach (var extension in extensions)
-            {
-                foreach (var file in gameInstallFolder.DirectoryInfo.EnumerateFiles(extension, SearchOption.AllDirectories))
-                {
-                    try
-                    {
-                        file.Delete();
-                    }
-                    catch (IOException ex) when (ex.Message.Contains("being used by another process"))
-                    {
-                        Logger.Warn($"Could not delete {file.FullName}: {ex.Message}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, $"Error deleting {file.FullName}");
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "CleanGameFolder failed");
-            throw;
-        }
-    }
-
     public async Task CleanupDownloadFiles(string tempFilePath, string filePath)
     {
         if (File.Exists(tempFilePath))

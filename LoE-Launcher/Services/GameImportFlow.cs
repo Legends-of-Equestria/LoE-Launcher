@@ -28,40 +28,35 @@ public class GameImportFlow(Downloader downloader, IDialogService dialogs)
             downloader.LauncherFolder.Path));
         Logger.Info($"Found {found.Count} existing game installs");
 
-        var folder = found.FirstOrDefault();
+        var other = downloader.OtherChannelGameFolder;
+        var folder = found.FirstOrDefault(f => string.IsNullOrEmpty(other)
+                                               || !(GameFolderRules.IsSameOrInside(f, other, Os)
+                                                    || GameFolderRules.IsSameOrInside(other, f, Os)));
         if (folder == null || !CanImport)
         {
             return;
         }
 
-        var choice = await dialogs.ShowChoiceDialog("Existing Install Found",
-            $"Legends of Equestria is already installed at:\n{folder}\n\nMove it to the launcher and download only what's changed?",
-            "Use these files", "Download everything");
-
-        if (choice != 0 || await Import(folder))
+        try
         {
+            var choice = await dialogs.ShowChoiceDialog("Existing Install Found",
+                $"Legends of Equestria is already installed at:\n{folder}\n\nUse it?",
+                "Use it", "Not now");
+
+            if (choice == 0)
+            {
+                downloader.LauncherSettings.GameFolder = folder;
+                downloader.SaveSettings();
+                await Task.Run(downloader.RefreshState);
+            }
+
             downloader.LauncherSettings.ImportOffered = true;
             downloader.SaveSettings();
         }
-    }
-
-    private async Task<bool> Import(string source)
-    {
-        try
-        {
-            await downloader.ImportInstall(source);
-            return true;
-        }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Game import failed");
-            await dialogs.ShowErrorMessage("Couldn't Move Game Files",
-                $"{ex.Message}\n\nClose the game if it's running and restart the launcher to try again.");
-            return false;
-        }
-        finally
-        {
-            await Task.Run(downloader.RefreshState);
+            Logger.Error(ex, "Couldn't use the existing install");
+            await dialogs.ShowErrorMessage("Couldn't Use the Existing Install", ex.Message);
         }
     }
 }

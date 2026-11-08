@@ -252,4 +252,79 @@ public class GameLocationTests : IDisposable
 
         GameLocation.Resolve(games, Context()).Should().Be(new LocationChoice.NewFolder(Sub(games)));
     }
+
+    [Fact]
+    public void ResolveDefault_ShouldBeUnchangedWhenTheDefaultIsCurrent()
+    {
+        GameLocation.ResolveDefault(Current, Current, null, OS.WindowsX64)
+            .Should().Be(new LocationChoice.Unchanged());
+    }
+
+    [Fact]
+    public void ResolveDefault_ShouldUseAnInstallInTheDefaultInPlace()
+    {
+        var game = WindowsGame("Launcher", "Game");
+
+        GameLocation.ResolveDefault(game, Current, null, OS.WindowsX64)
+            .Should().Be(new LocationChoice.UseInPlace(game));
+    }
+
+    [Fact]
+    public void ResolveDefault_ShouldMoveIntoAMissingOrEmptyDefault()
+    {
+        var missing = Path.Combine(_root, "Launcher", "Game");
+        var empty = Dir("Launcher", "Game-Dev");
+
+        GameLocation.ResolveDefault(missing, Current, null, OS.WindowsX64)
+            .Should().Be(new LocationChoice.NewFolder(missing));
+        GameLocation.ResolveDefault(empty, Current, null, OS.WindowsX64)
+            .Should().Be(new LocationChoice.NewFolder(empty));
+    }
+
+    [Fact]
+    public void ResolveDefault_ShouldRefuseADefaultWithOtherFiles()
+    {
+        var folder = Dir("Launcher", "Game");
+        File.WriteAllText(Path.Combine(folder, "notes.txt"), "x");
+
+        GameLocation.ResolveDefault(folder, Current, null, OS.WindowsX64)
+            .Should().Be(new LocationChoice.Refused($"The default game folder already has other files in it:\n{folder}"));
+    }
+
+    [Fact]
+    public void ResolveDefault_ShouldRefuseNestingAndTheOtherChannelsFolder()
+    {
+        var folder = Path.Combine(_root, "Launcher", "Game");
+
+        GameLocation.ResolveDefault(folder, Path.Combine(folder, "Legends of Equestria"), null, OS.WindowsX64)
+            .Should().BeOfType<LocationChoice.Refused>();
+        GameLocation.ResolveDefault(folder, Current, folder, OS.WindowsX64)
+            .Should().Be(new LocationChoice.Refused("That folder is used by the other channel's game."));
+    }
+
+    [Fact]
+    public void IsSeparateCopy_ShouldBeFalseForTheCurrentFolderOrAnythingNestedWithIt()
+    {
+        var old = Path.Combine(_root, "Old");
+
+        GameLocation.IsSeparateCopy(old, old, null, OS.WindowsX64).Should().BeFalse();
+        GameLocation.IsSeparateCopy(Path.Combine(old, "Inner"), old, null, OS.WindowsX64).Should().BeFalse();
+        GameLocation.IsSeparateCopy(old, Path.Combine(old, "Inner"), null, OS.WindowsX64).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsSeparateCopy_ShouldBeFalseForTheOtherChannelsFolder()
+    {
+        var old = Path.Combine(_root, "Old");
+
+        GameLocation.IsSeparateCopy(old, Current, old, OS.WindowsX64).Should().BeFalse();
+        GameLocation.IsSeparateCopy(old, Current, Path.Combine(old, "Dev"), OS.WindowsX64).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsSeparateCopy_ShouldBeTrueForAnUnrelatedFolder()
+    {
+        GameLocation.IsSeparateCopy(Path.Combine(_root, "Old"), Current, Path.Combine(_root, "Dev"), OS.WindowsX64)
+            .Should().BeTrue();
+    }
 }

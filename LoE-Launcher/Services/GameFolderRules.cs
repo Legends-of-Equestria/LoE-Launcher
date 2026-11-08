@@ -91,17 +91,6 @@ public static class GameFolderRules
         return Trim(current);
     }
 
-    public static bool IsSharedPlace(string path, KnownFolders known, OS os)
-    {
-        var comparison = Comparison(os);
-        var normalized = Normalize(path);
-
-        return Path.GetPathRoot(normalized) == normalized
-               || Matches(normalized, known.Home, comparison)
-               || known.Personal.Any(p => Matches(normalized, p, comparison))
-               || known.System.Any(p => Matches(normalized, p, comparison));
-    }
-
     public static FolderVerdict Classify(string path, KnownFolders known, OS os)
     {
         if (IsNetwork(path, os))

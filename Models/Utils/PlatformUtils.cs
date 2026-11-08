@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 namespace Models.Utils;
 
 public enum OS
@@ -27,6 +28,19 @@ public static class PlatformUtils
     {
         var path = Path.Combine(folder, GameExecutableName(os));
         return os is OS.MacArm or OS.MacIntel ? Directory.Exists(path) : File.Exists(path);
+    }
+
+    public static bool IsFlatpak => Environment.GetEnvironmentVariable("FLATPAK_ID") != null;
+
+    public static bool IsGameRunning(OS os)
+    {
+        var processes = Process.GetProcessesByName(os == OS.X11 ? "LoE.x86_64" : "LoE");
+        foreach (var process in processes)
+        {
+            process.Dispose();
+        }
+
+        return processes.Length > 0;
     }
 
     static PlatformUtils()

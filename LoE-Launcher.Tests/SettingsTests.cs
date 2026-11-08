@@ -55,4 +55,27 @@ public class SettingsTests
         result.Should().Be("http://example.com/zsync/1.0.0/");
         result.Should().NotEndWith("//");
     }
+
+    [Fact]
+    public void ActiveCustomGameFolder_ShouldFollowTheActiveChannel()
+    {
+        var settings = new Settings { GameFolder = "live", DevGameFolder = "dev" };
+
+        settings.ActiveCustomGameFolder.Should().Be("live");
+        settings.OtherChannelCustomGameFolder.Should().Be("dev");
+
+        settings.Channel = GameChannel.Dev;
+        settings.DevToken = "token";
+        settings.ActiveCustomGameFolder.Should().Be("dev");
+        settings.OtherChannelCustomGameFolder.Should().Be("live");
+
+        settings.ActiveCustomGameFolder = "dev2";
+        settings.DevGameFolder.Should().Be("dev2");
+        settings.GameFolder.Should().Be("live");
+
+        settings.DevToken = "";
+        settings.ActiveCustomGameFolder = null;
+        settings.GameFolder.Should().BeNull();
+        settings.DevGameFolder.Should().Be("dev2");
+    }
 }

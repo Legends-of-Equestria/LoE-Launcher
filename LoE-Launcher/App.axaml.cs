@@ -37,6 +37,7 @@ public partial class App : Application
         services.AddSingleton<IWindowProvider, WindowProvider>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<GameImportFlow>();
+        services.AddSingleton<GameLocationFlow>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();

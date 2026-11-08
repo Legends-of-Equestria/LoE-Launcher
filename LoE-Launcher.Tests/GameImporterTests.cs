@@ -83,19 +83,6 @@ public class GameImporterTests : IDisposable
     }
 
     [Fact]
-    public void MoveInstall_ShouldMoveEverythingIntoTarget()
-    {
-        var game = MakeWindowsGame(Path.Combine("Old", "Game"));
-        Directory.CreateDirectory(Target);
-
-        GameImporter.MoveInstall(game, Target);
-
-        Directory.Exists(game).Should().BeFalse();
-        File.ReadAllText(Path.Combine(Target, "LoE.exe")).Should().Be("exe");
-        File.ReadAllText(Path.Combine(Target, "LoE_Data", "data.bin")).Should().Be("data");
-    }
-
-    [Fact]
     public void FindInstalls_ShouldFindOldInstallsButNotTheLauncherOwn()
     {
         var old = MakeWindowsGame(Path.Combine("Desktop", "LoE-Launcher", "Game"));
@@ -134,13 +121,23 @@ public class GameImporterTests : IDisposable
     }
 
     [Fact]
-    public void FindInstalls_ShouldStillFindAnInstallInsideASharedPlace()
+    public void FindInstalls_ShouldNotOfferInstallsInsidePersonalFolders()
     {
         var desktop = Path.Combine(_root, "Desktop");
-        var game = MakeWindowsGame(Path.Combine("Desktop", "LoE_Win"));
+        MakeWindowsGame(Path.Combine("Desktop", "LoE_Win"));
         var known = new KnownFolders(Path.Combine(_root, "Home"), [desktop], []);
 
         GameImporter.FindInstalls([(desktop, 3)], OS.WindowsX64, Target, LauncherFolder, known: known)
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FindInstalls_ShouldOfferInstallsInOrdinaryFolders()
+    {
+        var game = MakeWindowsGame(Path.Combine("Games", "LoE_Win"));
+        var known = new KnownFolders(Path.Combine(_root, "Home"), [Path.Combine(_root, "Desktop")], []);
+
+        GameImporter.FindInstalls([(Path.Combine(_root, "Games"), 3)], OS.WindowsX64, Target, LauncherFolder, known: known)
             .Should().Equal(game);
     }
 

@@ -42,6 +42,28 @@ public class Settings
     [JsonIgnore]
     public string ActiveStream => IsDevChannelActive ? DevStream : Stream;
 
+    public string? GameFolder { get; set; }
+
+    public string? DevGameFolder { get; set; }
+
+    public string? PendingMoveTarget { get; set; }
+
+    public string? PendingOldCopy { get; set; }
+
+    [JsonIgnore]
+    public string? ActiveCustomGameFolder
+    {
+        get => IsDevChannelActive ? DevGameFolder : GameFolder;
+        set
+        {
+            if (IsDevChannelActive) DevGameFolder = value;
+            else GameFolder = value;
+        }
+    }
+
+    [JsonIgnore]
+    public string? OtherChannelCustomGameFolder => IsDevChannelActive ? GameFolder : DevGameFolder;
+
     [JsonIgnore]
     public string ActiveInstallFolderName => IsDevChannelActive ? "Game-Dev" : "Game";
 

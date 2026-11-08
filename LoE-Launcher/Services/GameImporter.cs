@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Models.Utils;
-using NLog;
 
 namespace LoE_Launcher.Services;
 
@@ -17,8 +16,6 @@ public enum ImportCheck
 
 public static class GameImporter
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
     public static bool ContainsGame(string folder, OS os) => PlatformUtils.GameExecutableExists(folder, os);
 
     public static string? FindGameFolder(string picked, OS os)
@@ -125,7 +122,7 @@ public static class GameImporter
             var game = FindGameFolder(full, os);
             if (game != null)
             {
-                if (!GameFolderRules.IsSharedPlace(game, known, os)
+                if (GameFolderRules.Classify(game, known, os).Kind == FolderKind.Allowed
                     && Check(game, target) == ImportCheck.Ok
                     && !found.Contains(game, StringComparer.Ordinal))
                 {
@@ -176,66 +173,6 @@ public static class GameImporter
             return DateTime.MinValue;
         }
     }
-
-    public static void MoveInstall(string source, string target, Action<int, int>? progress = null)
-    {
-        var check = Check(source, target);
-        if (check != ImportCheck.Ok)
-        {
-            throw new InvalidOperationException($"Can't import from {source}: {check}");
-        }
-
-        if (Directory.Exists(target))
-        {
-            Directory.Delete(target);
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(Normalize(target))!);
-
-        if (SameVolume(source, target))
-        {
-            try
-            {
-                Directory.Move(source, target);
-                Logger.Info($"Moved game install from {source} to {target}");
-                return;
-            }
-            catch (IOException ex) when (!OperatingSystem.IsWindows() && !Directory.Exists(target))
-            {
-                Logger.Info($"Folder move failed ({ex.Message}), moving file by file");
-            }
-        }
-
-        MoveFileByFile(source, target, progress);
-    }
-
-    private static void MoveFileByFile(string source, string target, Action<int, int>? progress)
-    {
-        var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
-        for (var i = 0; i < files.Length; i++)
-        {
-            var destination = Path.Combine(target, Path.GetRelativePath(source, files[i]));
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Move(files[i], destination, true);
-            progress?.Invoke(i + 1, files.Length);
-        }
-
-        try
-        {
-            Directory.Delete(source, true);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"Moved all files but couldn't remove {source}: {ex.Message}");
-        }
-
-        Logger.Info($"Moved {files.Length} files from {source} to {target}");
-    }
-
-    private static bool SameVolume(string a, string b) =>
-        !OperatingSystem.IsWindows()
-        || string.Equals(Path.GetPathRoot(Path.GetFullPath(a)), Path.GetPathRoot(Path.GetFullPath(b)),
-            StringComparison.OrdinalIgnoreCase);
 
     private static string Normalize(string path) =>
         Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

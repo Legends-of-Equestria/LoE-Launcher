@@ -204,6 +204,13 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
+        <Style Selector="Button.LinkButton:disabled">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+        <Style Selector="Button.LinkButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
         <Style Selector="Button.danger">
             <Setter Property="BorderBrush" Value="{StaticResource DangerBorderBrush}" />
         </Style>
@@ -276,21 +283,30 @@
                                                        Text="{Binding GameFolderPath}"
                                                        ToolTip.Tip="{Binding GameFolderPath}" />
                                         </StackPanel>
-                                        <Button Grid.Column="1"
-                                                Theme="{StaticResource OptionsRowButton}"
-                                                Content="Change…"
-                                                Margin="12,0,0,0"
-                                                IsVisible="{Binding CanChangeLocation}"
-                                                IsEnabled="{Binding !IsBusy}" />
+                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Spacing="8"
+                                                    Margin="12,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding CanChangeLocation}">
+                                            <Button Classes="LinkButton"
+                                                    Content="Reset to default"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding ShowResetLocation}"
+                                                    IsEnabled="{Binding CanMove}"
+                                                    Command="{Binding ResetLocationCommand}" />
+                                            <Button Theme="{StaticResource OptionsRowButton}"
+                                                    Content="Change…"
+                                                    IsEnabled="{Binding CanMove}"
+                                                    Command="{Binding ChangeLocationCommand}" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </Border>
-                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="2,8,0,0">
-                                <TextBlock Classes="muted" Text="{Binding GameSizeText, StringFormat='{}{0} on disk.'}" />
-                                <TextBlock Classes="muted"
-                                           Text="Changing it moves your installed game to the new folder."
-                                           IsVisible="{Binding CanChangeLocation}" />
-                            </StackPanel>
+                            <TextBlock Classes="muted"
+                                       Margin="2,8,0,0"
+                                       Text="{Binding LocationNote}"
+                                       IsVisible="{Binding HasLocationNote}" />
 
                             <TextBlock Classes="section" Text="MAINTENANCE" />
                             <Border Classes="card">
@@ -305,7 +321,7 @@
                                                     Theme="{StaticResource OptionsRowButton}"
                                                     Content="Repair"
                                                     Margin="12,0,0,0"
-                                                    IsEnabled="{Binding !IsBusy}"
+                                                    IsEnabled="{Binding CanRepair}"
                                                     Command="{Binding RepairGameCommand}" />
                                         </Grid>
                                     </Border>
@@ -321,29 +337,32 @@
                                                     Classes="danger"
                                                     Content="Delete"
                                                     Margin="12,0,0,0"
-                                                    IsEnabled="{Binding !IsBusy}"
+                                                    IsEnabled="{Binding CanDelete}"
                                                     Command="{Binding DeleteGameCommand}" />
                                         </Grid>
                                     </Border>
                                 </StackPanel>
                             </Border>
+                            <TextBlock FontSize="12" Foreground="#A0FFFFFF" Margin="2,8,0,0" TextWrapping="Wrap"
+                                       Text="Needs an internet connection to tell which files belong to the game."
+                                       IsVisible="{Binding ShowFileListHint}" />
                         </StackPanel>
 
                         <StackPanel IsVisible="{Binding IsLauncherPage}">
                             <TextBlock Classes="pageTitle" Text="Launcher" />
 
-                            <TextBlock Classes="section" Text="WHEN THE GAME STARTS" />
+                            <TextBlock Classes="section" Text="LAUNCHING" />
                             <Border Classes="card">
                                 <Border Classes="row">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <TextBlock Classes="rowName" Text="Close the launcher" />
-                                            <TextBlock Classes="rowHint" Text="Otherwise it stays open in the background" />
+                                            <TextBlock Classes="rowName" Text="Close the launcher when the game starts" />
+                                            <TextBlock Classes="rowHint" Text="Turn this off to keep the launcher open while you play" />
                                         </StackPanel>
                                         <ToggleButton Grid.Column="1"
                                                       Theme="{StaticResource OptionsToggle}"
                                                       Margin="12,0,0,0"
-                                                      AutomationProperties.Name="Close the launcher"
+                                                      AutomationProperties.Name="Close the launcher when the game starts"
                                                       IsChecked="{Binding CloseAfterLaunch, Mode=TwoWay}" />
                                     </Grid>
                                 </Border>
@@ -387,7 +406,7 @@
                             </Border>
                             <TextBlock Classes="muted"
                                        Margin="2,8,0,0"
-                                       Text="Attach these when you report a problem on Discord or the forums." />
+                                       Text="Attach these when you report a problem." />
                         </StackPanel>
 
                         <DockPanel IsVisible="{Binding IsAboutPage}">

@@ -106,4 +106,36 @@ public class LauncherJsonTests
             LauncherJson.Default.DictionaryStringFileHashCache)!;
         again[@"C:\Game\baselib.dll"].LastModifiedUtc.Should().Be(entry.LastModifiedUtc);
     }
+
+    [Fact]
+    public void Settings_From140_ShouldUseDefaultFolders()
+    {
+        var settings = LauncherJson.Parse("""{ "CloseAfterLaunch": false, "ImportOffered": true }""",
+            LauncherJson.Default.Settings)!;
+
+        settings.GameFolder.Should().BeNull();
+        settings.DevGameFolder.Should().BeNull();
+        settings.PendingMoveTarget.Should().BeNull();
+        settings.PendingOldCopy.Should().BeNull();
+    }
+
+    [Fact]
+    public void Settings_NewFields_ShouldRoundTrip()
+    {
+        var settings = new Settings
+        {
+            GameFolder = @"D:\Games\LoE",
+            DevGameFolder = @"D:\Games\LoE-Dev",
+            PendingMoveTarget = @"E:\New",
+            PendingOldCopy = @"D:\Games\LoE"
+        };
+
+        var again = LauncherJson.Parse(JsonSerializer.Serialize(settings, LauncherJson.Default.Settings),
+            LauncherJson.Default.Settings)!;
+
+        again.GameFolder.Should().Be(settings.GameFolder);
+        again.DevGameFolder.Should().Be(settings.DevGameFolder);
+        again.PendingMoveTarget.Should().Be(settings.PendingMoveTarget);
+        again.PendingOldCopy.Should().Be(settings.PendingOldCopy);
+    }
 }

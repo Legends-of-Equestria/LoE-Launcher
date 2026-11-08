@@ -55,10 +55,28 @@ public partial class Downloader
 
     public static OS OperatingSystem => PlatformUtils.OperatingSystem;
 
-    private IRelativeDirectoryPath GameInstallationFolder =>
-        $".\\{_settings.ActiveInstallFolderName}".ToRelativeDirectoryPathAuto();
+    public string DefaultGameFolder => Path.Combine(_launcherPath.Path, _settings.ActiveInstallFolderName);
 
-    public IAbsoluteDirectoryPath GameInstallFolder => GameInstallationFolder.GetAbsolutePathFrom(_launcherPath);
+    public string OtherChannelGameFolder =>
+        _settings.OtherChannelCustomGameFolder
+        ?? Path.Combine(_launcherPath.Path, _settings.IsDevChannelActive ? "Game" : "Game-Dev");
+
+    public IAbsoluteDirectoryPath GameInstallFolder =>
+        Path.GetFullPath(_settings.ActiveCustomGameFolder ?? DefaultGameFolder).ToAbsoluteDirectoryPathAuto();
+
+    private readonly FileListMemory _fileList = new();
+
+    public IReadOnlyList<string>? CurrentFileList => _fileList.Current;
+
+    public IReadOnlyList<string>? ListedGameFiles(string folder) => GameFiles.Listed(folder, CurrentFileList);
+
+    public string? CustomFolderSetting(string folder) =>
+        string.Equals(GameFolderRules.Normalize(folder), GameFolderRules.Normalize(DefaultGameFolder), InstalledFiles.PathComparison)
+            ? null
+            : folder;
+
+    public event EventHandler? StateRefreshed;
+
     public bool IsDevChannel => _settings.IsDevChannelActive;
     public BuildInfo? CurrentBuild { get; private set; }
     public IAbsoluteDirectoryPath LauncherFolder => _launcherPath;
@@ -85,15 +103,15 @@ public partial class Downloader
     {
         get
         {
-            if (!GameInstallFolder.Exists)
+            var folder = GameInstallFolder.Path;
+            if (!Directory.Exists(folder))
             {
                 return 0;
             }
 
             try
             {
-                return GameInstallFolder.DirectoryInfo.EnumerateFiles("*", SearchOption.AllDirectories)
-                    .Sum(file => file.Length);
+                return GameFiles.Size(folder, ListedGameFiles(folder) ?? []);
             }
             catch (Exception ex)
             {
@@ -128,6 +146,7 @@ public partial class Downloader
 
     public async Task RefreshState()
     {
+        _fileList.Forget();
         await _refreshStateGate.WaitAsync();
         try
         {
@@ -147,6 +166,14 @@ public partial class Downloader
                         if (_state == GameState.LauncherOutOfDate)
                         {
                             Logger.Warn("Launcher is out of date, stopping refresh");
+                            return;
+                        }
+
+                        var customFolder = _settings.ActiveCustomGameFolder;
+                        if (customFolder != null && !Directory.Exists(Path.GetFullPath(customFolder)))
+                        {
+                            Logger.Warn($"Game folder {customFolder} is missing");
+                            _state = GameState.FolderMissing;
                             return;
                         }
 
@@ -208,6 +235,7 @@ public partial class Downloader
                         }
 
                         TidyInstall();
+                        RecoverPendingMove();
 
                         if (_data.ToProcess.Count == 0)
                         {
@@ -276,6 +304,8 @@ public partial class Downloader
         {
             _refreshStateGate.Release();
         }
+
+        StateRefreshed?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task CheckLauncherVersion()
@@ -374,8 +404,19 @@ public partial class Downloader
         Logger.Info($"Using version download path: {_versionDownload}");
     }
 
+    private void ThrowIfGameFolderMissing()
+    {
+        var customFolder = _settings.ActiveCustomGameFolder;
+        if (customFolder != null && !Directory.Exists(Path.GetFullPath(customFolder)))
+        {
+            throw new InvalidOperationException($"Game folder not found: {customFolder}");
+        }
+    }
+
     public async Task DoInstallation()
     {
+        ThrowIfGameFolderMissing();
+
         var totalFiles = _data.ToProcess.Count;
         Logger.Info($"Starting installation/update process, {totalFiles} files to process");
 
@@ -483,7 +524,8 @@ public partial class Downloader
             {
                 try
                 {
-                    _fileOps.CleanGameFolder(GameInstallFolder);
+                    var folder = GameInstallFolder.Path;
+                    GameFiles.DeleteTemp(folder, ListedGameFiles(folder) ?? []);
                     break;
                 }
                 catch (IOException ex) when (ex.Message.Contains("being used by another process"))
@@ -503,6 +545,8 @@ public partial class Downloader
     public async Task RepairGame()
     {
         Logger.Info("Starting game repair process");
+
+        ThrowIfGameFolderMissing();
 
         Progress = new RepairingProgress(this) { Marquee = true };
 
@@ -596,19 +640,41 @@ public partial class Downloader
         _downloadStats.Update(_bytesDownloaded, progressPercentage);
     }
 
-    private void TidyInstall()
+    public void RecoverPendingMove()
     {
-        var folder = GameInstallFolder.Path;
-        if (!PlatformUtils.GameExecutableExists(folder, OperatingSystem))
+        var target = _settings.PendingMoveTarget;
+        if (target == null)
         {
             return;
         }
+
+        var sameAsActive = string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(target)),
+            Path.TrimEndingDirectorySeparator(GameInstallFolder.Path), InstalledFiles.PathComparison);
+        if (!sameAsActive && !PendingMoveRecovery.Run(target, ListedGameFiles(GameInstallFolder.Path)))
+        {
+            Logger.Info("No game file list yet, keeping the interrupted move for the next check");
+            return;
+        }
+
+        _settings.PendingMoveTarget = null;
+        SaveSettings();
+    }
+
+    private void TidyInstall()
+    {
+        var folder = GameInstallFolder.Path;
 
         try
         {
             var current = _data.ControlFile.Content
                 .Select(item => Path.GetRelativePath(folder, item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder).Path))
                 .ToList();
+            _fileList.Current = current;
+
+            if (!PlatformUtils.GameExecutableExists(folder, OperatingSystem))
+            {
+                return;
+            }
 
             InstalledFiles.RemoveDropped(folder, current);
             InstalledFiles.SweepJunk(folder, removePartialDownloads: _data.ToProcess.Count == 0, current);
@@ -619,22 +685,37 @@ public partial class Downloader
         }
     }
 
-    public async Task ImportInstall(string gameFolder)
+    public async Task MoveGameFolder(string target, IReadOnlyList<string> files)
     {
-        Logger.Info($"Importing game install from {gameFolder}");
-        Progress = new ImportingProgress(this) { Marquee = true };
-
-        using (new Processing(Progress))
+        await _refreshStateGate.WaitAsync();
+        try
         {
-            await Task.Run(() => GameImporter.MoveInstall(gameFolder, GameInstallFolder.Path, (done, total) =>
-            {
-                if (Progress.Marquee)
-                {
-                    Progress.ResetCounter(total, true);
-                }
+            var old = GameInstallFolder.Path;
+            Logger.Info($"Moving the game from {old} to {target}");
+            Progress = new ImportingProgress(this) { Marquee = true };
 
-                Progress.SetCount(done);
-            }));
+            using (new Processing(Progress))
+            {
+                await Task.Run(() => GameMoveSequence.Run(_settings, target, CustomFolderSetting(target), WriteSettings,
+                    () => GameMover.CopyVerified(old, target, files, (done, total) =>
+                    {
+                        if (Progress.Marquee)
+                        {
+                            Progress.ResetCounter(total, true);
+                        }
+
+                        Progress.SetCount(done);
+                    }),
+                    () =>
+                    {
+                        var deleted = GameFiles.Delete(old, files);
+                        Logger.Info($"Moved the game to {target}, removed {deleted} files from {old}");
+                    }));
+            }
+        }
+        finally
+        {
+            _refreshStateGate.Release();
         }
     }
 
@@ -663,9 +744,7 @@ public partial class Downloader
     {
         try
         {
-            var settingsJson = JsonSerializer.Serialize(_settings, LauncherJson.Default.Settings);
-            File.WriteAllText(SettingsFile.Path, settingsJson);
-            Logger.Info("Settings saved successfully");
+            WriteSettings();
         }
         catch (Exception ex)
         {
@@ -680,6 +759,13 @@ public partial class Downloader
         {
             Logger.Error($"Failed to save dev token ({ex.GetType().Name})");
         }
+    }
+
+    private void WriteSettings()
+    {
+        var settingsJson = JsonSerializer.Serialize(_settings, LauncherJson.Default.Settings);
+        File.WriteAllText(SettingsFile.Path, settingsJson);
+        Logger.Info("Settings saved successfully");
     }
 
     private static string GetLauncherDirectory()
@@ -755,7 +841,8 @@ public enum GameState
     LauncherOutOfDate,
     DevAccessDenied,
     DevBuildUnavailable,
-    PlatformUnsupported
+    PlatformUnsupported,
+    FolderMissing
 }
 
 public class Processing : IDisposable

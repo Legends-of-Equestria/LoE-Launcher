@@ -26,6 +26,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly CacheManager _cacheManager;
     private readonly ChangelogParser _changelogParser;
     private readonly GameImportFlow _importFlow;
+    private readonly GameLocationFlow _locationFlow;
 
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _downloadStopwatch = new();
@@ -55,7 +56,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IBrush _errorColor = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336");
 
     public MainWindowViewModel(Downloader downloader, IDialogService dialogService, CacheManager cacheManager,
-        ChangelogParser changelogParser, GameImportFlow importFlow, SettingsViewModel options)
+        ChangelogParser changelogParser, GameImportFlow importFlow, GameLocationFlow locationFlow,
+        SettingsViewModel options)
     {
         Logger.Info("Starting LoE Launcher ViewModel");
 
@@ -64,6 +66,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _cacheManager = cacheManager;
         _changelogParser = changelogParser;
         _importFlow = importFlow;
+        _locationFlow = locationFlow;
+        _downloader.StateRefreshed += (_, _) => Dispatcher.UIThread.Post(() => _ = OfferOldCopyDeletion());
 
         Options = options;
         Options.CloseAction = () => IsOptionsOpen = false;
@@ -203,6 +207,12 @@ public partial class MainWindowViewModel : ViewModelBase
                     "Your tester login expired or was revoked. Log in again in Options, or switch back to live builds.");
             }
 
+            else if (_downloader.State == GameState.FolderMissing)
+            {
+                UpdateState();
+                await HandleMissingFolder();
+            }
+
             if (_downloader.State == GameState.NotFound)
             {
                 UpdateState();
@@ -220,6 +230,73 @@ public partial class MainWindowViewModel : ViewModelBase
         finally
         {
             UpdateState();
+        }
+    }
+
+    private bool _missingFolderDialogOpen;
+
+    private async Task HandleMissingFolder()
+    {
+        if (_missingFolderDialogOpen)
+        {
+            return;
+        }
+
+        _missingFolderDialogOpen = true;
+        try
+        {
+            while (_downloader.State == GameState.FolderMissing)
+            {
+                var path = _downloader.LauncherSettings.ActiveCustomGameFolder;
+                var choice = await _dialogService.ShowChoiceDialog("Game Folder Not Found",
+                    $"Game folder not found:\n{path}\n\nIs the drive connected?",
+                    "Try again", "Choose folder…", "Use default location");
+                switch (choice)
+                {
+                    case 0:
+                        await Task.Run(_downloader.RefreshState);
+                        break;
+                    case 1:
+                        await _locationFlow.ChooseFolder();
+                        break;
+                    case 2:
+                        _downloader.LauncherSettings.ActiveCustomGameFolder = null;
+                        _downloader.SaveSettings();
+                        await Task.Run(_downloader.RefreshState);
+                        return;
+                    default:
+                        return;
+                }
+
+                UpdateState();
+            }
+        }
+        finally
+        {
+            _missingFolderDialogOpen = false;
+            UpdateState();
+        }
+    }
+
+    private bool _oldCopyDialogOpen;
+
+    private async Task OfferOldCopyDeletion()
+    {
+        if (_oldCopyDialogOpen || _downloader.LauncherSettings.PendingOldCopy == null
+                               || _downloader.State != GameState.UpToDate || _downloader.CurrentFileList == null
+                               || _downloader.Progress.Processing)
+        {
+            return;
+        }
+
+        _oldCopyDialogOpen = true;
+        try
+        {
+            await _locationFlow.OfferOldCopyDeletion();
+        }
+        finally
+        {
+            _oldCopyDialogOpen = false;
         }
     }
 
@@ -286,6 +363,11 @@ public partial class MainWindowViewModel : ViewModelBase
                 ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;
+            case GameState.FolderMissing:
+                ActionButtonText = "Folder Missing";
+                ActionButtonBackground = _errorColor;
+                enabledState = true;
+                break;
             default:
                 enabledState = false;
                 break;
@@ -331,6 +413,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 case GameState.LauncherOutOfDate:
                     await _dialogService.ShowLauncherUpdateDialog();
                     break;
+                case GameState.FolderMissing:
+                    await HandleMissingFolder();
+                    break;
             }
         }
         catch (Exception ex)
@@ -339,7 +424,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         finally
         {
-            IsActionButtonEnabled = true;
+            UpdateState();
         }
     }
 

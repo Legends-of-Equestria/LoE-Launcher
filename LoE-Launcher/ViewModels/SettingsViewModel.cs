@@ -3,7 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using LoE_Launcher.Core;
 using LoE_Launcher.Services;
 using LoE_Launcher.Utils;
+using Avalonia.Threading;
 using Models;
+using Models.Utils;
 using NLog;
 using System;
 using System.IO;
@@ -19,6 +21,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     private readonly Downloader _downloader;
     private readonly IDialogService _dialogService;
+    private readonly GameLocationFlow _locationFlow;
 
     [ObservableProperty]
     private bool _closeAfterLaunch;
@@ -28,13 +31,43 @@ public partial class SettingsViewModel : ViewModelBase
     private OptionsPage _selectedPage = OptionsPage.Game;
 
     [ObservableProperty] private string _gameFolderPath = "";
-    [ObservableProperty] private string _gameSizeText = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LocationNote), nameof(HasLocationNote))]
+    private string _gameSizeText = "";
     [ObservableProperty] private string _launcherVersionText = "";
     [ObservableProperty] private string _gameVersionText = "";
-    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRepair), nameof(CanDelete), nameof(CanMove))]
+    private bool _isBusy;
 
-    public bool CanChangeLocation => false;
-    public bool IsCustomLocation => false;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRepair), nameof(CanDelete))]
+    private bool _isFolderMissing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanDelete), nameof(CanMove), nameof(ShowFileListHint))]
+    private bool _knowsGameFiles = true;
+
+    public bool CanRepair => !IsBusy && !IsFolderMissing;
+    public bool CanDelete => !IsBusy && KnowsGameFiles && !IsFolderMissing;
+    public bool CanMove => !IsBusy && KnowsGameFiles;
+    public bool ShowFileListHint => !KnowsGameFiles;
+
+    public string LocationNote
+    {
+        get
+        {
+            var size = string.IsNullOrEmpty(GameSizeText) ? "" : $"{GameSizeText} on disk.";
+            var change = CanChangeLocation ? "Changing it moves your installed game to the new folder." : "";
+            return $"{size} {change}".Trim();
+        }
+    }
+
+    public bool HasLocationNote => !string.IsNullOrEmpty(LocationNote);
+
+    public bool CanChangeLocation => !PlatformUtils.IsFlatpak;
+    public bool IsCustomLocation => _downloader.LauncherSettings.ActiveCustomGameFolder != null;
+    public bool ShowResetLocation => CanChangeLocation && IsCustomLocation;
 
     public bool IsGamePage => SelectedPage == OptionsPage.Game;
     public bool IsLauncherPage => SelectedPage == OptionsPage.Launcher;
@@ -43,24 +76,34 @@ public partial class SettingsViewModel : ViewModelBase
 
     public Action? CloseAction { get; set; }
 
-    public SettingsViewModel(Downloader downloader, IDialogService dialogService)
+    public SettingsViewModel(Downloader downloader, IDialogService dialogService, GameLocationFlow locationFlow)
     {
         _downloader = downloader;
         _dialogService = dialogService;
+        _locationFlow = locationFlow;
         _closeAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
+        _downloader.StateRefreshed += (_, _) => Dispatcher.UIThread.Post(RefreshBusy);
     }
 
     public void Refresh()
     {
         CloseAfterLaunch = _downloader.LauncherSettings.CloseAfterLaunch;
-        GameFolderPath = _downloader.GameInstallFolder.Path;
+        var folder = _downloader.GameInstallFolder.Path;
+        GameFolderPath = folder;
+        OnPropertyChanged(nameof(IsCustomLocation));
+        OnPropertyChanged(nameof(ShowResetLocation));
         LauncherVersionText = FormatVersion(Downloader.CurrentLauncherVersion);
         GameVersionText = FormatGameVersion();
         RefreshBusy();
         _ = RefreshGameSizeAsync();
     }
 
-    public void RefreshBusy() => IsBusy = _downloader.Progress.Processing;
+    public void RefreshBusy()
+    {
+        IsBusy = _downloader.Progress.Processing;
+        IsFolderMissing = _downloader.State == GameState.FolderMissing;
+        KnowsGameFiles = ComputeKnowsGameFiles(_downloader.GameInstallFolder.Path);
+    }
 
     private async Task RefreshGameSizeAsync()
     {
@@ -69,9 +112,21 @@ public partial class SettingsViewModel : ViewModelBase
             GameSizeText = "…";
         }
 
-        var size = await Task.Run(() => _downloader.TotalGameSize);
-        GameSizeText = FormatSize(size);
+        try
+        {
+            var folder = _downloader.GameInstallFolder.Path;
+            var hasFiles = await Task.Run(() => Directory.Exists(folder) && _downloader.ListedGameFiles(folder)?.Count > 0);
+            GameSizeText = hasFiles ? SizeText.Format(await Task.Run(() => _downloader.TotalGameSize)) : "";
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Couldn't work out the game size");
+            GameSizeText = "";
+        }
     }
+
+    private bool ComputeKnowsGameFiles(string folder) =>
+        _downloader.ListedGameFiles(folder) != null || !Directory.Exists(folder);
 
     private string FormatGameVersion()
     {
@@ -90,17 +145,6 @@ public partial class SettingsViewModel : ViewModelBase
     private static string FormatVersion(VersionInfo version) =>
         $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}";
 
-    private static string FormatSize(long bytes)
-    {
-        const double kb = 1024, mb = kb * 1024, gb = mb * 1024;
-        return bytes switch
-        {
-            >= (long)gb => $"{bytes / gb:0.0} GB",
-            >= (long)mb => $"{bytes / mb:0.0} MB",
-            _ => $"{bytes / kb:0.0} KB"
-        };
-    }
-
     [RelayCommand]
     private void SelectPage(OptionsPage page) => SelectedPage = page;
 
@@ -108,7 +152,25 @@ public partial class SettingsViewModel : ViewModelBase
     private void Close() => CloseAction?.Invoke();
 
     [RelayCommand]
-    private Task OpenTesterAccess() => _dialogService.ShowTesterAccessWindowAsync();
+    private async Task OpenTesterAccess()
+    {
+        await _dialogService.ShowTesterAccessWindowAsync();
+        Refresh();
+    }
+
+    [RelayCommand]
+    private async Task ChangeLocation()
+    {
+        await _locationFlow.ChooseFolder(CloseAction);
+        Refresh();
+    }
+
+    [RelayCommand]
+    private async Task ResetLocation()
+    {
+        await _locationFlow.ResetToDefault(CloseAction);
+        Refresh();
+    }
 
     [RelayCommand]
     private static void OpenThirdPartyNotices() => ProcessLauncher.LaunchUrl(Constants.ThirdPartyNoticesUrl);
@@ -152,6 +214,13 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task DeleteGame()
     {
+        var deleteFolder = _downloader.GameInstallFolder.Path;
+        var listed = _downloader.ListedGameFiles(deleteFolder);
+        if (listed == null && Directory.Exists(deleteFolder))
+        {
+            return;
+        }
+
         var confirmResult = await _dialogService.ShowConfirmDialog(
             "Delete Game Files",
             "This will permanently delete all downloaded game files. You will need to download the game again to play. Continue?");
@@ -166,10 +235,10 @@ public partial class SettingsViewModel : ViewModelBase
         try
         {
             Logger.Info("Starting game files deletion");
-            if (_downloader.GameInstallFolder.Exists)
+            if (listed != null)
             {
-                Directory.Delete(_downloader.GameInstallFolder.Path, true);
-                Logger.Info($"Deleted game directory: {_downloader.GameInstallFolder.Path}");
+                var deleted = await Task.Run(() => GameFiles.Delete(deleteFolder, listed));
+                Logger.Info($"Deleted {deleted} game files from {deleteFolder}");
             }
 
             await Task.Run(() => _downloader.RefreshState());
