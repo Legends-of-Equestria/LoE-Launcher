@@ -18,6 +18,10 @@
         <AssemblyCompany>LoE</AssemblyCompany>
         <AssemblyDescription>Official launcher for Legends of Equestria</AssemblyDescription>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(DevBuild)' == 'true'">
+        <DefineConstants>$(DefineConstants);DEV_BUILD</DefineConstants>
+    </PropertyGroup>
     
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

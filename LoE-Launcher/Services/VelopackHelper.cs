@@ -13,6 +13,10 @@ public static class VelopackHelper
 
     public static UpdateManager? CreateUpdateManager()
     {
+#if DEV_BUILD
+        Logger.Info("Development build, launcher updates are off");
+        return null;
+#else
         try
         {
             var manager = new UpdateManager(new GithubSource(GitHubRepoUrl, null, false));
@@ -24,5 +28,6 @@ public static class VelopackHelper
             Logger.Warn(ex, "Failed to create UpdateManager, expected outside a Velopack install");
             return null;
         }
+#endif
     }
 }
