@@ -54,10 +54,10 @@ public class LauncherJsonTests
 
         var control = LauncherJson.Parse(json, LauncherJson.Default.MainControlFile)!;
 
-        control.Version.ToString().Should().Be("0.2");
+        control.Version!.ToString().Should().Be("0.2");
         control.RootUri.Should().BeNull();
         var item = control.Content.Should().ContainSingle().Subject;
-        item.RelativeContentUrl.IsAbsoluteUri.Should().BeFalse();
+        item.RelativeContentUrl!.IsAbsoluteUri.Should().BeFalse();
         item.RelativeContentUrl.ToString().Should().Be("loe_Data/Resources/unity%20default%20resources.jar.zsync.jar");
         item.FileHash.Should().Be("759a0182a9627061467f109db89ec534");
         item.InstallPath.Should().NotBeNull();

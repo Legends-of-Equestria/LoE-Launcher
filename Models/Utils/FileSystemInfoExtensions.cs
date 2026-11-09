@@ -22,77 +22,6 @@ public static class FileSystemInfoExtensions
         return name;
     }
 
-    public static void Rename(this FileSystemInfo item, string? newName)
-    {
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item));
-        }
-
-        if (item is FileInfo fileInfo)
-        {
-            fileInfo.Rename(newName);
-            return;
-        }
-
-        if (item is DirectoryInfo directoryInfo)
-        {
-            directoryInfo.Rename(newName);
-            return;
-        }
-
-        throw new ArgumentException("Item", "Unexpected subclass of FileSystemInfo " + item.GetType());
-    }
-
-    public static void Rename(this FileInfo? file, string? newName)
-    {
-        if (file == null)
-        {
-            throw new ArgumentNullException(nameof(file));
-        }
-        else if (newName == null)
-        {
-            throw new ArgumentNullException(nameof(newName));
-        }
-        else if (newName.Length == 0)
-        {
-            throw new ArgumentException("The name is empty.", nameof(newName));
-        }
-        else if (newName.Contains(Path.DirectorySeparatorChar)
-            || newName.Contains(Path.AltDirectorySeparatorChar))
-        {
-            throw new ArgumentException("The name contains path separators. The file would be moved.", nameof(newName));
-        }
-
-        var newPath = Path.Combine(file.DirectoryName, newName);
-        file.MoveTo(newPath);
-    }
-
-    public static void Rename(this DirectoryInfo? directory, string? newName)
-    {
-        // Validate arguments.
-        if (directory == null)
-        {
-            throw new ArgumentNullException(nameof(directory));
-        }
-        else if (newName == null)
-        {
-            throw new ArgumentNullException(nameof(newName));
-        }
-        else if (newName.Length == 0)
-        {
-            throw new ArgumentException("The name is empty.", nameof(newName));
-        }
-        else if (newName.Contains(Path.DirectorySeparatorChar)
-            || newName.Contains(Path.AltDirectorySeparatorChar))
-        {
-            throw new ArgumentException("The name contains path separators. The directory would be moved.", nameof(newName));
-        }
-
-        // Rename directory.
-        var newPath = Path.Combine(directory.Parent.FullName, newName);
-        directory.MoveTo(newPath);
-    }
     public static string GetFileHash(this string filePath, HashType type)
     {
         if (!File.Exists(filePath))
@@ -118,12 +47,15 @@ public static class FileSystemInfoExtensions
 
     public static IRelativeFilePath GetUnzippedFileName(this ControlFileItem item)
     {
-        return item.InstallPath.GetBrotherFileWithName(Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(item.InstallPath.FileNameWithoutExtension)));
+        var installPath = item.RequireInstallPath();
+        return installPath.GetBrotherFileWithName(Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(installPath.FileNameWithoutExtension)));
     }
 
     public static Uri GetContentUri(this ControlFileItem item, MainControlFile controlData)
     {
-        return new Uri(controlData.RootUri, item.RelativeContentUrl.ToString().Replace("../", "./"));
+        var rootUri = controlData.RootUri ?? throw new InvalidDataException("The control file has no root URI");
+        var relativeUrl = item.RelativeContentUrl ?? throw new InvalidDataException($"Control file entry {item.InstallPath} has no content URL");
+        return new Uri(rootUri, relativeUrl.ToString().Replace("../", "./"));
     }
 
     public static int RunInlineAndWait(this Process p, ProcessStartInfo startInfo)

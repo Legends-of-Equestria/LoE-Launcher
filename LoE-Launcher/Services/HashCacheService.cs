@@ -101,8 +101,8 @@ public class HashCacheService(string cacheDirectory)
 
 public class FileHashCache
 {
-    public string FilePath { get; set; }
-    public string Hash { get; set; }
+    public string FilePath { get; set; } = "";
+    public string Hash { get; set; } = "";
     public DateTime LastModifiedUtc { get; set; }
     public long FileSize { get; set; }
 }

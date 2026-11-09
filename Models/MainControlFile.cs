@@ -51,17 +51,13 @@ public class BuildInfo
 public class MainControlFile
 {
     [JsonPropertyName("Version")]
-    public VersionInfo Version { get; set; }
+    public VersionInfo? Version { get; set; }
 
     [JsonPropertyName("Content")]
     public List<ControlFileItem> Content { get; set; } = [];
 
     [JsonPropertyName("RootUri")]
     public Uri? RootUri { get; set; }
-
-    public MainControlFile()
-    {
-    }
 }
 
 [DebuggerDisplay("{InstallPath} - {FileHash}")]
@@ -70,18 +66,21 @@ public class ControlFileItem
     public const string ZsyncExtension = ".zsync.jar";
 
     [JsonPropertyName("RelativeContentUrl")]
-    public Uri RelativeContentUrl { get; set; }
+    public Uri? RelativeContentUrl { get; set; }
 
     [JsonIgnore]
     public IRelativeFilePath? InstallPath { get; set; }
 
     [JsonPropertyName("FileHash")]
-    public string FileHash { get; set; }
+    public string? FileHash { get; set; }
 
     [JsonPropertyName("_installPath")]
-    public string _installPath
+    public string? _installPath
     {
         get => InstallPath?.ToString();
         set => InstallPath = value?.ToRelativeFilePathAuto();
     }
+
+    public IRelativeFilePath RequireInstallPath() =>
+        InstallPath ?? throw new InvalidDataException($"Control file entry {RelativeContentUrl} has no install path");
 }

@@ -60,7 +60,7 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
                     }
                     else
                     {
-                        var fileHash = realFile.ToString().GetFileHash(HashType.MD5);
+                        var fileHash = realFile.Path.GetFileHash(HashType.MD5);
                         fileMatchesHash = fileHash == item.FileHash;
                         Logger.Info($"{item._installPath}: Direct hash : {fileHash} : {item.FileHash} : Match={fileMatchesHash}");
 
@@ -144,7 +144,7 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
 
                     if (bytesRead == 0)
                     {
-                        var fileName = Path.GetFileNameWithoutExtension(item.InstallPath.Path);
+                        var fileName = Path.GetFileNameWithoutExtension(item.InstallPath?.Path);
                         Logger.Warn($"Adding {fileName} to reProcess queue (download failed)");
                         reProcess.Enqueue(item);
                     }
@@ -197,16 +197,17 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
         ControlFileItem item,
         MainControlFile controlFile,
         IAbsoluteDirectoryPath gameInstallFolder,
-        Downloader.InstallingProgress installProgress,
+        Downloader.InstallingProgress? installProgress,
         Task lastUnzip,
         ConcurrentDictionary<string, FileHashCache> hashCacheUpdates,
         Downloader.DownloadProgressCallback onDownloadProgress)
     {
         await lastUnzip;
 
+        var installPath = item.RequireInstallPath();
         var zsyncUri = item.GetContentUri(controlFile);
         var objUri = new Uri(zsyncUri.ToString()[..(zsyncUri.ToString().Length - ControlFileItem.ZsyncExtension.Length)]);
-        var zsyncFilePath = item.InstallPath.GetAbsolutePathFrom(gameInstallFolder).Path;
+        var zsyncFilePath = installPath.GetAbsolutePathFrom(gameInstallFolder).Path;
         var objFilePath = zsyncFilePath[..^ControlFileItem.ZsyncExtension.Length];
 
         var fileName = new CustomFilePath(objFilePath).FileNameWithoutExtension;
@@ -220,9 +221,9 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
             return 0;
         }
 
-        var fileToUnzip = item.InstallPath.GetAbsolutePathFrom(gameInstallFolder)
+        var fileToUnzip = installPath.GetAbsolutePathFrom(gameInstallFolder)
             .GetBrotherFileWithName(
-                item.InstallPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
+                installPath.FileNameWithoutExtension.ToRelativeFilePathAuto()
                     .FileNameWithoutExtension);
 
         var realFile = item.GetUnzippedFileName().GetAbsolutePathFrom(gameInstallFolder);
@@ -247,7 +248,7 @@ public class FileUpdateService(FileOperationsService fileOps, NetworkDownloadSer
             return bytesRead;
         }
 
-        var actualFileHash = realFile.ToString().GetFileHash(HashType.MD5);
+        var actualFileHash = realFile.Path.GetFileHash(HashType.MD5);
         Logger.Info($"File: {realFile.Path}, Actual Hash: {actualFileHash}, Expected Hash: {item.FileHash}");
 
         hashCacheUpdates[realFile.Path] = new FileHashCache

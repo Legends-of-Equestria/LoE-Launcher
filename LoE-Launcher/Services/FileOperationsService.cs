@@ -125,7 +125,7 @@ public class FileOperationsService(string launcherPath)
             return filePath;
         }
 
-        var directory = Path.GetDirectoryName(filePath);
+        var directory = Path.GetDirectoryName(filePath) ?? "";
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         var extension = Path.GetExtension(filePath);
 
@@ -147,7 +147,7 @@ public class FileOperationsService(string launcherPath)
     public void EnsureDirectoryExists(string filePath)
     {
         var directory = Path.GetDirectoryName(filePath);
-        if (!Directory.Exists(directory))
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
         }
@@ -299,7 +299,7 @@ public class FileOperationsService(string launcherPath)
                     try
                     {
                         var pendingDeleteFile = Path.Combine(
-                            Path.GetDirectoryName(tempFilePath),
+                            Path.GetDirectoryName(tempFilePath) ?? "",
                             "pending_delete.txt");
 
                         await File.AppendAllLinesAsync(pendingDeleteFile, new[] { tempFilePath });

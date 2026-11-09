@@ -43,7 +43,7 @@ public partial class Downloader
     private readonly SemaphoreSlim _refreshStateGate = new(1, 1);
     private readonly SemaphoreSlim _offlineRetryCheckGate = new(1, 1);
 
-    public DownloadData _data = null;
+    public DownloadData? _data;
     public ProgressData Progress { get; private set; }
 
     public delegate void DownloadProgressCallback(long bytesAdded);
@@ -236,7 +236,7 @@ public partial class Downloader
                             _data.ControlFile.RootUri = new Uri(ZsyncLocation);
                         }
 
-                        TidyInstall();
+                        TidyInstall(data);
                         RecoverPendingMove();
 
                         if (_data.ToProcess.Count == 0)
@@ -423,12 +423,13 @@ public partial class Downloader
     {
         ThrowIfGameFolderMissing();
 
-        var totalFiles = _data.ToProcess.Count;
+        var data = _data;
+        var totalFiles = data?.ToProcess.Count ?? 0;
         Logger.Info($"Starting installation/update process, {totalFiles} files to process");
 
         try
         {
-            if (_data.ToProcess.Count == 0)
+            if (data == null || totalFiles == 0)
             {
                 Logger.Error("No files to process in DoInstallation");
                 _state = GameState.Unknown;
@@ -441,14 +442,14 @@ public partial class Downloader
             Progress = new PreparingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
-                await _fileUpdate.PrepareFilesForUpdate(_data.ToProcess, Progress, GameInstallFolder);
+                await _fileUpdate.PrepareFilesForUpdate(data.ToProcess, Progress, GameInstallFolder);
             }
 
             Logger.Info("Starting installation phase");
             Progress = new InstallingProgress(this) { Marquee = true };
             using (new Processing(Progress))
             {
-                await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress,
+                await _fileUpdate.UpdateFiles(data, Progress, GameInstallFolder, OnDownloadProgress,
                     state => _state = state, 3);
             }
 
@@ -496,27 +497,6 @@ public partial class Downloader
         {
             Logger.Error(refreshEx, "Error refreshing state after failed installation");
             _state = GameState.Unknown;
-        }
-    }
-
-    public async Task PrepareUpdate()
-    {
-        Progress = new PreparingProgress(this) { Marquee = true };
-
-        using (new Processing(Progress))
-        {
-            await _fileUpdate.PrepareFilesForUpdate(_data.ToProcess, Progress, GameInstallFolder);
-        }
-    }
-
-    public async Task InstallUpdate()
-    {
-        Progress = new InstallingProgress(this) { Marquee = true };
-
-        using (new Processing(Progress))
-        {
-            await _fileUpdate.UpdateFiles(_data, Progress, GameInstallFolder, OnDownloadProgress,
-                state => _state = state, 3);
         }
     }
 
@@ -666,13 +646,13 @@ public partial class Downloader
         SaveSettings();
     }
 
-    private void TidyInstall()
+    private void TidyInstall(DownloadData data)
     {
         var folder = GameInstallFolder.Path;
 
         try
         {
-            var current = _data.ControlFile.Content
+            var current = data.ControlFile.Content
                 .Select(item => Path.GetRelativePath(folder, item.GetUnzippedFileName().GetAbsolutePathFrom(GameInstallFolder).Path))
                 .ToList();
             _fileList.Current = current;
@@ -683,7 +663,7 @@ public partial class Downloader
             }
 
             InstalledFiles.RemoveDropped(folder, current);
-            InstalledFiles.SweepJunk(folder, removePartialDownloads: _data.ToProcess.Count == 0, current);
+            InstalledFiles.SweepJunk(folder, removePartialDownloads: data.ToProcess.Count == 0, current);
         }
         catch (Exception ex)
         {

@@ -173,7 +173,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
     }
 
     public async Task<long> DownloadFile(Uri zsyncUri, string objFilePath, Uri objUri, string fileName,
-        Downloader.InstallingProgress installProgress, Downloader.DownloadProgressCallback? progressCallback = null)
+        Downloader.InstallingProgress? installProgress, Downloader.DownloadProgressCallback? progressCallback = null)
     {
         long bytesRead;
         try
@@ -204,7 +204,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
     }
 
     public async Task<long> SyncFileWithZsync(Uri zsyncUri, string objFilePath, Uri objUri,
-        string fileName, Downloader.InstallingProgress installProgress, Downloader.DownloadProgressCallback? progressCallback = null)
+        string fileName, Downloader.InstallingProgress? installProgress, Downloader.DownloadProgressCallback? progressCallback = null)
     {
         Logger.Info($"Attempting zsync for: {fileName}");
 
@@ -226,7 +226,8 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
                 }
 
                 Logger.Info($"Control file downloaded successfully for {fileName}");
-                var outputDir = new DirectoryInfo(Path.GetDirectoryName(objFilePath));
+                var outputDir = new FileInfo(objFilePath).Directory
+                    ?? throw new InvalidOperationException($"{objFilePath} has no parent folder");
 
                 var progressAdapter = progressCallback != null
                     ? new Progress<ulong>(bytes => progressCallback((long)bytes))
@@ -243,7 +244,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
                             SyncState.PatchFile => "applying",
                             _ => "updating"
                         };
-                        installProgress.FlavorText = flavor;
+                        installProgress?.FlavorText = flavor;
                         Logger.Debug($"ZSync state: {ss} - {flavor}");
                     }, progressAdapter, cts.Token);
                 }, cts.Token);
@@ -293,7 +294,7 @@ public class NetworkDownloadService(FileOperationsService fileOps, Settings sett
         try
         {
             var directory = Path.GetDirectoryName(filePath);
-            if (!Directory.Exists(directory))
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
                 Logger.Info($"Created directory: {directory}");
