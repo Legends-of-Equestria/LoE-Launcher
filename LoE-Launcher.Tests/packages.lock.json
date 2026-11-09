@@ -186,11 +186,6 @@
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
-      "NuGet.Versioning": {
-        "type": "Transitive",
-        "resolved": "6.14.0",
-        "contentHash": "4v4blkhCv8mpKtfx+z0G/X0daVCzdIaHSC51GkUspugi5JIMn2Bo8xm5PdZYF0U68gOBfz/+aPWMnpRd85Jbow=="
-      },
       "SkiaSharp": {
         "type": "Transitive",
         "resolved": "2.88.9",
@@ -285,7 +280,7 @@
           "Models": "[1.0.0, )",
           "NLog": "[6.2.2, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.14, )",
-          "Velopack": "[0.0.1298, )",
+          "Velopack": "[1.2.161, )",
           "zsyncnet": "[0.1.9, )"
         }
       },
@@ -372,12 +367,9 @@
       },
       "Velopack": {
         "type": "CentralTransitive",
-        "requested": "[0.0.1298, )",
-        "resolved": "0.0.1298",
-        "contentHash": "PJ6Nm28qJ4ChsHYzgHUJ8g+DGyyHes2+bwxY709+znMhgi8fMp8M1FTF8x6pZMjnsPCWVwoMlxVEyq0NLeRZtA==",
-        "dependencies": {
-          "NuGet.Versioning": "6.14.0"
-        }
+        "requested": "[1.2.161, )",
+        "resolved": "1.2.161",
+        "contentHash": "OpHNacIumnkhaaX3ZlQ/TCR4YPOJvud2/PAOoWb6o+mIrLwIVA275I5wAgt4q/1O2VrJeDwR1qFQyqzG4lUArg=="
       }
     },
     "net10.0/linux-x64": {
