@@ -10,3 +10,21 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      avalonia:
+        patterns: ["Avalonia*"]
+      tests:
+        patterns:
+          - "coverlet.*"
+          - "FluentAssertions"
+          - "Microsoft.NET.Test.Sdk"
+          - "Moq"
+          - "xunit*"

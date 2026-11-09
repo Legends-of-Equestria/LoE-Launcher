@@ -353,7 +353,6 @@
                 </Grid>
 
                 <Button Content="{Binding ActionButtonText}"
-                        Background="{Binding ActionButtonBackground}"
                         Command="{Binding ActionButtonClickedCommand}"
                         IsEnabled="{Binding IsActionButtonEnabled}"
                         IsVisible="{Binding !IsProgressOverlayVisible}"

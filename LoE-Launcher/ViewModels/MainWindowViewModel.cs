@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,7 +31,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly Stopwatch _downloadStopwatch = new();
 
     [ObservableProperty] private string _actionButtonText = "Validating...";
-    [ObservableProperty] private IBrush _actionButtonBackground;
     [ObservableProperty] private bool _isActionButtonEnabled;
     [ObservableProperty] private bool _isProgressOverlayVisible = true;
     [ObservableProperty] private bool _isProgressBarIndeterminate = true;
@@ -50,11 +48,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<ChangelogLine> ChangelogLines { get; } = [];
 
-    private readonly IBrush _downloadColor = BrushFactory.CreateHorizontalGradient("#9C69B5", "#D686D2");
-    private readonly IBrush _updateColor = BrushFactory.CreateHorizontalGradient("#D69D45", "#E8B75C");
-    private readonly IBrush _launchColor = BrushFactory.CreateHorizontalGradient("#9C69B5", "#D686D2");
-    private readonly IBrush _errorColor = BrushFactory.CreateHorizontalGradient("#D32F2F", "#F44336");
-
     public MainWindowViewModel(Downloader downloader, IDialogService dialogService, CacheManager cacheManager,
         ChangelogParser changelogParser, GameImportFlow importFlow, GameLocationFlow locationFlow,
         SettingsViewModel options)
@@ -71,8 +64,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Options = options;
         Options.CloseAction = () => IsOptionsOpen = false;
-
-        _actionButtonBackground = _downloadColor;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += OnTimerTick;
@@ -315,57 +306,46 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             case GameState.Unknown:
                 ActionButtonText = "Validating...";
-                ActionButtonBackground = _downloadColor;
                 enabledState = false;
                 break;
             case GameState.NotFound:
                 ActionButtonText = "Install";
-                ActionButtonBackground = _downloadColor;
                 enabledState = true;
                 break;
             case GameState.UpdateAvailable:
                 ActionButtonText = "Update";
-                ActionButtonBackground = _updateColor;
                 enabledState = true;
                 break;
             case GameState.UpToDate:
                 ActionButtonText = "Launch";
-                ActionButtonBackground = _launchColor;
                 enabledState = true;
                 break;
             case GameState.Offline:
                 ActionButtonText = "Offline";
-                ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;
             case GameState.ServerMaintenance:
                 ActionButtonText = "Maintenance";
-                ActionButtonBackground = _updateColor;
                 enabledState = false;
                 break;
             case GameState.LauncherOutOfDate:
                 ActionButtonText = "Update Launcher";
-                ActionButtonBackground = _errorColor;
                 enabledState = true;
                 break;
             case GameState.DevAccessDenied:
                 ActionButtonText = "Access Denied";
-                ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;
             case GameState.DevBuildUnavailable:
                 ActionButtonText = "No Dev Build";
-                ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;
             case GameState.PlatformUnsupported:
                 ActionButtonText = "Not Supported";
-                ActionButtonBackground = _errorColor;
                 enabledState = false;
                 break;
             case GameState.FolderMissing:
                 ActionButtonText = "Folder Missing";
-                ActionButtonBackground = _errorColor;
                 enabledState = true;
                 break;
             default:
