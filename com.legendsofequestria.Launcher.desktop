@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Legends of Equestria
+GenericName=Game Launcher
+Comment=Install, update and play Legends of Equestria
+Exec=LoE-Launcher
+Icon=com.legendsofequestria.Launcher
+Terminal=false
+Type=Application
+Categories=Game;RolePlaying;
+Keywords=LoE;pony;MLP;MMO;

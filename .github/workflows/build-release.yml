@@ -55,6 +55,18 @@ jobs:
           fi
           echo "Launcher version $actual matches the tag"
 
+      - name: Check the store listing has a release entry for the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          metainfo=com.legendsofequestria.Launcher.metainfo.xml
+          expected="${GITHUB_REF_NAME#v}"
+          newest=$(grep -m1 -o '<release version="[^"]*"' "$metainfo" | cut -d'"' -f2)
+          if [ "$newest" != "$expected" ]; then
+            echo "::error file=$metainfo::The newest release entry is ${newest:-missing}, add one for $expected at the top of <releases>"
+            exit 1
+          fi
+          echo "Store listing has a release entry for $expected"
+
       - name: Test
         run: dotnet test --configuration Release --logger "console;verbosity=minimal"
 
@@ -128,7 +140,7 @@ jobs:
       - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
         with:
           bundle: LoE-Launcher-linux.flatpak
-          manifest-path: com.loe.Launcher.json
+          manifest-path: com.legendsofequestria.Launcher.json
           cache-key: flatpak-builder-${{ github.sha }}
           upload-artifact: false
 

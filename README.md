@@ -1,6 +1,6 @@
 # Legends of Equestria Launcher
 
-Official launcher for the Legends of Equestria game, built with Avalonia and .NET 8. The launcher keeps game clients up to date via zsync incremental patching and provides quick access to official news, changelogs, and community links.
+Official launcher for the Legends of Equestria game, built with Avalonia and .NET 10. The launcher keeps game clients up to date via zsync incremental patching and provides quick access to official news, changelogs, and community links.
 
 ## Download
 
@@ -10,7 +10,7 @@ Download the latest launcher from:
 
 ## Building
 
-- Install the .NET 8 SDK.
+- Install the .NET 10 SDK.
 - Restore and build with `dotnet build`.
 - Run tests with `dotnet test`.
 
@@ -18,9 +18,9 @@ Platform-specific packaging scripts live under `.github/scripts` and are invoked
 
 ## Flatpak Build
 
-- Install Flatpak tooling (`flatpak install flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08`).
+- Install Flatpak tooling (`flatpak install flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08`).
 - Publish the launcher into `Publish/Flatpak` with `bash .github/scripts/build-flatpak.sh`.
-- Build with `flatpak-builder --force-clean build-dir com.loe.Launcher.json`.
+- Build with `flatpak-builder --force-clean build-dir com.legendsofequestria.Launcher.json`.
 - The resulting bundle matches the Flathub manifest used in CI.
 
 ## Privacy

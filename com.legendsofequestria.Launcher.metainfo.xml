@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.legendsofequestria.Launcher</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Legends of Equestria</name>
+  <summary>Free-to-play pony MMORPG</summary>
+
+  <developer id="com.legendsofequestria">
+    <name>Legends of Equestria Team</name>
+  </developer>
+
+  <description>
+    <p>
+      Legends of Equestria is a multiplayer online role-playing game, where you can create your own pony and go on adventures with other players.
+    </p>
+    <p>
+      Design your own character, and watch them grow alongside a vibrant cast of classmates; take on quests, learn new skills,
+      collect outfits and armor, explore interesting environments, battle fearsome creatures, and make sure to make lots of new
+      friends along the way!
+    </p>
+    <p>
+      This launcher installs the game and keeps it up to date, downloading only the parts of files that changed.
+    </p>
+    <p>
+      Developed by notorious sock enthusiasts.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.legendsofequestria.Launcher.desktop</launchable>
+
+  <url type="homepage">https://legendsofequestria.com/</url>
+  <url type="bugtracker">https://github.com/Legends-of-Equestria/LoE-Launcher/issues</url>
+  <url type="vcs-browser">https://github.com/Legends-of-Equestria/LoE-Launcher</url>
+  <url type="contact">https://discord.com/invite/legendsofeq</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#D7B4E4</color>
+    <color type="primary" scheme_preference="dark">#1A1028</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The launcher with the latest changelog</caption>
+      <image>https://raw.githubusercontent.com/Legends-of-Equestria/LoE-Launcher/main/Assets/Screenshots/main.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Launcher options</caption>
+      <image>https://raw.githubusercontent.com/Legends-of-Equestria/LoE-Launcher/main/Assets/Screenshots/options.png</image>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Game</category>
+    <category>RolePlaying</category>
+  </categories>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-cartoon">mild</content_attribute>
+    <content_attribute id="social-chat">moderate</content_attribute>
+    <content_attribute id="social-info">mild</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="1.6.0" date="2026-11-08">
+      <description>
+        <p>Moves the launcher to Avalonia 12. The draggable logo moves more smoothly.</p>
+      </description>
+    </release>
+  </releases>
+</component>
