@@ -10,6 +10,10 @@
     
     <Application.Styles>
         <FluentTheme />
+
+        <Style Selector="WindowDrawnDecorations /template/ Panel#PART_TitleTextPanel > TextBlock">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
         
         <Style Selector="ProgressBar">
             <Setter Property="Height" Value="8" />

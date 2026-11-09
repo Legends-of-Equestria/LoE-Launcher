@@ -6,7 +6,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Threading;
 using LoE_Launcher.ViewModels;
 using NLog;
 
@@ -31,21 +30,21 @@ public partial class MainWindow : Window
     private TranslateTransform _logoTranslateTransform = null!;
     private Point _logoVelocity;
     private double _logoAngularVelocity;
-    private readonly DispatcherTimer _physicsTimer;
+    private const double PhysicsReferenceFrame = 0.016;
+    private bool _physicsRunning;
+    private int _physicsGeneration;
+    private TimeSpan? _lastPhysicsFrame;
+    private double? _settleElapsed;
+    private double _settleStartAngle;
+    private double _settleStartScale;
     private DateTime _lastMoveTime;
 
     public MainWindow()
     {
         InitializeComponent();
-#if DEBUG
-        this.AttachDevTools();
-#endif
         SetupDraggableLogo();
         SetupTitleBarDrag();
         SetupOptionsOverlay();
-        
-        _physicsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-        _physicsTimer.Tick += OnPhysicsTick;
     }
 
     private void InitializeComponent()
@@ -130,7 +129,7 @@ public partial class MainWindow : Window
             _lastLogoPosition = new Point(_logoTranslateTransform.X, _logoTranslateTransform.Y);
             _lastMoveTime = DateTime.UtcNow;
 
-            _physicsTimer.Stop();
+            StopPhysics();
             _logoVelocity = new Point(0, 0);
             _logoAngularVelocity = 0;
 
@@ -189,61 +188,91 @@ public partial class MainWindow : Window
     private void FinalizeLogoDrag()
     {
         _isDraggingLogo = false;
-        _physicsTimer.Start();
+        StartPhysics();
     }
 
-    private void OnPhysicsTick(object? sender, EventArgs e)
+    private void StartPhysics()
     {
-        const double friction = 0.95;
-        const double angularFriction = 0.92;
+        var generation = ++_physicsGeneration;
+        _physicsRunning = true;
+        _lastPhysicsFrame = null;
+        _settleElapsed = null;
+        RequestAnimationFrame(time => OnPhysicsFrame(time, generation));
+    }
+
+    private void StopPhysics()
+    {
+        _physicsGeneration++;
+        _physicsRunning = false;
+        _settleElapsed = null;
+    }
+
+    private void OnPhysicsFrame(TimeSpan time, int generation)
+    {
+        if (generation != _physicsGeneration) return;
+
+        var deltaTime = _lastPhysicsFrame is { } last ? Math.Clamp((time - last).TotalSeconds, 0, 0.05) : 1.0 / 60;
+        _lastPhysicsFrame = time;
+
+        var keepRunning = _settleElapsed.HasValue ? StepSettle(deltaTime) : StepPhysics(deltaTime);
+        if (keepRunning)
+            RequestAnimationFrame(next => OnPhysicsFrame(next, generation));
+        else
+            _physicsRunning = false;
+    }
+
+    private bool StepPhysics(double deltaTime)
+    {
         const double minVelocity = 5.0;
         const double minAngularVelocity = 0.5;
 
+        var frames = deltaTime / PhysicsReferenceFrame;
+        var friction = Math.Pow(0.95, frames);
         _logoVelocity = new Point(_logoVelocity.X * friction, _logoVelocity.Y * friction);
-        _logoAngularVelocity *= angularFriction;
+        _logoAngularVelocity *= Math.Pow(0.92, frames);
 
-        var deltaTime = 0.016;
         var newX = _logoTranslateTransform.X + _logoVelocity.X * deltaTime;
         var newY = _logoTranslateTransform.Y + _logoVelocity.Y * deltaTime;
-        
-        var unconstrainedPosition = new Point(newX, newY);
-        var constrainedPosition = ApplyBoundaryConstraints(unconstrainedPosition);
-        
+
+        var constrainedPosition = ApplyBoundaryConstraints(new Point(newX, newY));
+
         if (Math.Abs(constrainedPosition.X - newX) > 0.1) _logoVelocity = new Point(_logoVelocity.X * -0.4, _logoVelocity.Y * 0.8);
         if (Math.Abs(constrainedPosition.Y - newY) > 0.1) _logoVelocity = new Point(_logoVelocity.X * 0.8, _logoVelocity.Y * -0.4);
-        
+
         _logoTranslateTransform.X = constrainedPosition.X;
         _logoTranslateTransform.Y = constrainedPosition.Y;
 
         _logoRotateTransform.Angle += _logoAngularVelocity * deltaTime;
 
         var currentScale = _logoScaleTransform.ScaleX;
-        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = currentScale + (1.0 - currentScale) * 0.1;
+        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = currentScale + (1.0 - currentScale) * (1 - Math.Pow(0.9, frames));
 
         if (Math.Sqrt(_logoVelocity.X * _logoVelocity.X + _logoVelocity.Y * _logoVelocity.Y) < minVelocity && Math.Abs(_logoAngularVelocity) < minAngularVelocity)
         {
-            _physicsTimer.Stop();
-            // Final settle animation
-            var finalTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-            var startAngle = _logoRotateTransform.Angle;
-            var startScale = _logoScaleTransform.ScaleX;
-            var animTime = 0.0;
-            finalTimer.Tick += (_, _) =>
-            {
-                animTime += 0.016;
-                var progress = Math.Min(animTime / 0.5, 1.0);
-                var ease = 1 - Math.Pow(1 - progress, 3);
-                _logoRotateTransform.Angle = startAngle * (1 - ease);
-                _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = startScale + (1.0 - startScale) * ease;
-                if (progress >= 1.0) finalTimer.Stop();
-            };
-            finalTimer.Start();
+            _settleElapsed = 0;
+            _settleStartAngle = _logoRotateTransform.Angle;
+            _settleStartScale = _logoScaleTransform.ScaleX;
         }
+
+        return true;
+    }
+
+    private bool StepSettle(double deltaTime)
+    {
+        var elapsed = (_settleElapsed ?? 0) + deltaTime;
+        _settleElapsed = elapsed;
+
+        var progress = Math.Min(elapsed / 0.5, 1.0);
+        var ease = 1 - Math.Pow(1 - progress, 3);
+        _logoRotateTransform.Angle = _settleStartAngle * (1 - ease);
+        _logoScaleTransform.ScaleX = _logoScaleTransform.ScaleY = _settleStartScale + (1.0 - _settleStartScale) * ease;
+
+        return progress < 1.0;
     }
 
     private void OnLogoPointerEntered(object? sender, PointerEventArgs e)
     {
-        if (!_isDraggingLogo && !_physicsTimer.IsEnabled)
+        if (!_isDraggingLogo && !_physicsRunning)
         {
             ToolTip.SetTip(_logoImage, "You discovered me! Drag me around!");
         }

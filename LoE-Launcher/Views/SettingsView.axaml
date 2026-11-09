@@ -268,14 +268,12 @@
             <Setter Property="CaretBrush" Value="White" />
             <Setter Property="SelectionBrush" Value="{StaticResource GoldSelectionBrush}" />
             <Setter Property="SelectionForegroundBrush" Value="White" />
+            <Setter Property="PlaceholderForeground" Value="#80FFFFFF" />
         </Style>
         <Style Selector="TextBox.field /template/ Border#PART_BorderElement">
             <Setter Property="Background" Value="{StaticResource PlumPanelBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource GoldSoftBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-        </Style>
-        <Style Selector="TextBox.field /template/ TextBlock#PART_Watermark">
-            <Setter Property="Foreground" Value="#80FFFFFF" />
         </Style>
         <Style Selector="TextBox.field:pointerover">
             <Setter Property="Foreground" Value="White" />
@@ -590,10 +588,10 @@
                                         <StackPanel Spacing="10">
                                             <TextBox x:Name="testerUsername"
                                                      Classes="field"
-                                                     Watermark="Forum username"
+                                                     PlaceholderText="Forum username"
                                                      Text="{Binding Tester.Username, Mode=TwoWay}" />
                                             <TextBox Classes="field"
-                                                     Watermark="Password"
+                                                     PlaceholderText="Password"
                                                      PasswordChar="•"
                                                      Text="{Binding Tester.Password, Mode=TwoWay}" />
                                         </StackPanel>
