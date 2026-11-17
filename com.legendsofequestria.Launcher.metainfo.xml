@@ -68,9 +68,15 @@
   </content_rating>
 
   <releases>
+    <release version="1.6.1" date="2026-11-17">
+      <description>
+        <p>The Flatpak has a new app ID, com.legendsofequestria.Launcher, and a proper store listing.</p>
+        <p>Avalonia, the toolkit the launcher is built on, has been updated to 12.1.5 for a round of small fixes.</p>
+      </description>
+    </release>
     <release version="1.6.0" date="2026-11-08">
       <description>
-        <p>Moves the launcher to Avalonia 12. The draggable logo moves more smoothly.</p>
+        <p>The launcher now runs on Avalonia 12. Dragging and throwing the logo is smoother too.</p>
       </description>
     </release>
   </releases>
