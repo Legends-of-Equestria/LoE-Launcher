@@ -18,10 +18,8 @@ Platform-specific packaging scripts live under `.github/scripts` and are invoked
 
 ## Flatpak Build
 
-- Install Flatpak tooling (`flatpak install flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08`).
-- Publish the launcher into `Publish/Flatpak` with `bash .github/scripts/build-flatpak.sh`.
-- Build with `flatpak-builder --force-clean build-dir com.legendsofequestria.Launcher.json`.
-- The resulting bundle matches the Flathub manifest used in CI.
+- Install `flatpak` and `flatpak-builder` from your distribution.
+- Run `bash .github/scripts/build-flatpak.sh`. It publishes the launcher, installs the Flatpak SDK for your user if needed and writes the bundle to `Publish/Flatpak/LoE-Launcher-linux.flatpak`, the same way CI does.
 
 ## Privacy
 

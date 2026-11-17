@@ -28,7 +28,7 @@
             "sources": [
                 {
                     "type": "dir",
-                    "path": "Publish/Flatpak",
+                    "path": "build/flatpak/publish",
                     "dest": "launcher"
                 },
                 {

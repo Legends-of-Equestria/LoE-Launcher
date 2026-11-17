@@ -124,9 +124,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08@sha256:c91a88269eee8fcdd73ecf43064232fbebe27411f926f63f38bdf70c51f2ceae
-      options: --privileged
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -134,20 +131,22 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Publish
-        run: bash .github/scripts/build-flatpak.sh
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils
+          # Ubuntu blocks the unprivileged user namespaces Flatpak's sandbox needs
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
 
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
-        with:
-          bundle: LoE-Launcher-linux.flatpak
-          manifest-path: com.legendsofequestria.Launcher.json
-          cache-key: flatpak-builder-${{ github.sha }}
-          upload-artifact: false
+      - name: Build
+        run: bash .github/scripts/build-flatpak.sh
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-Flatpak
-          path: LoE-Launcher-linux.flatpak
+          path: Publish/Flatpak/LoE-Launcher-linux.flatpak
           if-no-files-found: error
 
   release:
