@@ -2,7 +2,7 @@
 Name=Legends of Equestria
 GenericName=Game Launcher
 Comment=Install, update and play Legends of Equestria
-Exec=LoE-Launcher
+Exec=start-loe-launcher
 Icon=com.legendsofequestria.Launcher
 Terminal=false
 Type=Application

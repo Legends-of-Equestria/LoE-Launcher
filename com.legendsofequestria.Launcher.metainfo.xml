@@ -71,6 +71,7 @@
     <release version="1.6.1" date="2026-11-17">
       <description>
         <p>The Flatpak has a new app ID, com.legendsofequestria.Launcher, and a proper store listing.</p>
+        <p>The game's Discord Rich Presence now works, provided that Discord is also installed as a Flatpak.</p>
         <p>Avalonia, the toolkit the launcher is built on, has been updated to 12.1.5 for a round of small fixes.</p>
       </description>
     </release>
